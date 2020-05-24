@@ -547,6 +547,8 @@ static const struct guninfo { const char *name, *file, *vwep; int attacks[Act_Nu
     { "pulse rifle", "pulserifle", "worldgun/pulserifle", { -1, Attack_PulseShoot, Attack_PulseMelee } }
 };
 
+#include "ai.h"
+
 // inherited by gameent and server clients
 struct gamestate
 {
@@ -749,6 +751,35 @@ namespace entities
 namespace game
 {
     extern int gamemode;
+
+    struct clientmode
+    {
+        virtual ~clientmode() {}
+
+        virtual void preload() {}
+        virtual float clipconsole(float w, float h) { return 0; }
+        virtual void drawhud(gameent *d, int w, int h) {}
+        virtual void rendergame() {}
+        virtual void respawned(gameent *d) {}
+        virtual void setup() {}
+        virtual void checkitems(gameent *d) {}
+        virtual int respawnwait(gameent *d) { return 0; }
+        virtual void pickspawn(gameent *d) { findplayerspawn(d, -1, modecheck(gamemode, Mode_Team) ? d->team : 0); }
+        virtual void senditems(packetbuf &p) {}
+        virtual void removeplayer(gameent *d) {}
+        virtual void gameover() {}
+        virtual bool hidefrags() { return false; }
+        virtual int getteamscore(int team) { return 0; }
+        virtual void getteamscores(vector<teamscore> &scores) {}
+        virtual void aifind(gameent *d, ai::aistate &b, vector<ai::interest> &interests) {}
+        virtual bool aicheck(gameent *d, ai::aistate &b) { return false; }
+        virtual bool aidefend(gameent *d, ai::aistate &b) { return false; }
+        virtual bool aipursue(gameent *d, ai::aistate &b) { return false; }
+    };
+
+    extern clientmode *cmode;
+    extern void setclientmode();
+
     // game
     extern int nextmode;
     extern string clientmap;
@@ -807,6 +838,30 @@ namespace game
     extern void changemap(const char *name, int mode);
     extern void c2sinfo(bool force = false);
     extern void sendposition(gameent *d, bool reliable = false);
+
+    // weapon
+    extern int getweapon(const char *name);
+    extern void shoot(gameent *d, const vec &targ);
+    extern void shoteffects(int atk, const vec &from, const vec &to, gameent *d, bool local, int id, int prevaction);
+    extern void explode(bool local, gameent *owner, const vec &v, const vec &vel, dynent *safe, int dam, int atk);
+    extern void explodeeffects(int atk, gameent *d, bool local, int id = 0);
+    extern void damageeffect(int damage, gameent *d, bool thirdperson = true);
+    extern float intersectdist;
+    extern bool intersect(dynent *d, const vec &from, const vec &to, float margin = 0, float &dist = intersectdist);
+    extern dynent *intersectclosest(const vec &from, const vec &to, gameent *at, float margin = 0, float &dist = intersectdist);
+    extern void clearbouncers();
+    extern void updatebouncers(int curtime);
+    extern void removebouncers(gameent *owner);
+    extern void renderbouncers();
+    extern void clearprojectiles();
+    extern void updateprojectiles(int curtime);
+    extern void removeprojectiles(gameent *owner);
+    extern void renderprojectiles();
+    extern void removeweapons(gameent *owner);
+    extern void updateweapons(int curtime);
+    extern void gunselect(int gun, gameent *d);
+    extern void weaponswitch(gameent *d);
+    extern void avoidweapons(ai::avoidset &obstacles, float radius);
 
     // scoreboard
     extern void showscores(bool on);

@@ -36,6 +36,11 @@
   #define ZLIB_DLL
 #endif
 
+#ifndef STANDALONE
+    #include <SDL.h>
+    #include <SDL_opengl.h>
+#endif
+
 #include <enet/enet.h>
 
 #include <zlib.h>
@@ -43,9 +48,10 @@
 #include "tools.h"
 #include "geom.h"
 #include "ents.h"
+#include "command.h"
+
 #include "iengine.h"
 #include "igame.h"
-#include "consts.h"
 
 #endif
 

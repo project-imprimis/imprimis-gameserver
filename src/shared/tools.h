@@ -580,6 +580,18 @@ inline bool htcmp(int x, int y)
     return x==y;
 }
 
+#ifndef STANDALONE
+inline uint hthash(GLuint key)
+{
+    return key;
+}
+
+inline bool htcmp(GLuint x, GLuint y)
+{
+    return x==y;
+}
+#endif
+
 template <class T> struct vector
 {
     static const int MINSIZE = 8;
@@ -1305,6 +1317,10 @@ struct stream
     template<class T> T get() { T n; return read(&n, sizeof(n)) == sizeof(n) ? n : 0; }
     template<class T> T getlil() { return LIL_ENDIAN_SWAP(get<T>()); }
     template<class T> T getbig() { return BIG_SWAP(get<T>()); }
+
+#ifndef STANDALONE
+    SDL_RWops *rwops();
+#endif
 };
 
 template<class T>
@@ -1415,18 +1431,6 @@ struct ipmask
     int print(char *buf) const;
     bool check(enet_uint32 host) const { return (host & mask) == ip; }
 };
-
-    void fatal(const char *format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        
-        lprintf(LogLevel::Fatal, format, args);
-
-        va_end(args);
-
-        exit(EXIT_FAILURE);
-    }
 
 #endif
 

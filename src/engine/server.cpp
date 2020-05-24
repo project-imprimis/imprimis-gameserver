@@ -1,10 +1,9 @@
 // server.cpp: little more than enhanced multicaster
 // runs dedicated or as client coroutine
 
-#include "game.h"
+#include "engine.h"
 
 #define LOGSTRLEN 512
-#define MAXCLIENTS 64
 
 static FILE *logfile = NULL;
 
@@ -71,6 +70,47 @@ static void writelogv(FILE *file, const char *fmt, va_list args)
     vformatstring(buf, fmt, args, sizeof(buf));
     writelog(file, buf);
 }
+
+
+void fatal(const char *fmt, ...)
+{
+    void cleanupserver();
+    cleanupserver();
+    DEFV_FORMAT_STRING(msg,fmt,fmt);
+    if(logfile)
+    {
+        logoutf("%s", msg);
+    }
+#ifdef WIN32
+    MessageBox(NULL, msg, "Tesseract fatal error", MB_OK|MB_SYSTEMMODAL);
+#else
+    fprintf(stderr, "server error: %s\n", msg);
+#endif
+    closelogfile();
+    exit(EXIT_FAILURE);
+}
+
+void conoutfv(int type, const char *fmt, va_list args)
+{
+    logoutfv(fmt, args);
+}
+
+void conoutf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    conoutfv(Console_Info, fmt, args);
+    va_end(args);
+}
+
+void conoutf(int type, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    conoutfv(type, fmt, args);
+    va_end(args);
+}
+
 
 #define DEFAULTCLIENTS 8
 
@@ -508,7 +548,6 @@ int connectwithtimeout(ENetSocket sock, const char *hostname, const ENetAddress 
 {
     return enet_socket_connect(sock, &remoteaddress);
 }
-
 
 ENetSocket mastersock = ENET_SOCKET_NULL;
 ENetAddress masteraddress = { ENET_HOST_ANY, ENET_PORT_ANY },
@@ -1252,6 +1291,20 @@ static char *parsecommandline(const char *src, vector<char *> &args)
     }
     args.add(NULL);
     return buf;
+}
+
+
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
+{
+    vector<char *> args;
+    char *buf = parsecommandline(GetCommandLine(), args);
+    appinstance = hInst;
+    int standalonemain(int argc, char **argv);
+    int status = standalonemain(args.length()-1, args.getbuf());
+    #define main standalonemain
+    delete[] buf;
+    exit(status);
+    return 0;
 }
 
 void logoutfv(const char *fmt, va_list args)

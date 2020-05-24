@@ -1,5 +1,4 @@
 #include "game.h"
-#include "engine.h"
 
 //server game handling
 //includes:
@@ -376,6 +375,20 @@ namespace server
         uint ip;
     };
 
+    namespace aiman
+    {
+        extern void removeai(clientinfo *ci);
+        extern void clearai();
+        extern void checkai();
+        extern void reqadd(clientinfo *ci, int skill);
+        extern void reqdel(clientinfo *ci);
+        extern void setbotlimit(clientinfo *ci, int limit);
+        extern void setbotbalance(clientinfo *ci, bool balance);
+        extern void changemap();
+        extern void addclient(clientinfo *ci);
+        extern void changeteam(clientinfo *ci);
+    }
+
     #define MM_MODE 0xF
     #define MM_AUTOAPPROVE 0x1000
     #define MM_PRIVSERV (MM_MODE | MM_AUTOAPPROVE)
@@ -666,6 +679,26 @@ namespace server
     bool demonextmatch = false;
     stream *demotmp = NULL, *demorecord = NULL, *demoplayback = NULL;
     int nextplayback = 0, demomillis = 0;
+
+    VAR(maxdemos, 0, 5, 25);
+    VAR(maxdemosize, 0, 16, 31);
+    VAR(restrictdemos, 0, 1, 1);
+
+    VAR(restrictpausegame, 0, 1, 1);
+    VAR(restrictgamespeed, 0, 1, 1);
+
+    SVAR(serverdesc, "");
+    SVAR(serverpass, "");
+    SVAR(adminpass, "");
+    VARF(publicserver, 0, 0, 2, {
+        switch(publicserver)
+        {
+            case 0: default: mastermask = MM_PRIVSERV; break;
+            case 1: mastermask = MM_PUBSERV; break;
+            case 2: mastermask = MM_COOPSERV; break;
+        }
+    });
+    SVAR(servermotd, "");
 
     struct teamkillkick
     {
@@ -1422,6 +1455,12 @@ namespace server
         return !strcmp(hash, given);
     }
 
+    void revokemaster(clientinfo *ci)
+    {
+        ci->privilege = Priv_None;
+        if(ci->state.state==ClientState_Spectator && !ci->local) aiman::removeai(ci);
+    }
+
     extern void connected(clientinfo *ci);
 
     bool setmaster(clientinfo *ci, bool val, const char *pass = "", const char *authname = NULL, const char *authdesc = NULL, int authpriv = Priv_Master, bool force = false, bool trial = false)
@@ -1710,6 +1749,96 @@ namespace server
         else ci.wslen += len;
     }
 
+    static void sendmessages(worldstate &ws, ucharbuf &wsbuf)
+    {
+        if(wsbuf.empty()) return;
+        int wslen = wsbuf.length();
+        recordpacket(1, wsbuf.buf, wslen);
+        wsbuf.put(wsbuf.buf, wslen);
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo &ci = *clients[i];
+            if(ci.state.aitype != AI_None) continue;
+            uchar *data = wsbuf.buf;
+            int size = wslen;
+            if(ci.wsdata >= wsbuf.buf) { data = ci.wsdata + ci.wslen; size -= ci.wslen; }
+            if(size <= 0) continue;
+            ENetPacket *packet = enet_packet_create(data, size, (reliablemessages ? ENET_PACKET_FLAG_RELIABLE : 0) | ENET_PACKET_FLAG_NO_ALLOCATE);
+            sendpacket(ci.clientnum, 1, packet);
+            if(packet->referenceCount) { ws.uses++; packet->freeCallback = cleanworldstate; }
+            else enet_packet_destroy(packet);
+        }
+        wsbuf.offset(wsbuf.length());
+    }
+
+    static inline void addmessages(worldstate &ws, ucharbuf &wsbuf, int mtu, clientinfo &bi, clientinfo &ci)
+    {
+        if(bi.messages.empty()) return;
+        if(wsbuf.length() + 10 + bi.messages.length() > mtu) sendmessages(ws, wsbuf);
+        int offset = wsbuf.length();
+        putint(wsbuf, NetMsg_Client);
+        putint(wsbuf, bi.clientnum);
+        putuint(wsbuf, bi.messages.length());
+        wsbuf.put(bi.messages.getbuf(), bi.messages.length());
+        bi.messages.setsize(0);
+        int len = wsbuf.length() - offset;
+        if(ci.wsdata < wsbuf.buf) { ci.wsdata = &wsbuf.buf[offset]; ci.wslen = len; }
+        else ci.wslen += len;
+    }
+
+    bool buildworldstate()
+    {
+        int wsmax = 0;
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo &ci = *clients[i];
+            ci.overflow = 0;
+            ci.wsdata = NULL;
+            wsmax += ci.position.length();
+            if(ci.messages.length()) wsmax += 10 + ci.messages.length();
+        }
+        if(wsmax <= 0)
+        {
+            reliablemessages = false;
+            return false;
+        }
+        worldstate &ws = worldstates.add();
+        ws.setup(2*wsmax);
+        int mtu = getservermtu() - 100;
+        if(mtu <= 0) mtu = ws.len;
+        ucharbuf wsbuf(ws.data, ws.len);
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo &ci = *clients[i];
+            if(ci.state.aitype != AI_None) continue;
+            addposition(ws, wsbuf, mtu, ci, ci);
+            for(int j = 0; j < ci.bots.length(); j++)
+            {
+                addposition(ws, wsbuf, mtu, *ci.bots[j], ci);
+            }
+        }
+        sendpositions(ws, wsbuf);
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo &ci = *clients[i];
+            if(ci.state.aitype != AI_None)
+            {
+                continue;
+            }
+            addmessages(ws, wsbuf, mtu, ci, ci);
+            for(int j = 0; j < ci.bots.length(); j++)
+            {
+                addmessages(ws, wsbuf, mtu, *ci.bots[j], ci);
+            }
+        }
+        sendmessages(ws, wsbuf);
+        reliablemessages = false;
+        if(ws.uses) return true;
+        ws.cleanup();
+        worldstates.drop();
+        return false;
+    }
+
     bool sendpackets(bool force)
     {
         if(clients.empty() || (!hasnonlocalclients() && !demorecord)) return false;
@@ -1976,6 +2105,81 @@ namespace server
         notgotitems = false;
     }
 
+    void changemap(const char *s, int mode)
+    {
+        stopdemo();
+        pausegame(false);
+        changegamespeed(100);
+        if(smode) smode->cleanup();
+        aiman::clearai();
+
+        gamemode = mode;
+        gamemillis = 0;
+        gamelimit = (modecheck(gamemode, Mode_AllowOvertime) ? 15 : 10)*60000; //15 minute max in OT
+        interm = 0;
+        nextexceeded = 0;
+        copystring(smapname, s);
+        loaditems();
+        scores.shrink(0);
+        shouldcheckteamkills = false;
+        teamkills.shrink(0);
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo *ci = clients[i];
+            ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
+        }
+
+        if(modecheck(gamemode, Mode_LocalOnly)) kicknonlocalclients(Discon_Local);
+
+        sendf(-1, 1, "risii", NetMsg_MapChange, smapname, gamemode, 1);
+
+        clearteaminfo();
+        if(modecheck(gamemode, Mode_Team)) autoteam();
+
+        if(modecheck(gamemode, Mode_CTF)) smode = &ctfmode;
+        else smode = NULL;
+
+        if(!modecheck(gamemode, Mode_Untimed) && smapname[0]) sendf(-1, 1, "ri2", NetMsg_TimeUp, gamemillis < gamelimit && !interm ? max((gamelimit - gamemillis)/1000, 1) : 0);
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo *ci = clients[i];
+            ci->mapchange();
+            ci->state.lasttimeplayed = lastmillis;
+            if(!modecheck(gamemode, Mode_LocalOnly) && ci->state.state!=ClientState_Spectator) sendspawn(ci);
+        }
+
+        aiman::changemap();
+
+        if(modecheck(gamemode, Mode_Demo))
+        {
+            if(clients.length()) setupdemoplayback();
+        }
+        else if(demonextmatch)
+        {
+            demonextmatch = false;
+            setupdemorecord();
+        }
+
+        if(smode) smode->setup();
+    }
+
+    void rotatemap(bool next)
+    {
+        if(!maprotations.inrange(curmaprotation))
+        {
+            changemap("", 0);
+            return;
+        }
+        if(next)
+        {
+            curmaprotation = findmaprotation(gamemode, smapname);
+            if(curmaprotation >= 0) nextmaprotation();
+            else curmaprotation = smapname[0] ? max(findmaprotation(gamemode, ""), 0) : 0;
+        }
+        maprotation &rot = maprotations[curmaprotation];
+        changemap(rot.map, rot.findmode(gamemode));
+    }
+
     struct votecount
     {
         char *map;
@@ -1984,7 +2188,188 @@ namespace server
         votecount(char *s, int n) : map(s), mode(n), count(0) {}
     };
 
+    void checkvotes(bool force = false)
+    {
+        vector<votecount> votes;
+        int maxvotes = 0;
+        for(int i = 0; i < clients.length(); i++)
+        {
+            clientinfo *oi = clients[i];
+            if(oi->state.state==ClientState_Spectator && !oi->privilege && !oi->local) continue;
+            if(oi->state.aitype!=AI_None) continue;
+            maxvotes++;
+            if(!MODE_VALID(oi->modevote)) continue;
+            votecount *vc = NULL;
+            for(int j = 0; j < votes.length(); j++)
+            {
+                if(!strcmp(oi->mapvote, votes[j].map) && oi->modevote==votes[j].mode)
+                {
+                    vc = &votes[j];
+                    break;
+                }
+            }
+            if(!vc)
+            {
+                vc = &votes.add(votecount(oi->mapvote, oi->modevote));
+            }
+            vc->count++;
+        }
+        votecount *best = NULL;
+        for(int i = 0; i < votes.length(); i++)
+        {
+            if(!best || votes[i].count > best->count || (votes[i].count == best->count && randomint(2)))
+            {
+                best = &votes[i];
+            }
+        }
+        if(force || (best && best->count > maxvotes/2))
+        {
+            if(demorecord) enddemorecord();
+            if(best && (best->count > (force ? 1 : maxvotes/2)))
+            {
+                sendservmsg(force ? "vote passed by default" : "vote passed by majority");
+                changemap(best->map, best->mode);
+            }
+            else rotatemap(true);
+        }
+    }
+
+    void forcemap(const char *map, int mode)
+    {
+        stopdemo();
+        if(!map[0] && !modecheck(mode, Mode_Edit))
+        {
+            int idx = findmaprotation(mode, smapname);
+            if(idx < 0 && smapname[0]) idx = findmaprotation(mode, "");
+            if(idx < 0) return;
+            map = maprotations[idx].map;
+        }
+        if(hasnonlocalclients()) sendservmsgf("local player forced %s on map %s", modeprettyname(mode), map[0] ? map : "[new map]");
+        changemap(map, mode);
+    }
+
+    void vote(const char *map, int reqmode, int sender)
+    {
+        clientinfo *ci = getinfo(sender);
+        if(!ci || (ci->state.state==ClientState_Spectator && !ci->privilege && !ci->local) || (!ci->local && modecheck(reqmode, Mode_LocalOnly))) return;
+        if(!MODE_VALID(reqmode)) return;
+        if(!map[0] && !modecheck(reqmode, Mode_Edit))
+        {
+            int idx = findmaprotation(reqmode, smapname);
+            if(idx < 0 && smapname[0]) idx = findmaprotation(reqmode, "");
+            if(idx < 0) return;
+            map = maprotations[idx].map;
+        }
+        if(lockmaprotation && !ci->local && ci->privilege < (lockmaprotation > 1 ? Priv_Admin : Priv_Master) && findmaprotation(reqmode, map) < 0)
+        {
+            sendf(sender, 1, "ris", NetMsg_ServerMsg, "This server has locked the map rotation.");
+            return;
+        }
+        copystring(ci->mapvote, map);
+        ci->modevote = reqmode;
+        if(ci->local || (ci->privilege && mastermode>=MasterMode_Veto))
+        {
+            if(demorecord) enddemorecord();
+            if(!ci->local || hasnonlocalclients())
+                sendservmsgf("%s forced %s on map %s", colorname(ci), modeprettyname(ci->modevote), ci->mapvote[0] ? ci->mapvote : "[new map]");
+            changemap(ci->mapvote, ci->modevote);
+        }
+        else
+        {
+            sendservmsgf("%s suggests %s on map %s (select map to vote)", colorname(ci), modeprettyname(reqmode), map[0] ? map : "[new map]");
+            checkvotes();
+        }
+    }
+
+    void checkintermission()
+    {
+        if(gamemillis >= gamelimit && !interm)
+        {
+            sendf(-1, 1, "ri2", NetMsg_TimeUp, 0);
+            if(smode) smode->intermission();
+            changegamespeed(100);
+            interm = gamemillis + 10000;
+        }
+    }
+
     void startintermission() { gamelimit = min(gamelimit, gamemillis); checkintermission(); }
+
+    void dodamage(clientinfo *target, clientinfo *actor, int damage, int atk, const vec &hitpush = vec(0, 0, 0))
+    {
+        servstate &ts = target->state;
+        ts.dodamage(damage);
+        if(target!=actor && !modecheck(gamemode, Mode_Team) && target->team != actor->team) actor->state.damage += damage;
+        sendf(-1, 1, "ri5", NetMsg_Damage, target->clientnum, actor->clientnum, damage, ts.health);
+        if(target==actor) target->setpushed();
+        else if(!hitpush.iszero())
+        {
+            ivec v(vec(hitpush).rescale(DNF));
+            sendf(ts.health<=0 ? -1 : target->ownernum, 1, "ri7", NetMsg_Hitpush, target->clientnum, atk, damage, v.x, v.y, v.z);
+            target->setpushed();
+        }
+        if(ts.health<=0)
+        {
+            target->state.deaths++;
+            int fragvalue = smode ? smode->fragvalue(target, actor) : (target==actor || (modecheck(gamemode, Mode_Team) && (target->team == actor->team)) ? -1 : 1);
+            actor->state.frags += fragvalue;
+            if(fragvalue>0)
+            {
+                int friends = 0, enemies = 0; // note: friends also includes the fragger
+                if(modecheck(gamemode, Mode_Team))
+                {
+                    for(int i = 0; i < clients.length(); i++)
+                    {
+                        if(clients[i]->team != actor->team)
+                        {
+                            enemies++;
+                        }
+                        else
+                        {
+                            friends++;
+                        }
+                    }
+                }
+                else
+                {
+                    friends = 1;
+                    enemies = clients.length()-1;
+                }
+                actor->state.effectiveness += fragvalue*friends/float(max(enemies, 1));
+            }
+            teaminfo *t = modecheck(gamemode, Mode_Team) && VALID_TEAM(actor->team) ? &teaminfos[actor->team-1] : NULL;
+            if(t) t->frags += fragvalue;
+            sendf(-1, 1, "ri5", NetMsg_Died, target->clientnum, actor->clientnum, actor->state.frags, t ? t->frags : 0);
+            target->position.setsize(0);
+            if(smode) smode->died(target, actor);
+            ts.state = ClientState_Dead;
+            ts.lastdeath = gamemillis;
+            if(actor!=target && modecheck(gamemode, Mode_Team) && actor->team == target->team)
+            {
+                actor->state.teamkills++;
+                addteamkill(actor, target, 1);
+            }
+            ts.deadflush = ts.lastdeath + DEATHMILLIS;
+            // don't issue respawn yet until DEATHMILLIS has elapsed
+            // ts.respawn();
+        }
+    }
+
+    void suicide(clientinfo *ci)
+    {
+        servstate &gs = ci->state;
+        if(gs.state!=ClientState_Alive) return;
+        int fragvalue = smode ? smode->fragvalue(ci, ci) : -1;
+        ci->state.frags += fragvalue;
+        ci->state.deaths++;
+        teaminfo *t = modecheck(gamemode, Mode_Team) && VALID_TEAM(ci->team) ? &teaminfos[ci->team-1] : NULL;
+        if(t) t->frags += fragvalue;
+        sendf(-1, 1, "ri5", NetMsg_Died, ci->clientnum, ci->clientnum, gs.frags, t ? t->frags : 0);
+        ci->position.setsize(0);
+        if(smode) smode->died(ci, NULL);
+        gs.state = ClientState_Dead;
+        gs.lastdeath = gamemillis;
+        gs.respawn();
+    }
 
     void suicideevent::process(clientinfo *ci)
     {
@@ -2734,6 +3119,9 @@ namespace server
         if(servermotd[0]) sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, servermotd);
     }
 
+    void parsepacket(int sender, int chan, packetbuf &p)     // has to parse exactly each byte of the packet
+    {
+    }
 #undef QUEUE_STR
 #undef QUEUE_BUF
 #undef QUEUE_MSG
@@ -2950,4 +3338,464 @@ namespace server
     {
         return PROTOCOL_VERSION;
     }
+    // server-side ai manager
+    // note that server does not handle actual bot logic,
+    // which is offloaded to the clients with the best connection
+    namespace aiman
+    {
+        bool dorefresh = false, botbalance = true;
+        VARN(serverbotlimit, botlimit, 0, 8, MAXBOTS);
+        VAR(serverbotbalance, 0, 1, 1);
+
+        void calcteams(vector<teamscore> &teams)
+        {
+            for(int i = 0; i < clients.length(); i++)
+            {
+                clientinfo *ci = clients[i];
+                if(ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
+                {
+                    continue;
+                }
+                teamscore *t = NULL;
+                for(int j = 0; j < teams.length(); j++)
+                {
+                    if(teams[j].team == ci->team)
+                    {
+                        t = &teams[j];
+                        break;
+                    }
+                }
+                if(t)
+                {
+                    t->score++;
+                }
+                else
+                {
+                    teams.add(teamscore(ci->team, 1));
+                }
+            }
+            teams.sort(teamscore::compare);
+            if(teams.length() < MAXTEAMS)
+            {
+                for(int i = 0; i < MAXTEAMS; ++i)
+                {
+                    if(teams.htfind(1+i) < 0)
+                    {
+                        teams.add(teamscore(1+i, 0));
+                    }
+                }
+            }
+        }
+
+        void balanceteams()
+        {
+            vector<teamscore> teams;
+            calcteams(teams);
+            vector<clientinfo *> reassign;
+            for(int i = 0; i < bots.length(); i++)
+            {
+                if(bots[i])
+                {
+                    reassign.add(bots[i]);
+                }
+            }
+            while(reassign.length() && teams.length() && teams[0].score > teams.last().score + 1)
+            {
+                teamscore &t = teams.last();
+                clientinfo *bot = NULL;
+                for(int i = 0; i < reassign.length(); i++)
+                {
+                    if(reassign[i] && reassign[i]->team != teams[0].team)
+                    {
+                        bot = reassign.removeunordered(i);
+                        teams[0].score--;
+                        t.score++;
+                        for(int j = teams.length() - 2; j >= 0; j--) //note reverse iteration
+                        {
+                            if(teams[j].score >= teams[j+1].score)
+                            {
+                                break;
+                            }
+                            swap(teams[j], teams[j+1]);
+                        }
+                        break;
+                    }
+                }
+                if(bot)
+                {
+                    if(smode && bot->state.state==ClientState_Alive)
+                    {
+                        smode->changeteam(bot, bot->team, t.team);
+                    }
+                    bot->team = t.team;
+                    sendf(-1, 1, "riiii", NetMsg_SetTeam, bot->clientnum, bot->team, 0);
+                }
+                else
+                {
+                    teams.remove(0, 1);
+                }
+            }
+        }
+
+        int chooseteam()
+        {
+            vector<teamscore> teams;
+            calcteams(teams);
+            return teams.length() ? teams.last().team : 0;
+        }
+
+        //this fxn could be entirely in the return statement but is seperated for clarity
+        static inline bool validaiclient(clientinfo *ci)
+        {
+            if(ci->clientnum >= 0 && ci->state.aitype == AI_None)
+            {
+                if(ci->state.state!=ClientState_Spectator || ci->local || (ci->privilege && !ci->warned))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        clientinfo *findaiclient(clientinfo *exclude = NULL)
+        {
+            clientinfo *least = NULL;
+            for(int i = 0; i < clients.length(); i++)
+            {
+                clientinfo *ci = clients[i];
+                if(!validaiclient(ci) || ci==exclude)
+                {
+                    continue;
+                }
+                if(!least || ci->bots.length() < least->bots.length())
+                {
+                    least = ci;
+                }
+            }
+            return least;
+        }
+
+        bool addai(int skill, int limit)
+        {
+            int numai = 0,
+                cn = -1,
+                maxai = limit >= 0 ? min(limit, MAXBOTS) : MAXBOTS;
+            for(int i = 0; i < bots.length(); i++)
+            {
+                clientinfo *ci = bots[i];
+                if(!ci || ci->ownernum < 0)
+                {
+                    if(cn < 0)
+                    {
+                        cn = i;
+                        continue;
+                    }
+                }
+                numai++;
+            }
+            if(numai >= maxai)
+            {
+                return false;
+            }
+            if(bots.inrange(cn))
+            {
+                clientinfo *ci = bots[cn];
+                if(ci)
+                { // reuse a slot that was going to removed
+
+                    clientinfo *owner = findaiclient();
+                    ci->ownernum = owner ? owner->clientnum : -1;
+                    if(owner)
+                    {
+                        owner->bots.add(ci);
+                    }
+                    ci->aireinit = 2;
+                    dorefresh = true;
+                    return true;
+                }
+            }
+            else
+            {
+                cn = bots.length();
+                bots.add(NULL);
+            }
+            int team = modecheck(gamemode, Mode_Team) ? chooseteam() : 0;
+            if(!bots[cn])
+            {
+                bots[cn] = new clientinfo;
+            }
+            clientinfo *ci = bots[cn];
+            ci->clientnum = MAXCLIENTS + cn;
+            ci->state.aitype = AI_Bot;
+            clientinfo *owner = findaiclient();
+            ci->ownernum = owner ? owner->clientnum : -1;
+            if(owner)
+            {
+                owner->bots.add(ci);
+            }
+            ci->state.skill = skill <= 0 ? randomint(50) + 51 : clamp(skill, 1, 101);
+            clients.add(ci);
+            ci->state.lasttimeplayed = lastmillis;
+            copystring(ci->name, "bot", MAXNAMELEN+1);
+            ci->state.state = ClientState_Dead;
+            ci->team = team;
+            ci->playermodel = randomint(128);
+            ci->playercolor = randomint(0x8000);
+            ci->aireinit = 2;
+            ci->connected = true;
+            dorefresh = true;
+            return true;
+        }
+
+        void deleteai(clientinfo *ci)
+        {
+            int cn = ci->clientnum - MAXCLIENTS;
+            if(!bots.inrange(cn))
+            {
+                return;
+            }
+            if(ci->ownernum >= 0 && !ci->aireinit && smode)
+            {
+                smode->leavegame(ci, true);
+            }
+            sendf(-1, 1, "ri2", NetMsg_ClientDiscon, ci->clientnum);
+            clientinfo *owner = (clientinfo *)getclientinfo(ci->ownernum);
+            if(owner)
+            {
+                owner->bots.removeobj(ci);
+            }
+            clients.removeobj(ci);
+            DELETEP(bots[cn]);
+            dorefresh = true;
+        }
+
+        bool deleteai()
+        {
+            for(int i = bots.length(); --i >=0;) //note reverse iteration
+            {
+                if(bots[i] && bots[i]->ownernum >= 0)
+                {
+                    deleteai(bots[i]);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        void reinitai(clientinfo *ci)
+        {
+            if(ci->ownernum < 0)
+            {
+                deleteai(ci);
+            }
+            else if(ci->aireinit >= 1)
+            {
+                //send packet out w/ info
+                sendf(-1, 1, "ri8s", NetMsg_InitAI, ci->clientnum, ci->ownernum, ci->state.aitype, ci->state.skill, ci->playermodel, ci->playercolor, ci->team, ci->name);
+                if(ci->aireinit == 2)
+                {
+                    ci->reassign();
+                    if(ci->state.state==ClientState_Alive)
+                    {
+                        sendspawn(ci);
+                    }
+                    else
+                    {
+                        sendresume(ci);
+                    }
+                }
+                ci->aireinit = 0;
+            }
+        }
+
+        void shiftai(clientinfo *ci, clientinfo *owner = NULL)
+        {
+            if(ci->ownernum >= 0 && !ci->aireinit && smode)
+            {
+                smode->leavegame(ci, true);
+            }
+            clientinfo *prevowner = (clientinfo *)getclientinfo(ci->ownernum);
+            if(prevowner)
+            {
+                prevowner->bots.removeobj(ci);
+            }
+            if(!owner)
+            {
+                ci->aireinit = 0;
+                ci->ownernum = -1;
+            }
+            else if(ci->ownernum != owner->clientnum)
+            {
+                ci->aireinit = 2;
+                ci->ownernum = owner->clientnum;
+                owner->bots.add(ci);
+            }
+            dorefresh = true;
+        }
+
+        void removeai(clientinfo *ci)
+        { // either schedules a removal, or someone else to assign to
+
+            for(int i = ci->bots.length(); --i >=0;) //note reverse iteration
+            {
+                shiftai(ci->bots[i], findaiclient(ci));
+            }
+        }
+
+        bool reassignai()
+        {
+            clientinfo *hi = NULL, *lo = NULL;
+            for(int i = 0; i < clients.length(); i++)
+            {
+                clientinfo *ci = clients[i];
+                if(!validaiclient(ci))
+                {
+                    continue;
+                }
+                if(!lo || ci->bots.length() < lo->bots.length())
+                {
+                    lo = ci;
+                }
+                if(!hi || ci->bots.length() > hi->bots.length())
+                {
+                    hi = ci;
+                }
+            }
+            if(hi && lo && hi->bots.length() - lo->bots.length() > 1)
+            {
+                for(int i = hi->bots.length(); --i >=0;) //note reverse iteration
+                {
+                    shiftai(hi->bots[i], lo);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        void checksetup()
+        {
+            if(modecheck(gamemode, Mode_Team) && botbalance)
+            {
+                balanceteams();
+            }
+            for(int i = bots.length(); --i >=0;) //note reverse iteration
+            {
+                if(bots[i])
+                {
+                    reinitai(bots[i]);
+                }
+            }
+        }
+
+        void clearai()
+        { // clear and remove all ai immediately
+            for(int i = bots.length(); --i >=0;) //note reverse iteration
+            {
+                if(bots[i])
+                {
+                    deleteai(bots[i]);
+                }
+            }
+        }
+
+        void checkai()
+        {
+            if(!dorefresh)
+            {
+                return;
+            }
+            dorefresh = false;
+            if(!modecheck(gamemode, Mode_Bot) && numclients(-1, false, true))
+            {
+                checksetup();
+            }
+            else
+            {
+                clearai();
+            }
+        }
+
+        void reqadd(clientinfo *ci, int skill)
+        {
+            if(!ci->local && !ci->privilege)
+            {
+                return;
+            }
+            if(!addai(skill, !ci->local && ci->privilege < Priv_Admin ? botlimit : -1))
+            {
+                sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "failed to create or assign bot");
+            }
+        }
+
+        void reqdel(clientinfo *ci)
+        {
+            if(!ci->local && !ci->privilege)
+            {
+                return;
+            }
+            if(!deleteai())
+            {
+                sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "failed to remove any bots");
+            }
+        }
+
+        void setbotlimit(clientinfo *ci, int limit)
+        {
+            if(ci && !ci->local && ci->privilege < Priv_Admin)
+            {
+                return;
+            }
+            botlimit = clamp(limit, 0, MAXBOTS);
+            dorefresh = true;
+            DEF_FORMAT_STRING(msg, "bot limit is now %d", botlimit);
+            sendservmsg(msg);
+        }
+
+        void setbotbalance(clientinfo *ci, bool balance)
+        {
+            if(ci && !ci->local && !ci->privilege)
+            {
+                return;
+            }
+            botbalance = balance ? 1 : 0;
+            dorefresh = true;
+            DEF_FORMAT_STRING(msg, "bot team balancing is now %s", botbalance ? "enabled" : "disabled");
+            sendservmsg(msg);
+        }
+
+
+        void changemap()
+        {
+            dorefresh = true;
+            for(int i = 0; i < clients.length(); i++)
+            {
+                if(clients[i]->local || clients[i]->privilege)
+                {
+                    return;
+                }
+            }
+            if(botbalance != (serverbotbalance != 0))
+            {
+                setbotbalance(NULL, serverbotbalance != 0);
+            }
+        }
+
+        void addclient(clientinfo *ci)
+        {
+            if(ci->state.aitype == AI_None)
+            {
+                dorefresh = true;
+            }
+        }
+
+        void changeteam(clientinfo *ci)
+        {
+            if(ci->state.aitype == AI_None)
+            {
+                dorefresh = true;
+            }
+        }
+    }
 }
+
