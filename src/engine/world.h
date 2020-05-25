@@ -48,12 +48,3 @@ enum
 };
 
 #define TEX_SCALE 16.0f
-
-struct vertex
-{
-    vec pos;
-    bvec4 norm;
-    vec tc;
-    bvec4 tangent;
-};
-

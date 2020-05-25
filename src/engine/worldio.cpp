@@ -130,10 +130,7 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
         LIL_ENDIAN_SWAP(&e.attr1, 5);
         fixent(e, hdr.version);
         if(eif > 0) f->seek(eif, SEEK_CUR);
-        if(samegame)
-        {
-            entities::readent(e, NULL, hdr.version);
-        }
+
         else if(e.type>=EngineEnt_GameSpecific)
         {
             ents.pop();

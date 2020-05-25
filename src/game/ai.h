@@ -11,58 +11,6 @@ enum
 
 namespace ai
 {
-    const int MAXWAYPOINTS = USHRT_MAX - 2;
-    const int MAXWAYPOINTLINKS = 6;
-    const int WAYPOINTRADIUS = 16;
-
-    const float MINWPDIST       = 4.f;     // is on top of
-    const float CLOSEDIST       = 32.f;    // is close
-    const float FARDIST         = 128.f;   // too far to remap close
-    const float JUMPMIN         = 4.f;     // decides to jump
-    const float JUMPMAX         = 32.f;    // max jump
-    const float SIGHTMIN        = 64.f;    // minimum line of sight
-    const float SIGHTMAX        = 1024.f;  // maximum line of sight
-    const float VIEWMIN         = 90.f;    // minimum field of view
-    const float VIEWMAX         = 180.f;   // maximum field of view
-
-    struct waypoint
-    {
-        vec o;
-        float curscore, estscore;
-        int weight;
-        ushort route, prev;
-        ushort links[MAXWAYPOINTLINKS];
-
-        waypoint() {}
-        waypoint(const vec &o, int weight = 0) : o(o), weight(weight), route(0) { memset(links, 0, sizeof(links)); }
-
-        int score() const { return int(curscore) + int(estscore); }
-
-        int find(int wp)
-        {
-            for(int i = 0; i < MAXWAYPOINTLINKS; ++i)
-            {
-                if(links[i] == wp)
-                {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        bool haslinks() { return links[0]!=0; }
-    };
-    extern vector<waypoint> waypoints;
-
-    inline bool iswaypoint(int n)
-    {
-        return n > 0 && n < waypoints.length();
-    }
-
-    extern int showwaypoints, dropwaypoints;
-    extern int closestwaypoint(const vec &pos, float mindist, bool links, gameent *d = NULL);
-    extern void findwaypointswithin(const vec &pos, float mindist, float maxdist, vector<int> &results);
-    extern void inferwaypoints(gameent *d, const vec &o, const vec &v, float mindist = ai::CLOSEDIST);
 
     struct avoidset
     {
@@ -141,12 +89,6 @@ namespace ai
         int remap(gameent *d, int n, vec &pos, bool retry = false);
     };
 
-    extern bool route(gameent *d, int node, int goal, vector<int> &route, const avoidset &obstacles, int retries = 0);
-    extern void navigate();
-    extern void clearwaypoints(bool full = false);
-    extern void seedwaypoints();
-    extern void loadwaypoints(bool force = false, const char *mname = NULL);
-    extern void savewaypoints(bool force = false, const char *mname = NULL);
 
     // ai state information for the owner client
     enum
@@ -310,36 +252,6 @@ namespace ai
 
     extern avoidset obstacles;
     extern vec aitarget;
-
-    extern float viewdist(int x = 101);
-    extern float viewfieldx(int x = 101);
-    extern float viewfieldy(int x = 101);
-    extern bool targetable(gameent *d, gameent *e);
-    extern bool cansee(gameent *d, vec &x, vec &y, vec &targ = aitarget);
-
-    extern void init(gameent *d, int at, int on, int sk, int bn, int pm, int col, const char *name, int team);
-    extern void update();
-    extern void avoid();
-    extern void think(gameent *d, bool run);
-
-    extern bool badhealth(gameent *d);
-    extern bool checkothers(vector<int> &targets, gameent *d = NULL, int state = -1, int targtype = -1, int target = -1, bool teams = false, int *members = NULL);
-    extern bool makeroute(gameent *d, aistate &b, int node, bool changed = true, int retries = 0);
-    extern bool makeroute(gameent *d, aistate &b, const vec &pos, bool changed = true, int retries = 0);
-    extern bool randomnode(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX);
-    extern bool randomnode(gameent *d, aistate &b, float guard = SIGHTMIN, float wander = SIGHTMAX);
-    extern bool violence(gameent *d, aistate &b, gameent *e, int pursue = 0);
-    extern bool patrol(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1, bool retry = false);
-    extern bool defend(gameent *d, aistate &b, const vec &pos, float guard = SIGHTMIN, float wander = SIGHTMAX, int walk = 1);
-    extern void assist(gameent *d, aistate &b, vector<interest> &interests, bool all = false, bool force = false);
-    extern bool parseinterests(gameent *d, aistate &b, vector<interest> &interests, bool override = false, bool ignore = false);
-
-    extern void spawned(gameent *d);
-    extern void damaged(gameent *d, gameent *e);
-    extern void killed(gameent *d, gameent *e);
-    extern void itemspawned(int ent);
-
-    extern void render();
 }
 
 

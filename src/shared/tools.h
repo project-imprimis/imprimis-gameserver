@@ -225,16 +225,6 @@ inline char *newstring(size_t l)                { return new char[l+1]; }
 inline char *newstring(const char *s, size_t l) { return copystring(newstring(l), s, l+1); }
 inline char *newstring(const char *s)           { size_t l = strlen(s); char *d = newstring(l); memcpy(d, s, l+1); return d; }
 
-inline char *newconcatstring(const char *s, const char *t)
-{
-    size_t slen = strlen(s), tlen = strlen(t);
-    char *r = newstring(slen + tlen);
-    memcpy(r, s, slen);
-    memcpy(&r[slen], t, tlen);
-    r[slen+tlen] = '\0';
-    return r;
-}
-
 template<class T> inline void memclear(T *p, size_t n) { memset((void *)p, 0, n * sizeof(T)); }
 template<class T> inline void memclear(T &p) { memset((void *)&p, 0, sizeof(T)); }
 template<class T, size_t N> inline void memclear(T (&p)[N]) { memset((void *)p, 0, N * sizeof(T)); }
@@ -579,18 +569,6 @@ inline bool htcmp(int x, int y)
 {
     return x==y;
 }
-
-#ifndef STANDALONE
-inline uint hthash(GLuint key)
-{
-    return key;
-}
-
-inline bool htcmp(GLuint x, GLuint y)
-{
-    return x==y;
-}
-#endif
 
 template <class T> struct vector
 {
@@ -1317,10 +1295,6 @@ struct stream
     template<class T> T get() { T n; return read(&n, sizeof(n)) == sizeof(n) ? n : 0; }
     template<class T> T getlil() { return LIL_ENDIAN_SWAP(get<T>()); }
     template<class T> T getbig() { return BIG_SWAP(get<T>()); }
-
-#ifndef STANDALONE
-    SDL_RWops *rwops();
-#endif
 };
 
 template<class T>

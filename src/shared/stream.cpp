@@ -535,49 +535,8 @@ int listfiles(const char *dir, const char *ext, vector<char *> &files)
         formatstring(s, "%s%s", pf.dir, dirname);
         if(listdir(s, false, ext, files)) dirs++;
     }
-#ifndef STANDALONE
-    dirs += listzipfiles(dirname, ext, files);
-#endif
     return dirs;
 }
-
-#ifndef STANDALONE
-static Sint64 rwopsseek(SDL_RWops *rw, Sint64 pos, int whence)
-{
-    stream *f = (stream *)rw->hidden.unknown.data1;
-    if((!pos && whence==SEEK_CUR) || f->seek(pos, whence)) return (int)f->tell();
-    return -1;
-}
-
-static size_t rwopsread(SDL_RWops *rw, void *buf, size_t size, size_t nmemb)
-{
-    stream *f = (stream *)rw->hidden.unknown.data1;
-    return f->read(buf, size*nmemb)/size;
-}
-
-static size_t rwopswrite(SDL_RWops *rw, const void *buf, size_t size, size_t nmemb)
-{
-    stream *f = (stream *)rw->hidden.unknown.data1;
-    return f->write(buf, size*nmemb)/size;
-}
-
-static int rwopsclose(SDL_RWops *rw)
-{
-    return 0;
-}
-
-SDL_RWops *stream::rwops()
-{
-    SDL_RWops *rw = SDL_AllocRW();
-    if(!rw) return NULL;
-    rw->hidden.unknown.data1 = this;
-    rw->seek = rwopsseek;
-    rw->read = rwopsread;
-    rw->write = rwopswrite;
-    rw->close = rwopsclose;
-    return rw;
-}
-#endif
 
 stream::offset stream::size()
 {
@@ -703,10 +662,6 @@ struct filestream : stream
         return max(result, 0);
     }
 };
-
-#ifndef STANDALONE
-VAR(dbggz, 0, 0, 1);
-#endif
 
 struct gzstream : stream
 {
@@ -838,28 +793,6 @@ struct gzstream : stream
     void finishreading()
     {
         if(!reading) return;
-#ifndef STANDALONE
-        if(dbggz)
-        {
-            uint checkcrc = 0, checksize = 0;
-            for(int i = 0; i < 4; ++i)
-            {
-                checkcrc |= uint(readbyte()) << (i*8);
-            }
-            for(int i = 0; i < 4; ++i)
-            {
-                checksize |= uint(readbyte()) << (i*8);
-            }
-            if(checkcrc != crc)
-            {
-                conoutf(Console_Debug, "gzip crc check failed: read %X, calculated %X", checkcrc, crc);
-            }
-            if(checksize != zfile.total_out)
-            {
-                conoutf(Console_Debug, "gzip size check failed: read %u, calculated %u", checksize, uint(zfile.total_out));
-            }
-        }
-#endif
     }
 
     void stopreading()
@@ -1194,10 +1127,6 @@ stream *openrawfile(const char *filename, const char *mode)
 
 stream *openfile(const char *filename, const char *mode)
 {
-#ifndef STANDALONE
-    stream *s = openzipfile(filename, mode);
-    if(s) return s;
-#endif
     return openrawfile(filename, mode);
 }
 

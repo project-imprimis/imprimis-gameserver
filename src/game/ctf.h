@@ -1,16 +1,12 @@
-#ifdef SERVERMODE
 VAR(ctftkpenalty, 0, 1, 1);
 
-struct ctfservermode : servermode
-#else
-struct ctfclientmode : clientmode
-#endif
-{
     static const int MAXFLAGS = 20;
     static const int FLAGRADIUS = 16;
     static const int FLAGLIMIT = 10;
     static const int RESPAWNSECS = 5;
 
+struct ctfservermode : servermode
+{
     struct flag
     {
         int id, version;

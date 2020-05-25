@@ -36,11 +36,6 @@
   #define ZLIB_DLL
 #endif
 
-#ifndef STANDALONE
-    #include <SDL.h>
-    #include <SDL_opengl.h>
-#endif
-
 #include <enet/enet.h>
 
 #include <zlib.h>

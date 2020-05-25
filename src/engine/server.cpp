@@ -522,23 +522,6 @@ void process(ENetPacket *packet, int sender, int chan)   // sender may be -1
     }
 }
 
-void localclienttoserver(int chan, ENetPacket *packet)
-{
-    client *c = NULL;
-    for(int i = 0; i < clients.length(); i++)
-    {
-        if(clients[i]->type==ServerClient_Local)
-        {
-            c = clients[i];
-            break;
-        }
-    }
-    if(c)
-    {
-        process(packet, c->num, chan);
-    }
-}
-
 bool resolverwait(const char *name, ENetAddress *address)
 {
     return enet_address_set_host(address, name) >= 0;

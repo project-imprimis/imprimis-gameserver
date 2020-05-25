@@ -1225,4 +1225,3 @@ bool checkchallenge(const char *answerstr, void *correct)
     gfint answer(answerstr);
     return answer == *(gfint *)correct;
 }
-
