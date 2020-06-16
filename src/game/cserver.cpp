@@ -4772,6 +4772,18 @@ namespace server
             }
         }
 
+        void setbotlimit(clientinfo *ci, int limit)
+        {
+            if(ci && !ci->local && ci->privilege < Priv_Admin)
+            {
+                return;
+            }
+            botlimit = clamp(limit, 0, MAXBOTS);
+            dorefresh = true;
+            DEF_FORMAT_STRING(msg, "bot limit is now %d", botlimit);
+            sendservmsg(msg);
+        }
+
         void setbotbalance(clientinfo *ci, bool balance)
         {
             if(ci && !ci->local && !ci->privilege)
