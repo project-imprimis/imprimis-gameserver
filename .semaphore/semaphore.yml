@@ -13,5 +13,7 @@ blocks:
             - checkout
             - sem-version cpp 8
             - git submodule update --init --remote src/enet
+            - make -C src/enet clean
+            - make -C src/enet install -j3
             - make -C src clean
             - make -C src -j3
