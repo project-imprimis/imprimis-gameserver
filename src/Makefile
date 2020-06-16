@@ -30,4 +30,4 @@ shared/tools.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h sha
 		g++ $(CXXFLAGS) $(INCLUDES) -c shared/tools.cpp
 
 clean:
-		rm command.o server.o worldio.o cserver.o crypto.o stream.o tools.o imprimis_gameserver
+		rm -f command.o server.o worldio.o cserver.o crypto.o stream.o tools.o imprimis_gameserver
