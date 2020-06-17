@@ -103,7 +103,6 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
     }
 
     string gametype;
-    bool samegame = true;
     int len = f->getchar();
     if(len >= 0)
     {
@@ -112,7 +111,6 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
     gametype[max(len, 0)] = '\0';
     if(strcmp(gametype, game::gameident()))
     {
-        samegame = false;
         conoutf(Console_Warn, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels", gametype);
     }
     int eif = f->getlil<ushort>();

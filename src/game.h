@@ -74,23 +74,6 @@ enum
     Anim_NumAnims //57
 };
 
-static const char * const animnames[] =
-{
-    "mapmodel",
-    "dead", "dying",
-    "idle", "run N", "run NE", "run E", "run SE", "run S", "run SW", "run W", "run NW",
-    "jump", "jump N", "jump NE", "jump E", "jump SE", "jump S", "jump SW", "jump W", "jump NW",
-    "sink", "swim",
-    "crouch", "crouch N", "crouch NE", "crouch E", "crouch SE", "crouch S", "crouch SW", "crouch W", "crouch NW",
-    "crouch jump", "crouch jump N", "crouch jump NE", "crouch jump E", "crouch jump SE", "crouch jump S", "crouch jump SW", "crouch jump W", "crouch jump NW",
-    "crouch sink", "crouch swim",
-    "shoot", "melee",
-    "pain",
-    "edit", "lag", "taunt", "win", "lose",
-    "gun idle", "gun shoot", "gun melee",
-    "vwep idle", "vwep shoot", "vwep melee"
-};
-
 // console message types
 
 enum
@@ -644,7 +627,6 @@ struct teamscore
     }
 };
 
-inline uint hthash(const teamscore &t) { return hthash(t.team); }
 inline bool htcmp(int team, const teamscore &t) { return team == t.team; }
 
 struct teaminfo

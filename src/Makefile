@@ -5,29 +5,29 @@ INCLUDES= -Ienet/include -Ishared
 
 all: imprimis_gameserver
 
-imprimis_gameserver : engine/command.o engine/server.o engine/worldio.o game/cserver.o shared/crypto.o shared/stream.o shared/tools.o
+imprimis_gameserver : command.o server.o worldio.o cserver.o crypto.o stream.o tools.o
 		g++ $(CXXFLAGS) $(INCLUDES) -o imprimis_gameserver command.o server.o worldio.o cserver.o crypto.o stream.o tools.o -Lenet -lenet -lz
 
-engine/command.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c engine/command.cpp
+command.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c command.cpp
 
-engine/server.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c engine/server.cpp
+server.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c server.cpp
 
-engine/worldio.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c engine/worldio.cpp
+worldio.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c worldio.cpp
 
-game/cserver.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c game/cserver.cpp
+cserver.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c cserver.cpp
 
-shared/crypto.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c shared/crypto.cpp
+crypto.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c crypto.cpp
 
-shared/stream.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c shared/stream.cpp
+stream.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c stream.cpp
 
-shared/tools.o : engine/engine.h engine/world.h shared/cube.h shared/tools.h shared/geom.h shared/ents.h shared/command.h shared/iengine.h shared/igame.h
-		g++ $(CXXFLAGS) $(INCLUDES) -c shared/tools.cpp
+tools.o : engine.h world.h cube.h tools.h geom.h ents.h command.h iengine.h igame.h
+		g++ $(CXXFLAGS) $(INCLUDES) -c tools.cpp
 
 clean:
 		rm -f command.o server.o worldio.o cserver.o crypto.o stream.o tools.o imprimis_gameserver
