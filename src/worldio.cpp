@@ -2,6 +2,24 @@
 
 #include "engine.h"
 
+#include <math.h>
+
+#include <string.h>
+#include <stdio.h>
+
+#include <enet/enet.h>
+#include <zlib.h>
+
+#include "tools.h"
+#include "geom.h"
+#include "ents.h"
+#include "command.h"
+
+#include "iengine.h"
+#include "igame.h"
+
+#include "world.h"
+
 void validmapname(char *dst, const char *src, const char *prefix = NULL, const char *alt = "untitled", size_t maxlen = 100)
 {
     if(prefix) while(*prefix) *dst++ = *prefix++;

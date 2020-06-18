@@ -1,8 +1,6 @@
 #ifndef __GAME_H__
 #define __GAME_H__
 
-#include "cube.h"
-
 //defines game statics, like animation names, weapon variables, entity properties
 //includes:
 //animation names

@@ -1,3 +1,26 @@
+#include "engine.h"
+
+#include <math.h>
+
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <time.h>
+
+#include <enet/enet.h>
+#include <zlib.h>
+
+#include "tools.h"
+#include "geom.h"
+#include "ents.h"
+#include "command.h"
+
+#include "iengine.h"
+#include "igame.h"
+
+#include "world.h"
+
 #include "game.h"
 
 //server game handling

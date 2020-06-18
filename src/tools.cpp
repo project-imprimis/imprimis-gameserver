@@ -1,6 +1,20 @@
 // implementation of generic tools
 
-#include "cube.h"
+#include "engine.h"
+
+#include <math.h>
+
+#include <string.h>
+#include <stdio.h>
+
+#include <enet/enet.h>
+#include <zlib.h>
+
+#include "tools.h"
+#include "geom.h"
+#include "command.h"
+
+#include "igame.h"
 
 void *operator new(size_t size)
 {

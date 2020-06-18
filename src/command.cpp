@@ -3,6 +3,24 @@
 
 #include "engine.h"
 
+#include <math.h>
+
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <assert.h>
+
+#include <enet/enet.h>
+#include <zlib.h>
+
+#include "tools.h"
+#include "geom.h"
+#include "ents.h"
+#include "command.h"
+
+#include "iengine.h"
+
+
 hashnameset<ident> idents; // contains ALL vars/commands/aliases
 vector<ident *> identmap;
 ident *dummyident = NULL;
