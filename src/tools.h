@@ -27,15 +27,6 @@ typedef unsigned long long int ullong;
 #define UNUSED
 #endif
 
-void *operator new(size_t, bool);
-void *operator new[](size_t, bool);
-#ifndef _GLIBCXX_FSTREAM
-inline void *operator new(size_t, void *p) { return p; }
-inline void *operator new[](size_t, void *p) { return p; }
-inline void operator delete(void *, void *) {}
-inline void operator delete[](void *, void *) {}
-#endif
-
 #ifdef swap
 #undef swap
 #endif
@@ -46,36 +37,10 @@ inline void swap(T &a, T &b)
     a = b;
     b = t;
 }
-#ifdef max
-#undef max
-#endif
-#ifdef min
-#undef min
-#endif
-template<class T>
-inline T max(T a, T b)
-{
-    return a > b ? a : b;
-}
-template<class T>
-inline T max(T a, T b, T c)
-{
-    return max(max(a, b), c);
-}
-template<class T>
-inline T min(T a, T b)
-{
-    return a < b ? a : b;
-}
-template<class T>
-inline T min(T a, T b, T c)
-{
-    return min(min(a, b), c);
-}
 template<class T, class U>
 inline T clamp(T a, U b, U c)
 {
-    return max(T(b), min(a, T(c)));
+    return std::max(T(b), std::min(a, T(c)));
 }
 
 #ifdef __GNUC__
@@ -166,7 +131,7 @@ inline void vformatstring(char (&d)[N], const char *fmt, va_list v) { vformatstr
 
 inline char *copystring(char *d, const char *s, size_t len)
 {
-    size_t slen = min(strlen(s), len-1);
+    size_t slen = std::min(strlen(s), len-1);
     memcpy(d, s, slen);
     d[slen] = 0;
     return d;
@@ -285,7 +250,7 @@ struct databuf
     T *pad(int numvals)
     {
         T *vals = &buf[len];
-        len += min(numvals, maxlen-len);
+        len += std::min(numvals, maxlen-len);
         return vals;
     }
 
@@ -320,10 +285,10 @@ struct databuf
 
     void offset(int n)
     {
-        n = min(n, maxlen);
+        n = std::min(n, maxlen);
         buf += n;
         maxlen -= n;
-        len = max(len-n, 0);
+        len = std::max(len-n, 0);
     }
 
     T *getbuf() const { return buf; }
@@ -370,7 +335,7 @@ struct packetbuf : ucharbuf
 
     void checkspace(int n)
     {
-        if(len + n > maxlen && packet && growth > 0) resize(max(len + n, maxlen + growth));
+        if(len + n > maxlen && packet && growth > 0) resize(std::max(len + n, maxlen + growth));
     }
 
     ucharbuf subbuf(int sz)
@@ -553,7 +518,7 @@ inline int stringlen(const stringslice &s) { return s.len; }
 
 inline char *copystring(char *d, const stringslice &s, size_t len)
 {
-    size_t slen = min(size_t(s.len), len-1);
+    size_t slen = std::min(size_t(s.len), len-1);
     memcpy(d, s.str, slen);
     d[slen] = 0;
     return d;
@@ -691,7 +656,7 @@ struct vector
     void growbuf(int sz)
     {
         int olen = alen;
-        if(alen <= 0) alen = max(MINSIZE, sz);
+        if(alen <= 0) alen = std::max(MINSIZE, sz);
         else while(alen < sz) alen += alen/2;
         if(alen <= olen) return;
         uchar *newbuf = new uchar[alen*sizeof(T)];

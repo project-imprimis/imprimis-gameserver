@@ -297,7 +297,7 @@ struct ctfservermode : servermode
             vec o;
             for(int k = 0; k < 3; ++k)
             {
-                o[k] = max(getint(p)/DMF, 0.0f);
+                o[k] = std::max(getint(p)/DMF, 0.0f);
             }
             if(p.overread())
             {

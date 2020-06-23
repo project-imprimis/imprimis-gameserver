@@ -55,8 +55,8 @@ struct vec
     vec &sub(float f)        { x -= f; y -= f; z -= f; return *this; }
     vec &sub2(float f)       { x -= f; y -= f; return *this; } //unused
     vec &subz(float f)       { z -= f; return *this; } //unused
-    vec &min(float f)        { x = ::min(x, f); y = ::min(y, f); z = ::min(z, f); return *this; }
-    vec &max(float f)        { x = ::max(x, f); y = ::max(y, f); z = ::max(z, f); return *this; }
+    vec &min(float f)        { x = ::std::min(x, f); y = ::std::min(y, f); z = ::std::min(z, f); return *this; }
+    vec &max(float f)        { x = ::std::max(x, f); y = ::std::max(y, f); z = ::std::max(z, f); return *this; }
     vec &clamp(float l, float h) { x = ::clamp(x, l, h); y = ::clamp(y, l, h); z = ::clamp(z, l, h); return *this; }
 
     //elementwise vector operators
@@ -64,8 +64,8 @@ struct vec
     vec &div(const vec &o)   { x /= o.x; y /= o.y; z /= o.z; return *this; }
     vec &add(const vec &o)   { x += o.x; y += o.y; z += o.z; return *this; }
     vec &sub(const vec &o)   { x -= o.x; y -= o.y; z -= o.z; return *this; }
-    vec &min(const vec &o)   { x = ::min(x, o.x); y = ::min(y, o.y); z = ::min(z, o.z); return *this; }
-    vec &max(const vec &o)   { x = ::max(x, o.x); y = ::max(y, o.y); z = ::max(z, o.z); return *this; }
+    vec &min(const vec &o)   { x = ::std::min(x, o.x); y = ::std::min(y, o.y); z = ::std::min(z, o.z); return *this; }
+    vec &max(const vec &o)   { x = ::std::max(x, o.x); y = ::std::max(y, o.y); z = ::std::max(z, o.z); return *this; }
 
     //dot products
     float dot2(const vec &o) const { return x*o.x + y*o.y; }
@@ -141,10 +141,10 @@ struct ivec
     ivec &sub(const ivec &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
     ivec &mask(int n) { x &= n; y &= n; z &= n; return *this; }
     ivec &neg() { x = -x; y = -y; z = -z; return *this; }
-    ivec &min(const ivec &o) { x = ::min(x, o.x); y = ::min(y, o.y); z = ::min(z, o.z); return *this; }
-    ivec &max(const ivec &o) { x = ::max(x, o.x); y = ::max(y, o.y); z = ::max(z, o.z); return *this; }
-    ivec &min(int n) { x = ::min(x, n); y = ::min(y, n); z = ::min(z, n); return *this; }
-    ivec &max(int n) { x = ::max(x, n); y = ::max(y, n); z = ::max(z, n); return *this; }
+    ivec &min(const ivec &o) { x = ::std::min(x, o.x); y = ::std::min(y, o.y); z = ::std::min(z, o.z); return *this; }
+    ivec &max(const ivec &o) { x = ::std::max(x, o.x); y = ::std::max(y, o.y); z = ::std::max(z, o.z); return *this; }
+    ivec &min(int n) { x = ::std::min(x, n); y = ::std::min(y, n); z = ::std::min(z, n); return *this; }
+    ivec &max(int n) { x = ::std::max(x, n); y = ::std::max(y, n); z = ::std::max(z, n); return *this; }
     ivec &abs() { x = ::abs(x); y = ::abs(y); z = ::abs(z); return *this; }
     ivec &clamp(int l, int h) { x = ::clamp(x, l, h); y = ::clamp(y, l, h); z = ::clamp(z, l, h); return *this; }
     ivec &cross(const ivec &a, const ivec &b) { x = a.y*b.z-a.z*b.y; y = a.z*b.x-a.x*b.z; z = a.x*b.y-a.y*b.x; return *this; }

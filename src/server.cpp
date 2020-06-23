@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <algorithm>
 
 #include <enet/enet.h>
 
@@ -400,7 +401,7 @@ ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
     {
         return NULL;
     }
-    int len = static_cast<int>(min(file->size(), stream::offset(INT_MAX)));
+    int len = static_cast<int>(std::min(file->size(), stream::offset(INT_MAX)));
     if(len <= 0 || len > 16<<20)
     {
         return NULL;
@@ -777,7 +778,7 @@ void checkserversockets()        // reply all server info requests
     ENetSocket maxsock = ENET_SOCKET_NULL;
     if(mastersock != ENET_SOCKET_NULL)
     {
-        maxsock = maxsock == ENET_SOCKET_NULL ? mastersock : max(maxsock, mastersock);
+        maxsock = maxsock == ENET_SOCKET_NULL ? mastersock : std::max(maxsock, mastersock);
         ENET_SOCKETSET_ADD(readset, mastersock);
         if(!masterconnected)
         {
@@ -786,7 +787,7 @@ void checkserversockets()        // reply all server info requests
     }
     if(lansock != ENET_SOCKET_NULL)
     {
-        maxsock = maxsock == ENET_SOCKET_NULL ? lansock : max(maxsock, lansock);
+        maxsock = maxsock == ENET_SOCKET_NULL ? lansock : std::max(maxsock, lansock);
         ENET_SOCKETSET_ADD(readset, lansock);
     }
     if(maxsock == ENET_SOCKET_NULL || enet_socketset_select(maxsock, &readset, &writeset, 0) <= 0)
@@ -1320,7 +1321,7 @@ void logoutfv(const char *fmt, va_list args)
         {
             writelog(logfile, line.buf);
         }
-        line.len = min(strlen(line.buf), sizeof(line.buf)-2);
+        line.len = std::min(strlen(line.buf), sizeof(line.buf)-2);
         line.buf[line.len++] = '\n';
         line.buf[line.len] = '\0';
         if(outhandle)
@@ -1403,7 +1404,7 @@ bool setuplistenserver(bool dedicated)
             serveraddress.host = address.host;
         }
     }
-    serverhost = enet_host_create(&address, min(maxclients + server::reserveclients(), MAXCLIENTS), server::numchannels(), 0, serveruprate);
+    serverhost = enet_host_create(&address, std::min(maxclients + server::reserveclients(), MAXCLIENTS), server::numchannels(), 0, serveruprate);
     if(!serverhost)
     {
         return servererror(dedicated, "could not create server host");

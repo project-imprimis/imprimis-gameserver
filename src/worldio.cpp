@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <algorithm>
 
 #include <enet/enet.h>
 #include <zlib.h>
@@ -123,7 +124,7 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
     {
         f->read(gametype, len+1);
     }
-    gametype[max(len, 0)] = '\0';
+    gametype[std::max(len, 0)] = '\0';
     if(strcmp(gametype, game::gameident()))
     {
         conoutf(Console_Warn, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels", gametype);
@@ -135,7 +136,7 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
     ushort nummru = f->get<ushort>();
     f->seek(nummru*sizeof(ushort), SEEK_CUR);
 
-    for(int i = 0; i < min(hdr.numents, MAXENTS); ++i)
+    for(int i = 0; i < std::min(hdr.numents, MAXENTS); ++i)
     {
         entity &e = ents.add();
         f->read(&e, sizeof(entity));

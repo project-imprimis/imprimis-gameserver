@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
+#include <algorithm>
 
 #include <enet/enet.h>
 #include <zlib.h>
@@ -1300,7 +1301,7 @@ static char *conc(tagval *v, int n, bool space, const char *prefix, int prefixle
 overflow:
     if(space)
     {
-        len += max(prefix ? i : i-1, 0);
+        len += std::max(prefix ? i : i-1, 0);
     }
     char *buf = newstring(len + numlen);
     int offset = 0,
@@ -3726,14 +3727,14 @@ static inline void callcommand(ident *id, tagval *args, int numargs, bool lookup
         }
         case 'C':
         {
-            i = max(i+1, numargs);
+            i = std::max(i+1, numargs);
             vector<char> buf;
             ((comfun1)id->fun)(conc(buf, args, i, true));
             goto cleanup;
         }
         case 'V':
         {
-            i = max(i+1, numargs);
+            i = std::max(i+1, numargs);
             ((comfunv)id->fun)(args, i);
             goto cleanup;
         }
@@ -5030,7 +5031,7 @@ COMMAND(substr, "siiN");
 
 void sublist(const char *s, int *skip, int *count, int *numargs)
 {
-    int offset = max(*skip, 0), len = *numargs >= 3 ? max(*count, 0) : -1;
+    int offset = std::max(*skip, 0), len = *numargs >= 3 ? std::max(*count, 0) : -1;
     for(int i = 0; i < offset; ++i)
     {
         if(!parselist(s))
@@ -5307,7 +5308,7 @@ LISTMERGECMD(listunion, p.put(list, strlen(list)), elems, list, <);
 
 void listsplice(const char *s, const char *vals, int *skip, int *count)
 {
-    int offset = max(*skip, 0), len = max(*count, 0);
+    int offset = std::max(*skip, 0), len = std::max(*count, 0);
     const char *list = s, *start, *end, *qstart, *qend = s;
     for(int i = 0; i < offset; ++i)
     {
@@ -5460,7 +5461,7 @@ void sortlist(char *list, ident *x, ident *y, uint *body, uint *unique)
     poparg(*y);
 
     char *sorted = cstr;
-    int sortedlen = totalunique + max(numunique - 1, 0);
+    int sortedlen = totalunique + std::max(numunique - 1, 0);
     if(clen < sortedlen)
     {
         delete[] cstr;
@@ -5536,7 +5537,7 @@ MATHICMD(|, 0, );
 MATHICMD(^~, 0, );
 MATHICMD(&~, 0, );
 MATHICMD(|~, 0, );
-MATHCMD("<<", i, int, val = val2 < 32 ? val << max(val2, 0) : 0, 0, );
+MATHCMD("<<", i, int, val = val2 < 32 ? val << std::max(val2, 0) : 0, 0, );
 MATHCMD(">>", i, int, val >>= clamp(val2, 0, 31), 0, );
 
 MATHFCMD(+, 0, );
@@ -5615,10 +5616,10 @@ ICOMMAND(exp, "f", (float *a), floatret(exp(*a)));
         type##ret(val); \
     })
 
-MINMAXCMD(min, i, int, min);
-MINMAXCMD(max, i, int, max);
-MINMAXCMD(minf, f, float, min);
-MINMAXCMD(maxf, f, float, max);
+MINMAXCMD(min, i, int, std::min);
+MINMAXCMD(max, i, int, std::max);
+MINMAXCMD(minf, f, float, std::min);
+MINMAXCMD(maxf, f, float, std::max);
 
 ICOMMAND(bitscan, "i", (int *n), intret(BITSCAN(*n)));
 
@@ -5687,7 +5688,7 @@ ICOMMAND(rndstr, "i", (int *len),
     for(int i = 0; i < n;)
     {
         int r = rand();
-        for(int j = min(i + 4, n); i < j; i++)
+        for(int j = std::min(i + 4, n); i < j; i++)
         {
             s[i] = (r%255) + 1;
             r /= 255;
@@ -5701,7 +5702,7 @@ ICOMMAND(tohex, "ii", (int *n, int *p),
 {
     const int len = 20;
     char *buf = newstring(len);
-    nformatstring(buf, len, "0x%.*X", max(*p, 1), *n);
+    nformatstring(buf, len, "0x%.*X", std::max(*p, 1), *n);
     stringret(buf);
 });
 

@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <algorithm>
 
 #include <enet/enet.h>
 #include <zlib.h>
