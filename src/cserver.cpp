@@ -1110,7 +1110,6 @@ namespace server
     {
         if(!demorecord) return;
         int stamp[3] = { gamemillis, chan, len };
-        LIL_ENDIAN_SWAP(stamp, 3);
         demorecord->write(stamp, sizeof(stamp));
         demorecord->write(data, len);
         if(demorecord->rawtell() >= (maxdemosize<<20)) enddemorecord();
@@ -1142,7 +1141,6 @@ namespace server
         memcpy(hdr.magic, DEMO_MAGIC, sizeof(hdr.magic));
         hdr.version = DEMO_VERSION;
         hdr.protocol = PROTOCOL_VERSION;
-        LIL_ENDIAN_SWAP(&hdr.version, 2);
         demorecord->write(&hdr, sizeof(demoheader));
 
         packetbuf p(MAXTRANS, ENET_PACKET_FLAG_RELIABLE);
@@ -1240,7 +1238,6 @@ namespace server
             formatstring(msg, "\"%s\" is not a demo file", file);
         else
         {
-            LIL_ENDIAN_SWAP(&hdr.version, 2);
             if(hdr.version!=DEMO_VERSION) formatstring(msg, "demo \"%s\" requires an %s version of Tesseract", file, hdr.version<DEMO_VERSION ? "older" : "newer");
             else if(hdr.protocol!=PROTOCOL_VERSION) formatstring(msg, "demo \"%s\" requires an %s version of Tesseract", file, hdr.protocol<PROTOCOL_VERSION ? "older" : "newer");
         }
@@ -1261,7 +1258,6 @@ namespace server
             enddemoplayback();
             return;
         }
-        LIL_ENDIAN_SWAP(&nextplayback, 1);
     }
 
     void readdemo()
@@ -1277,8 +1273,6 @@ namespace server
                 enddemoplayback();
                 return;
             }
-            LIL_ENDIAN_SWAP(&chan, 1);
-            LIL_ENDIAN_SWAP(&len, 1);
             ENetPacket *packet = enet_packet_create(NULL, len+1, 0);
             if(!packet || demoplayback->read(packet->data+1, len)!=size_t(len))
             {
@@ -1295,7 +1289,6 @@ namespace server
                 enddemoplayback();
                 return;
             }
-            LIL_ENDIAN_SWAP(&nextplayback, 1);
         }
     }
 
@@ -4092,7 +4085,7 @@ namespace server
                         disconnect_client(sender, Discon_MsgError);
                         return;
                     }
-                    int extra = LIL_ENDIAN_SWAP(*(const ushort *)p.pad(2));
+                    int extra = *(const ushort *)p.pad(2);
                     if(p.remaining() < extra)
                     {
                         disconnect_client(sender, Discon_MsgError);

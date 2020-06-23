@@ -10,7 +10,6 @@
 #include <zlib.h>
 
 #include "tools.h"
-#include "geom.h"
 
 ///////////////////////// character conversion ///////////////
 
@@ -858,7 +857,7 @@ struct gzstream : stream
         if(!file) return -1;
         offset pos = tell();
         if(!file->seek(-4, SEEK_END)) return -1;
-        uint isize = file->getlil<uint>();
+        uint isize = file->get<uint>();
         return file->seek(pos, SEEK_SET) ? isize : offset(-1);
     }
 

@@ -60,20 +60,17 @@ static void fixent(entity &e, int version)
 static bool loadmapheader(stream *f, const char *ogzname, mapheader &hdr, octaheader &ohdr)
 {
     if(f->read(&hdr, 3*sizeof(int)) != 3*sizeof(int)) { conoutf(Console_Error, "map %s has malformatted header", ogzname); return false; }
-    LIL_ENDIAN_SWAP(&hdr.version, 2);
 
     if(!memcmp(hdr.magic, "TMAP", 4))
     {
         if(hdr.version>MAPVERSION) { conoutf(Console_Error, "map %s requires a newer version of Tesseract", ogzname); return false; }
         if(f->read(&hdr.worldsize, 6*sizeof(int)) != 6*sizeof(int)) { conoutf(Console_Error, "map %s has malformatted header", ogzname); return false; }
-        LIL_ENDIAN_SWAP(&hdr.worldsize, 6);
         if(hdr.worldsize <= 0|| hdr.numents < 0) { conoutf(Console_Error, "map %s has malformatted header", ogzname); return false; }
     }
     else if(!memcmp(hdr.magic, "OCTA", 4))
     {
         if(hdr.version!=OCTAVERSION) { conoutf(Console_Error, "map %s uses an unsupported map format version", ogzname); return false; }
         if(f->read(&ohdr.worldsize, 7*sizeof(int)) != 7*sizeof(int)) { conoutf(Console_Error, "map %s has malformatted header", ogzname); return false; }
-        LIL_ENDIAN_SWAP(&ohdr.worldsize, 7);
         if(ohdr.worldsize <= 0|| ohdr.numents < 0) { conoutf(Console_Error, "map %s has malformatted header", ogzname); return false; }
         memcpy(hdr.magic, "TMAP", 4);
         hdr.version = 0;
@@ -110,13 +107,13 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
 
     for(int i = 0; i < hdr.numvars; ++i)
     {
-        int type = f->getchar(), ilen = f->getlil<ushort>();
+        int type = f->getchar(), ilen = f->get<ushort>();
         f->seek(ilen, SEEK_CUR);
         switch(type)
         {
-            case Id_Var: f->getlil<int>(); break;
-            case Id_FloatVar: f->getlil<float>(); break;
-            case Id_StringVar: { int slen = f->getlil<ushort>(); f->seek(slen, SEEK_CUR); break; }
+            case Id_Var: f->get<int>(); break;
+            case Id_FloatVar: f->get<float>(); break;
+            case Id_StringVar: { int slen = f->get<ushort>(); f->seek(slen, SEEK_CUR); break; }
         }
     }
 
@@ -131,19 +128,17 @@ bool loadents(const char *fname, vector<entity> &ents, uint *crc)
     {
         conoutf(Console_Warn, "WARNING: loading map from %s game, ignoring entities except for lights/mapmodels", gametype);
     }
-    int eif = f->getlil<ushort>();
-    int extrasize = f->getlil<ushort>();
+    int eif = f->get<ushort>();
+    int extrasize = f->get<ushort>();
     f->seek(extrasize, SEEK_CUR);
 
-    ushort nummru = f->getlil<ushort>();
+    ushort nummru = f->get<ushort>();
     f->seek(nummru*sizeof(ushort), SEEK_CUR);
 
     for(int i = 0; i < min(hdr.numents, MAXENTS); ++i)
     {
         entity &e = ents.add();
         f->read(&e, sizeof(entity));
-        LIL_ENDIAN_SWAP(&e.o.x, 3);
-        LIL_ENDIAN_SWAP(&e.attr1, 5);
         fixent(e, hdr.version);
         if(eif > 0) f->seek(eif, SEEK_CUR);
 
