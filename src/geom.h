@@ -70,9 +70,6 @@ struct vec
     //dot products
     float dot2(const vec &o) const { return x*o.x + y*o.y; }
     float dot(const vec &o) const { return x*o.x + y*o.y + z*o.z; }
-    float squaredot(const vec &o) const { float k = dot(o); return k*k; } //unused
-    float absdot(const vec &o) const { return fabs(x*o.x) + fabs(y*o.y) + fabs(z*o.z); } //used once
-    float zdot(const vec &o) const { return z*o.z; } //unused
 
     //distances
     float squaredist(const vec &e) const { return vec(*this).sub(e).squaredlen(); }
@@ -86,17 +83,6 @@ struct vec
         if(mag > 1e-6f) mul(k / mag);
         return *this;
     }
-
-    //cross products
-    template<class T>
-    bool reject(const T &o, float r) { return x>o.x+r || x<o.x-r || y>o.y+r || y<o.y-r; }
-    template<class A, class B>
-    vec &cross(const A &a, const B &b) { x = a.y*b.z-a.z*b.y; y = a.z*b.x-a.x*b.z; z = a.x*b.y-a.y*b.x; return *this; }
-    vec &cross(const vec &o, const vec &a, const vec &b) { return cross(vec(a).sub(o), vec(b).sub(o)); }
-
-    //scalar triple product A*(BxC)
-    float scalartriple(const vec &a, const vec &b) const { return x*(a.y*b.z-a.z*b.y) + y*(a.z*b.x-a.x*b.z) + z*(a.x*b.y-a.y*b.x); }
-    float zscalartriple(const vec &a, const vec &b) const { return z*(a.x*b.y-a.y*b.x); } //unused
 };
 
 inline uint hthash(const vec &k)

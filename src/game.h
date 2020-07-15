@@ -9,69 +9,6 @@
 //game state information
 //game entity definition
 
-// animations
-// used in render.cpp
-enum
-{
-    Anim_Dead = Anim_GameSpecific, //1
-    Anim_Dying,
-    Anim_Idle,
-    Anim_RunN,
-    Anim_RunNE,
-    Anim_RunE,
-    Anim_RunSE,
-    Anim_RunS,
-    Anim_RunSW,
-    Anim_RunW, //10
-    Anim_RunNW,
-    Anim_Jump,
-    Anim_JumpN,
-    Anim_JumpNE,
-    Anim_JumpE,
-    Anim_JumpSE,
-    Anim_JumpS,
-    Anim_JumpSW,
-    Anim_JumpW,
-    Anim_JumpNW, //20
-    Anim_Sink,
-    Anim_Swim,
-    Anim_Crouch,
-    Anim_CrouchN,
-    Anim_CrouchNE,//unused
-    Anim_CrouchE,//unused
-    Anim_CrouchSE,//unused
-    Anim_CrouchS,//unused
-    Anim_CrouchSW,//unused
-    Anim_CrouchW, //30 (unused)
-    Anim_CrouchNW,//unused
-    Anim_CrouchJump,
-    Anim_CrouchJumpN,
-    Anim_CrouchJumpNE,//unused
-    Anim_CrouchJumpE,//unused
-    Anim_CrouchJumpSE,//unused
-    Anim_CrouchJumpS,//unused
-    Anim_CrouchJumpSW,//unused
-    Anim_CrouchJumpW,//unused
-    Anim_CrouchJumpNW, //40 (unused)
-    Anim_CrouchSink,
-    Anim_CrouchSwim,
-    Anim_Shoot,
-    Anim_Melee,
-    Anim_Pain,
-    Anim_Edit,
-    Anim_Lag,
-    Anim_Taunt,
-    Anim_Win,
-    Anim_Lose, //50
-    Anim_GunIdle,
-    Anim_GunShoot,
-    Anim_GunMelee,
-    Anim_VWepIdle,
-    Anim_VWepShoot,
-    Anim_VWepMelee,
-    Anim_NumAnims //57
-};
-
 // console message types
 
 enum
@@ -112,13 +49,6 @@ enum
     Gun_Rail = 0,
     Gun_Pulse,
     Gun_NumGuns
-};
-enum
-{
-    Act_Idle = 0,
-    Act_Shoot,
-    Act_Melee,
-    Act_NumActs
 };
 
 enum
@@ -202,39 +132,6 @@ enum {
 static const char * const mastermodenames[] =  { "auth",   "open",   "veto",       "locked",     "private",    "password" };
 static const char * const mastermodecolors[] = { "",       "\f0",    "\f2",        "\f2",        "\f3",        "\f3" };
 static const char * const mastermodeicons[] =  { "server", "server", "serverlock", "serverlock", "serverpriv", "serverpriv" };
-
-// hardcoded sounds, defined in sounds.cfg
-enum
-{
-    Sound_Jump = 0,
-    Sound_Land,
-    Sound_SplashIn,
-    Sound_SplashOut,
-    Sound_Burn,
-    Sound_ItemSpawn,
-    Sound_Teleport,
-    Sound_JumpPad,
-    Sound_Melee,
-    Sound_Pulse1,
-    Sound_Pulse2,
-    Sound_PulseExplode,
-    Sound_Rail1,
-    Sound_Rail2,
-    Sound_WeapLoad,
-    Sound_NoAmmo,
-    Sound_Hit,
-    Sound_Pain1,
-    Sound_Pain2,
-    Sound_Die1,
-    Sound_Die2,
-
-    Sound_FlagPickup,
-    Sound_FlagDrop,
-    Sound_FlagReturn,
-    Sound_FlagScore,
-    Sound_FlagReset,
-    Sound_FlagFail
-};
 
 // network messages codes, c2s, c2c, s2c
 
@@ -506,24 +403,25 @@ enum
 #define EXP_SELFPUSH 2.5f
 #define EXP_DISTSCALE 0.5f
 // this defines weapon properties
-//                                   1    2       3     4         5        6      7         8            9       10      11      12         13          14     15    16       17      18   19
-static const struct attackinfo { int gun, action, anim, vwepanim, hudanim, sound, hudsound, attackdelay, damage, spread, margin, projspeed, kickamount, range, rays, hitpush, exprad, ttl, use; } attacks[Attack_NumAttacks] =
+//                                   1    8            9       10      11      12         13          14     15    16       17      18   19
+static const struct attackinfo { int gun, attackdelay, damage, spread, margin, projspeed, kickamount, range, rays, hitpush, exprad, ttl, use; } attacks[Attack_NumAttacks] =
 
-//    1          2          3           4                5               6         7        8     9  10 11    12  13    14 15    16  17 18 19
+//    1          8      9  10 11    12  13    14 15    16  17 18 19
 {
-    { Gun_Rail,  Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Rail1,  Sound_Rail2, 1300, 10, 0, 0,    0, 30, 2048, 1, 1500,  0, 0, 0 },
-    { Gun_Rail,  Act_Melee, Anim_Melee, Anim_VWepMelee, Anim_GunMelee, Sound_Melee,  Sound_Melee,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
-    { Gun_Pulse, Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Pulse1, Sound_Pulse2, 130,  3, 0, 1, 3000, 10, 1024, 1, 2500,  3, 0, 0 },
-    { Gun_Pulse, Act_Melee, Anim_Melee, Anim_VWepMelee, Anim_GunMelee, Sound_Melee,  Sound_Melee,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 }
+    { Gun_Rail,  1300, 10, 0, 0,    0, 30, 2048, 1, 1500,  0, 0, 0 },
+    { Gun_Rail,   500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
+    { Gun_Pulse,  130,  3, 0, 1, 3000, 10, 1024, 1, 2500,  3, 0, 0 },
+    { Gun_Pulse,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 }
 };
 
-static const struct guninfo { const char *name, *file, *vwep; int attacks[Act_NumActs]; } guns[Gun_NumGuns] =
+enum
 {
-    { "railgun", "railgun", "worldgun/railgun", { -1, Attack_RailShot, Attack_RailMelee }, },
-    { "pulse rifle", "pulserifle", "worldgun/pulserifle", { -1, Attack_PulseShoot, Attack_PulseMelee } }
+    AI_None = 0,
+    AI_Bot,
+    AI_Max
 };
 
-#include "ai.h"
+#define MAXBOTS 32
 
 // inherited by gameent and server clients
 struct gamestate
@@ -593,9 +491,6 @@ struct gamestate
 #define MAXTEAMS 2
 static const char * const teamnames[1+MAXTEAMS] = { "", "azul", "rojo" };
 static const char * const teamtextcode[1+MAXTEAMS] = { "\f0", "\f1", "\f3" };
-static const int teamtextcolor[1+MAXTEAMS] = { 0x1EC850, 0x6496FF, 0xFF4B19 };
-static const int teamscoreboardcolor[1+MAXTEAMS] = { 0, 0x3030C0, 0xC03030 };
-static const char * const teamblipcolor[1+MAXTEAMS] = { "_neutral", "_blue", "_red" };
 inline int teamnumber(const char *name)
 {
     for(int i = 0; i < MAXTEAMS; ++i)
