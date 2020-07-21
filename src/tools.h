@@ -124,6 +124,24 @@ inline float detrnd(uint s, int x)
 #define MAXSTRLEN 260
 typedef char string[MAXSTRLEN];
 
+inline void formatstring(char *d, const char *fmt, va_list v) { _vsnprintf(d, MAXSTRLEN, fmt, v); d[MAXSTRLEN-1] = 0; }
+struct s_sprintf_f
+{
+    char *d;
+    s_sprintf_f(char *str): d(str) {}
+    void operator()(const char* fmt, ...)
+    {
+        va_list v;
+        va_start(v, fmt);
+        formatstring(d, fmt, v);
+        va_end(v);
+    }
+};
+inline char *s_strncpy(char *d, const char *s, size_t m) { strncpy(d,s,m); d[m-1] = 0; return d; }
+inline char *s_strcpy(char *d, const char *s) { return s_strncpy(d,s,MAXSTRLEN); }
+#define s_sprintf(d) s_sprintf_f((char *)d)
+#define s_sprintfd(d) string d; s_sprintf(d)
+
 inline void vformatstring(char *d, const char *fmt, va_list v, int len) { _vsnprintf(d, len, fmt, v); d[len-1] = 0; }
 
 template<size_t N>

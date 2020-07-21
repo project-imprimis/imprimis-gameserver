@@ -1437,7 +1437,7 @@ void initserver(bool listen, bool dedicated)
         setupwindow("Tesseract server");
 #endif
     }
-    execfile("config/server-init.cfg", false);
+    execfile("config/server-init.cfg");
     if(listen)
     {
         setuplistenserver(dedicated);
