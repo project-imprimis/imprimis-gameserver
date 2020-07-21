@@ -410,7 +410,7 @@ static const struct attackinfo { int gun, attackdelay, damage, spread, margin, p
 {
     { Gun_Rail,  1300, 10, 0, 0,    0, 30, 2048, 1, 1500,  0, 0, 0 },
     { Gun_Rail,   500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
-    { Gun_Pulse,  130,  3, 0, 1, 3000, 10, 1024, 1, 2500,  3, 0, 0 },
+    { Gun_Pulse,  500, 20, 0, 1,  700, 50, 1024, 1, 2500, 50, 0, 0 },
     { Gun_Pulse,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 }
 };
 
