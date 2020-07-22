@@ -1,11 +1,3 @@
-
-enum                            // hardcoded texture numbers
-{
-    DEFAULT_SKY = 0,
-    DEFAULT_GEOM,
-    NUMDEFAULTSLOTS
-};
-
 #define OCTAVERSION 33
 
 struct octaheader
@@ -36,15 +28,3 @@ struct mapheader
     int numvars;
     int numvslots;
 };
-
-#define WATER_AMPLITUDE 0.4f
-#define WATER_OFFSET 1.1f
-
-enum
-{
-    MATSURF_NOT_VISIBLE = 0,
-    MATSURF_VISIBLE,
-    MATSURF_EDIT_ONLY
-};
-
-#define TEX_SCALE 16.0f

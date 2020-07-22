@@ -9,18 +9,6 @@
 //game state information
 //game entity definition
 
-// console message types
-
-enum
-{
-    ConsoleMsg_Chat       = 1<<8,
-    ConsoleMsg_TeamChat   = 1<<9,
-    ConsoleMsg_GameInfo   = 1<<10,
-    ConsoleMsg_FragSelf   = 1<<11,
-    ConsoleMsg_FragOther  = 1<<12,
-    ConsoleMsg_TeamKill   = 1<<13
-};
-
 // network quantization scale
 #define DMF 16.0f                // for world locations
 #define DNF 100.0f              // for normalized vectors

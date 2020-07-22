@@ -242,12 +242,8 @@ void delclient(client *c)
 
 void cleanupserver()
 {
-    if(serverhost)
-    {
-        enet_host_destroy(serverhost);
-    }
+    enet_host_destroy(serverhost);
     serverhost = NULL;
-
     if(lansock != ENET_SOCKET_NULL)
     {
         enet_socket_destroy(lansock);
@@ -265,10 +261,8 @@ VARF(maxclients, 0, DEFAULTCLIENTS, MAXCLIENTS,
 
 VARF(maxdupclients, 0, 0, MAXCLIENTS,
 {
-    if(serverhost)
-    {
-        serverhost->duplicatePeers = maxdupclients ? maxdupclients : MAXCLIENTS;
-    }
+    serverhost->duplicatePeers = maxdupclients ? maxdupclients : MAXCLIENTS;
+
 });
 
 void process(ENetPacket *packet, int sender, int chan);
@@ -276,7 +270,7 @@ void process(ENetPacket *packet, int sender, int chan);
 
 int getservermtu()
 {
-    return serverhost ? serverhost->mtu : -1;
+    return serverhost->mtu;
 }
 
 void *getclientinfo(int i)
@@ -594,10 +588,7 @@ ENetSocket connectmaster(bool wait)
     }
     if(masteraddress.host == ENET_HOST_ANY)
     {
-        if(isdedicatedserver())
-        {
-            logoutf("looking up %s...", mastername);
-        }
+        logoutf("looking up %s...", mastername);
         masteraddress.port = masterport;
         if(!resolverwait(mastername, &masteraddress))
         {
@@ -607,10 +598,7 @@ ENetSocket connectmaster(bool wait)
     ENetSocket sock = enet_socket_create(ENET_SOCKET_TYPE_STREAM);
     if(sock == ENET_SOCKET_NULL)
     {
-        if(isdedicatedserver())
-        {
-            logoutf("could not open master server socket");
-        }
+        logoutf("could not open master server socket");
         return ENET_SOCKET_NULL;
     }
     if(wait || serveraddress.host == ENET_HOST_ANY || !enet_socket_bind(sock, &serveraddress))
@@ -629,10 +617,8 @@ ENetSocket connectmaster(bool wait)
         }
     }
     enet_socket_destroy(sock);
-    if(isdedicatedserver()) //only dedicated servers hunt for master
-    {
-        logoutf("could not connect to master server");
-    }
+    logoutf("could not connect to master server");
+
     return ENET_SOCKET_NULL;
 }
 
@@ -892,33 +878,22 @@ void updatetime()
     }
 }
 
-void serverslice(bool dedicated, uint timeout)   // main server update, called from main loop in sp, or from below in dedicated server
+void serverslice(uint timeout)   // main server update, called from main loop in sp, or from below in dedicated server
 {
-    if(!serverhost)
-    {
-        server::serverupdate();
-        server::sendpackets();
-        return;
-    }
-
     // below is network only
-
-    if(dedicated)
+    int millis = static_cast<int>(enet_time_get());
+    elapsedtime = millis - totalmillis;
+    static int timeerr = 0;
+    int scaledtime = server::scaletime(elapsedtime) + timeerr;
+    curtime = scaledtime/100;
+    timeerr = scaledtime%100;
+    if(server::ispaused())
     {
-        int millis = static_cast<int>(enet_time_get());
-        elapsedtime = millis - totalmillis;
-        static int timeerr = 0;
-        int scaledtime = server::scaletime(elapsedtime) + timeerr;
-        curtime = scaledtime/100;
-        timeerr = scaledtime%100;
-        if(server::ispaused())
-        {
-            curtime = 0;
-        }
-        lastmillis += curtime;
-        totalmillis = millis;
-        updatetime();
+        curtime = 0;
     }
+    lastmillis += curtime;
+    totalmillis = millis;
+    updatetime();
     server::serverupdate(); //see game/server.cpp for meat of server update routine
 
     flushmasteroutput();
@@ -1348,16 +1323,8 @@ void logoutfv(const char *fmt, va_list args)
 
 #endif
 
-static bool dedicatedserver = false;
-
-bool isdedicatedserver()
-{
-    return dedicatedserver;
-}
-
 void rundedicatedserver()
 {
-    dedicatedserver = true;
     logoutf("dedicated server started, waiting for clients...");
 #ifdef WIN32
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
@@ -1373,24 +1340,23 @@ void rundedicatedserver()
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        serverslice(true, 5);
+        serverslice(5);
     }
 #else
     for(;;)
     {
-        serverslice(true, 5);
+        serverslice(5);
     }
 #endif
-    dedicatedserver = false;
 }
 
-bool servererror(bool dedicated, const char *desc)
+bool servererror(const char *desc)
 {
-        fatal("%s", desc);
+    fatal("%s", desc);
     return false;
 }
 
-bool setuplistenserver(bool dedicated)
+bool setuplistenserver()
 {
     ENetAddress address = { ENET_HOST_ANY, enet_uint16(serverport <= 0 ? server::serverport() : serverport) };
     if(*serverip)
@@ -1407,7 +1373,7 @@ bool setuplistenserver(bool dedicated)
     serverhost = enet_host_create(&address, std::min(maxclients + server::reserveclients(), MAXCLIENTS), server::numchannels(), 0, serveruprate);
     if(!serverhost)
     {
-        return servererror(dedicated, "could not create server host");
+        return servererror("could not create server host");
     }
     serverhost->duplicatePeers = maxdupclients ? maxdupclients : MAXCLIENTS;
     serverhost->intercept = serverinfointercept;
@@ -1429,28 +1395,21 @@ bool setuplistenserver(bool dedicated)
     return true;
 }
 
-void initserver(bool listen, bool dedicated)
+void initserver(bool listen)
 {
-    if(dedicated)
-    {
-#ifdef WIN32
+    #ifdef WIN32
         setupwindow("Tesseract server");
-#endif
-    }
+    #endif
     execfile("config/server-init.cfg");
     if(listen)
     {
-        setuplistenserver(dedicated);
+        setuplistenserver();
     }
     server::serverinit();
     if(listen)
     {
-        dedicatedserver = dedicated;
         updatemasterserver();
-        if(dedicated)
-        {
-            rundedicatedserver(); // never returns
-        }
+        rundedicatedserver(); // never returns
     }
 }
 
@@ -1496,6 +1455,6 @@ int main(int argc, char **argv)
         }
     }
     game::parseoptions(gameargs);
-    initserver(true, true);
+    initserver(true);
     return EXIT_SUCCESS;
 }
