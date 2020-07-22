@@ -36,6 +36,7 @@ enum
 {
     Gun_Rail = 0,
     Gun_Pulse,
+    Gun_Eng,
     Gun_NumGuns
 };
 
@@ -45,6 +46,8 @@ enum
     Attack_RailMelee,
     Attack_PulseShoot,
     Attack_PulseMelee,
+    Attack_EngShoot,
+    Attack_EngMelee,
     Attack_NumAttacks
 };
 
@@ -185,6 +188,7 @@ enum
     NetMsg_Rotate,
     NetMsg_Replace,
     NetMsg_DelCube,
+    NetMsg_AddCube,
     NetMsg_CalcLight,
     NetMsg_Remip, //50
     NetMsg_EditVSlot,
@@ -299,6 +303,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     NetMsg_Rotate, 15,
     NetMsg_Replace, 17,
     NetMsg_DelCube, 14,
+    NetMsg_AddCube, 14,
     NetMsg_CalcLight, 1,
     NetMsg_Remip, 1,
     NetMsg_EditVSlot, 16,
@@ -392,14 +397,16 @@ enum
 #define EXP_DISTSCALE 0.5f
 // this defines weapon properties
 //                                   1    8            9       10      11      12         13          14     15    16       17      18   19
-static const struct attackinfo { int gun, attackdelay, damage, spread, margin, projspeed, kickamount, range, rays, hitpush, exprad, ttl, use; } attacks[Attack_NumAttacks] =
+static const struct attackinfo { int gun, attackdelay, damage, spread, margin, projspeed, kickamount, range, rays, hitpush, exprad, worldfx, use; } attacks[Attack_NumAttacks] =
 
 //    1          8      9  10 11    12  13    14 15    16  17 18 19
 {
     { Gun_Rail,  1300, 10, 0, 0,    0, 30, 2048, 1, 1500,  0, 0, 0 },
     { Gun_Rail,   500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
-    { Gun_Pulse,  500, 20, 0, 1,  700, 50, 1024, 1, 2500, 50, 0, 0 },
-    { Gun_Pulse,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 }
+    { Gun_Pulse,  500, 20, 0, 1,  700, 50, 1024, 1, 2500, 50, 1, 0 },
+    { Gun_Pulse,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
+    { Gun_Eng,    500,  0, 0, 1,  700, 20,   32, 1,   10, 50, 2, 0 },
+    { Gun_Eng,    500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
 };
 
 enum
