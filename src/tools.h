@@ -82,9 +82,6 @@ inline float detrnd(uint s, int x)
 #define DELETEA(p) if(p) { delete[] p; p = 0; }
 
 #define PI (3.14159265358979f)
-#define SQRT2 (1.4142135623731f)
-#define SQRT3 (1.73205080756888f)
-#define SQRT5 (2.23606797749979f)
 #define RAD (PI / 180.0f)
 
 #ifdef WIN32
@@ -161,15 +158,6 @@ inline char *concatstring(char *d, const char *s, size_t len) { size_t used = st
 template<size_t N>
 inline char *concatstring(char (&d)[N], const char *s) { return concatstring(d, s, N); }
 
-inline void nformatstring(char *d, int len, const char *fmt, ...) PRINTFARGS(3, 4);
-inline void nformatstring(char *d, int len, const char *fmt, ...)
-{
-    va_list v;
-    va_start(v, fmt);
-    vformatstring(d, fmt, v, len);
-    va_end(v);
-}
-
 template<size_t N>
 inline void formatstring(char (&d)[N], const char *fmt, ...) PRINTFARGS(2, 3);
 
@@ -179,19 +167,6 @@ inline void formatstring(char (&d)[N], const char *fmt, ...)
     va_list v;
     va_start(v, fmt);
     vformatstring(d, fmt, v, int(N));
-    va_end(v);
-}
-
-template<size_t N>
-inline void concformatstring(char (&d)[N], const char *fmt, ...) PRINTFARGS(2, 3);
-
-template<size_t N>
-inline void concformatstring(char (&d)[N], const char *fmt, ...)
-{
-    va_list v;
-    va_start(v, fmt);
-    int len = strlen(d);
-    vformatstring(d + len, fmt, v, int(N) - len);
     va_end(v);
 }
 
@@ -209,15 +184,6 @@ inline bool matchstring(const char *s, size_t len, const char (&d)[N])
 inline char *newstring(size_t l)                { return new char[l+1]; }
 inline char *newstring(const char *s, size_t l) { return copystring(newstring(l), s, l+1); }
 inline char *newstring(const char *s)           { size_t l = strlen(s); char *d = newstring(l); memcpy(d, s, l+1); return d; }
-
-template<class T>
-inline void memclear(T *p, size_t n) { memset((void *)p, 0, n * sizeof(T)); }
-
-template<class T>
-inline void memclear(T &p) { memset((void *)&p, 0, sizeof(T)); }
-
-template<class T, size_t N>
-inline void memclear(T (&p)[N]) { memset((void *)p, 0, N * sizeof(T)); }
 
 template <class T>
 struct databuf
