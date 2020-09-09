@@ -418,7 +418,8 @@ ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
             }
             case 's':
             {
-                sendstring(va_arg(args, const char *), p); break;
+                sendstring(va_arg(args, const char *), p);
+                break;
             }
             case 'l':
             {
@@ -653,7 +654,7 @@ void processmasterinput()
     {
         return;
     }
-    char *input = &masterin[masterinpos], *end = (char *)memchr(input, '\n', masterin.length() - masterinpos);
+    char *input = &masterin[masterinpos], *end = static_cast<char *>(memchr(input, '\n', masterin.length() - masterinpos));
     while(end)
     {
         *end = '\0';
@@ -943,7 +944,7 @@ void serverslice(uint timeout)   // main server update, called from main loop in
             }
             case ENET_EVENT_TYPE_RECEIVE:
             {
-                client *c = (client *)event.peer->data;
+                client *c = static_cast<client *>(event.peer->data);
                 if(c)
                 {
                     process(event.packet, c->num, event.channelID);
@@ -956,7 +957,7 @@ void serverslice(uint timeout)   // main server update, called from main loop in
             }
             case ENET_EVENT_TYPE_DISCONNECT:
             {
-                client *c = (client *)event.peer->data;
+                client *c = static_cast<client *>(event.peer->data);
                 if(!c)
                 {
                     break;
