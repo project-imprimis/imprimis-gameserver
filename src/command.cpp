@@ -21,14 +21,18 @@
 
 #include "iengine.h"
 
-
-char *exchangestr(char *o, const char *n) { delete[] o; return newstring(n); }
+char *exchangestr(char *o, const char *n)
+{
+    delete[] o;
+    return newstring(n);
+}
 
 typedef hashtable<const char *, ident> identtable;
 
 identtable *idents = NULL;        // contains ALL vars/commands/aliases
 
-bool overrideidents = false, persistidents = true;
+bool overrideidents = false,
+     persistidents = true;
 
 void clearstack(ident &id)
 {
@@ -83,7 +87,10 @@ void clearoverrides()
 
 void pushident(ident &id, char *val)
 {
-    if(id.type != ID_ALIAS) return;
+    if(id.type != ID_ALIAS)
+    {
+        return;
+    }
     identstack *stack = new identstack;
     stack->action = id.isexecuting==id.action ? newstring(id.action) : id.action;
     stack->next = id.stack;
@@ -93,8 +100,14 @@ void pushident(ident &id, char *val)
 
 void popident(ident &id)
 {
-    if(id.type != ID_ALIAS || !id.stack) return;
-    if(id.action != id.isexecuting) delete[] id.action;
+    if(id.type != ID_ALIAS || !id.stack)
+    {
+        return;
+    }
+    if(id.action != id.isexecuting)
+    {
+        delete[] id.action;
+    }
     identstack *stack = id.stack;
     id.action = stack->action;
     id.stack = stack->next;
@@ -125,7 +138,10 @@ void push(char *name, char *action)
 void pop(char *name)
 {
     ident *id = idents->access(name);
-    if(id) popident(*id);
+    if(id)
+    {
+        popident(*id);
+    }
 }
 
 COMMAND(push, "ss");
@@ -137,7 +153,10 @@ void aliasa(const char *name, char *action)
     if(!b)
     {
         ident b(ID_ALIAS, newstring(name), action, persistidents ? IDF_PERSIST : 0);
-        if(overrideidents) b.override = OVERRIDDEN;
+        if(overrideidents)
+        {
+            b.override = OVERRIDDEN;
+        }
         idents->access(b.name, b);
     }
     else if(b->type != ID_ALIAS)
@@ -147,17 +166,29 @@ void aliasa(const char *name, char *action)
     }
     else
     {
-        if(b->action != b->isexecuting) delete[] b->action;
+        if(b->action != b->isexecuting)
+        {
+            delete[] b->action;
+        }
         b->action = action;
         if(overrideidents) b->override = OVERRIDDEN;
         else
         {
-            if(b->override != NO_OVERRIDE) b->override = NO_OVERRIDE;
+            if(b->override != NO_OVERRIDE)
+            {
+                b->override = NO_OVERRIDE;
+            }
             if(persistidents)
             {
-                if(!(b->flags & IDF_PERSIST)) b->flags |= IDF_PERSIST;
+                if(!(b->flags & IDF_PERSIST))
+                {
+                    b->flags |= IDF_PERSIST;
+                }
             }
-            else if(b->flags & IDF_PERSIST) b->flags &= ~IDF_PERSIST;
+            else if(b->flags & IDF_PERSIST)
+            {
+                b->flags &= ~IDF_PERSIST;
+            }
         }
     }
 }
@@ -170,7 +201,10 @@ COMMAND(alias, "ss");
 
 int variable(const char *name, int min, int cur, int max, int *storage, void (*fun)(), int flags)
 {
-    if(!idents) idents = new identtable;
+    if(!idents)
+    {
+        idents = new identtable;
+    }
     ident v(Id_Var, name, min, cur, max, storage, (void *)fun, flags);
     idents->access(name, v);
     return cur;
@@ -178,7 +212,10 @@ int variable(const char *name, int min, int cur, int max, int *storage, void (*f
 
 float fvariable(const char *name, float min, float cur, float max, float *storage, void (*fun)(), int flags)
 {
-    if(!idents) idents = new identtable;
+    if(!idents)
+    {
+        idents = new identtable;
+    }
     ident v(Id_FloatVar, name, min, cur, max, storage, (void *)fun, flags);
     idents->access(name, v);
     return cur;
@@ -186,7 +223,10 @@ float fvariable(const char *name, float min, float cur, float max, float *storag
 
 char *svariable(const char *name, const char *cur, char **storage, void (*fun)(), int flags)
 {
-    if(!idents) idents = new identtable;
+    if(!idents)
+    {
+        idents = new identtable;
+    }
     ident v(Id_StringVar, name, newstring(cur), storage, (void *)fun, flags);
     idents->access(name, v);
     return v.val.s;
@@ -194,25 +234,37 @@ char *svariable(const char *name, const char *cur, char **storage, void (*fun)()
 
 #define _GETVAR(id, vartype, name, retval) \
     ident *id = idents->access(name); \
-    if(!id || id->type!=vartype) return retval;
+    if(!id || id->type!=vartype) \
+    { \
+        return retval; \
+    }
 #define GETVAR(id, name, retval) _GETVAR(id, Id_Var, name, retval)
 void setvar(const char *name, int i, bool dofunc)
 {
     GETVAR(id, name, );
     *id->storage.i = clamp(i, id->minval, id->maxval);
-    if(dofunc) id->changed();
+    if(dofunc)
+    {
+        id->changed();
+    }
 }
 void setfvar(const char *name, float f, bool dofunc)
 {
     _GETVAR(id, Id_FloatVar, name, );
     *id->storage.f = clamp(f, id->minvalf, id->maxvalf);
-    if(dofunc) id->changed();
+    if(dofunc)
+    {
+        id->changed();
+    }
 }
 void setsvar(const char *name, const char *str, bool dofunc)
 {
     _GETVAR(id, Id_StringVar, name, );
     *id->storage.s = exchangestr(*id->storage.s, str);
-    if(dofunc) id->changed();
+    if(dofunc)
+    {
+        id->changed();
+    }
 }
 int getvar(const char *name)
 {
@@ -229,8 +281,15 @@ int getvarmax(const char *name)
     GETVAR(id, name, 0);
     return id->maxval;
 }
-bool identexists(const char *name) { return idents->access(name)!=NULL; }
-ident *getident(const char *name) { return idents->access(name); }
+bool identexists(const char *name)
+{
+    return idents->access(name)!=NULL;
+}
+
+ident *getident(const char *name)
+{
+    return idents->access(name);
+}
 
 void touchvar(const char *name)
 {
@@ -240,8 +299,10 @@ void touchvar(const char *name)
         case Id_Var:
         case Id_FloatVar:
         case Id_StringVar:
+        {
             id->changed();
             break;
+        }
     }
 }
 
@@ -253,7 +314,10 @@ const char *getalias(const char *name)
 
 bool addcommand(const char *name, void (*fun)(), const char *narg)
 {
-    if(!idents) idents = new identtable;
+    if(!idents)
+    {
+        idents = new identtable;
+    }
     ident c(ID_COMMAND, name, narg, (void *)fun);
     idents->access(name, c);
     return false;
@@ -261,7 +325,10 @@ bool addcommand(const char *name, void (*fun)(), const char *narg)
 
 void addident(const char *name, ident *id)
 {
-    if(!idents) idents = new identtable;
+    if(!idents)
+    {
+        idents = new identtable;
+    }
     idents->access(name, *id);
 }
 
@@ -276,7 +343,10 @@ void parsemacro(const char *&p, int level, vector<char> &wordbuf)
     while(*p=='@') p++, escape++;
     if(level > escape)
     {
-        while(escape--) wordbuf.add('@');
+        while(escape--)
+        {
+            wordbuf.add('@');
+        }
         return;
     }
     if(*p=='(')
@@ -284,27 +354,42 @@ void parsemacro(const char *&p, int level, vector<char> &wordbuf)
         char *ret = parseexp(p, ')');
         if(ret)
         {
-            for(char *sub = ret; *sub; ) wordbuf.add(*sub++);
+            for(char *sub = ret; *sub; )
+            {
+                wordbuf.add(*sub++);
+            }
             delete[] ret;
         }
         return;
     }
     static vector<char> ident;
-    while(isalnum(*p) || *p=='_') ident.add(*p++);
+    while(isalnum(*p) || *p=='_')
+    {
+        ident.add(*p++);
+    }
     ident.add(0);
     const char *alias = getalias(ident.getbuf());
-    while(*alias) wordbuf.add(*alias++);
+    while(*alias)
+    {
+        wordbuf.add(*alias++);
+    }
 }
 
 char *parseexp(const char *&p, int right)          // parse any nested set of () or []
 {
-    if(bufnest++>=wordbufs.length()) wordbufs.add(new vector<char>);
+    if(bufnest++>=wordbufs.length())
+    {
+        wordbufs.add(new vector<char>);
+    }
     vector<char> &wordbuf = *wordbufs[bufnest-1];
     int left = *p++;
     for(int brak = 1; brak; )
     {
         int c = *p++;
-        if(c=='\r') continue;               // hack
+        if(c=='\r')
+        {
+            continue;               // hack
+        }
         if(left=='[' && c=='@')
         {
             parsemacro(p, brak, wordbuf);
@@ -314,8 +399,14 @@ char *parseexp(const char *&p, int right)          // parse any nested set of ()
         {
             wordbuf.add(c);
             const char *end = p+strcspn(p, "\"\r\n\0");
-            while(p < end) wordbuf.add(*p++);
-            if(*p=='\"') wordbuf.add(*p++);
+            while(p < end)
+            {
+                wordbuf.add(*p++);
+            }
+            if(*p=='\"')
+            {
+                wordbuf.add(*p++);
+            }
             continue;
         }
         if(c=='/' && *p=='/')
@@ -323,9 +414,14 @@ char *parseexp(const char *&p, int right)          // parse any nested set of ()
             p += strcspn(p, "\n\0");
             continue;
         }
-
-        if(c==left) brak++;
-        else if(c==right) brak--;
+        if(c==left)
+        {
+            brak++;
+        }
+        else if(c==right)
+        {
+            brak--;
+        }
         else if(!c)
         {
             p--;
@@ -359,10 +455,23 @@ char *lookup(char *n)                           // find value of ident reference
     ident *id = idents->access(n+1);
     if(id) switch(id->type)
     {
-        case Id_Var: { s_sprintfd(t)("%d", *id->storage.i); return exchangestr(n, t); }
-        case Id_FloatVar: return exchangestr(n, floatstr(*id->storage.f));
-        case Id_StringVar: return exchangestr(n, *id->storage.s);
-        case ID_ALIAS: return exchangestr(n, id->action);
+        case Id_Var:
+        {
+            s_sprintfd(t)("%d", *id->storage.i);
+            return exchangestr(n, t);
+        }
+        case Id_FloatVar:
+        {
+            return exchangestr(n, floatstr(*id->storage.f));
+        }
+        case Id_StringVar:
+        {
+            return exchangestr(n, *id->storage.s);
+        }
+        case ID_ALIAS:
+        {
+            return exchangestr(n, id->action);
+        }
     }
     conoutf(Console_Error, "unknown alias lookup: %s", n+1);
     return n;
@@ -373,7 +482,10 @@ char *parseword(const char *&p, int arg, int &infix)                       // pa
     for(;;)
     {
         p += strspn(p, " \t\r");
-        if(p[0]!='/' || p[1]!='/') break;
+        if(p[0]!='/' || p[1]!='/')
+        {
+            break;
+        }
         p += strcspn(p, "\n\0");
     }
     if(*p=='\"')
@@ -382,39 +494,77 @@ char *parseword(const char *&p, int arg, int &infix)                       // pa
         const char *word = p;
         p += strcspn(p, "\"\r\n\0");
         char *s = newstring(word, p-word);
-        if(*p=='\"') p++;
+        if(*p=='\"')
+        {
+            p++;
+        }
         return s;
     }
-    if(*p=='(') return parseexp(p, ')');
-    if(*p=='[') return parseexp(p, ']');
+    if(*p=='(')
+    {
+        return parseexp(p, ')');
+    }
+    if(*p=='[')
+    {
+        return parseexp(p, ']');
+    }
     const char *word = p;
     for(;;)
     {
         p += strcspn(p, "/; \t\r\n\0");
-        if(p[0]!='/' || p[1]=='/') break;
-        else if(p[1]=='\0') { p++; break; }
+        if(p[0]!='/' || p[1]=='/')
+        {
+            break;
+        }
+        else if(p[1]=='\0')
+        {
+            p++;
+            break;
+        }
         p += 2;
     }
-    if(p-word==0) return NULL;
-    if(arg==1 && p-word==1) switch(*word)
+    if(p-word==0)
     {
-        case '=': infix = *word; break;
+        return NULL;
+    }
+    if(arg==1 && p-word==1)
+    {
+        switch(*word)
+        {
+            case '=':
+            {
+                infix = *word;
+                break;
+            }
+        }
     }
     char *s = newstring(word, p-word);
-    if(*s=='$') return lookup(s);               // substitute variables
+    if(*s=='$')
+    {
+        return lookup(s);               // substitute variables
+    }
     return s;
 }
 
 char *conc(char **w, int n, bool space)
 {
     int len = space ? std::max(n-1, 0) : 0;
-    for(int j = 0; j < n; j++) len += (int)strlen(w[j]);
+    for(int j = 0; j < n; j++)
+    {
+        len += (int)strlen(w[j]);
+    }
     char *r = newstring("", len);
     for(int i = 0; i < n; i++)
     {
         strcat(r, w[i]);  // make string-list out of all arguments
-        if(i==n-1) break;
-        if(space) strcat(r, " ");
+        if(i==n-1)
+        {
+            break;
+        }
+        if(space)
+        {
+            strcat(r, " ");
+        }
     }
     return r;
 }
@@ -438,19 +588,29 @@ char *executeret(const char *p)               // all evaluation happens here, re
         for(int i = 0; i < MAXWORDS; i++)
         {
             w[i] = (char *)"";
-            if(i>numargs) continue;
+            if(i>numargs)
+            {
+                continue;
+            }
             char *s = parseword(p, i, infix);   // parse and evaluate exps
-            if(s) w[i] = s;
-            else numargs = i;
+            if(s)
+            {
+                w[i] = s;
+            }
+            else
+            {
+                numargs = i;
+            }
         }
 
         p += strcspn(p, ";\n\0");
         cont = *p++!=0;                         // more statements if this isn't the end of the string
         char *c = w[0];
-        if(!*c) continue;                       // empty statement
-
+        if(!*c)
+        {
+            continue;                       // empty statement
+        }
         DELETEA(retval);
-
         if(infix)
         {
             switch(infix)
@@ -467,7 +627,9 @@ char *executeret(const char *p)               // all evaluation happens here, re
             if(!id)
             {
                 if(!isdigit(*c) && ((*c!='+' && *c!='-' && *c!='.') || !isdigit(c[1])))
+                {
                     conoutf(Console_Error, "unknown command: %s", c);
+                }
                 setretval(newstring(c));
             }
             else switch(id->type)
@@ -481,17 +643,21 @@ char *executeret(const char *p)               // all evaluation happens here, re
                         int i;
                         float f;
                     } nstor[MAXWORDS];
-                    int n = 0, wn = 0;
+                    int n = 0,
+                        wn = 0;
                     char *cargs = NULL;
                     if(id->type==ID_CCOMMAND) v[n++] = id->self;
-                    for(const char *a = id->narg; *a; a++) switch(*a)
+                    for(const char *a = id->narg; *a; a++)
                     {
-                        case 's':                                 v[n] = w[++wn];     n++; break;
-                        case 'i': nstor[n].i = parseint(w[++wn]); v[n] = &nstor[n].i; n++; break;
-                        case 'f': nstor[n].f = atof(w[++wn]);     v[n] = &nstor[n].f; n++; break;
-                        case 'V': v[n++] = w+1; nstor[n].i = numargs-1; v[n] = &nstor[n].i; n++; break;
-                        case 'C': if(!cargs) cargs = conc(w+1, numargs-1, true); v[n++] = cargs; break;
-                        default: fatal("builtin declared with illegal type");
+                        switch(*a)
+                        {
+                            case 's':                                 v[n] = w[++wn];     n++; break;
+                            case 'i': nstor[n].i = parseint(w[++wn]); v[n] = &nstor[n].i; n++; break;
+                            case 'f': nstor[n].f = atof(w[++wn]);     v[n] = &nstor[n].f; n++; break;
+                            case 'V': v[n++] = w+1; nstor[n].i = numargs-1; v[n] = &nstor[n].i; n++; break;
+                            case 'C': if(!cargs) cargs = conc(w+1, numargs-1, true); v[n++] = cargs; break;
+                            default: fatal("builtin declared with illegal type");
+                        }
                     }
                     switch(n)
                     {
@@ -541,8 +707,14 @@ char *executeret(const char *p)               // all evaluation happens here, re
                     break;
 
                 case Id_FloatVar:
-                    if(numargs <= 1) conoutf("%s = %s", c, floatstr(*id->storage.f));
-                    else if(id->minvalf>id->maxvalf) conoutf(Console_Error, "variable %s is read-only", id->name);
+                    if(numargs <= 1)
+                    {
+                        conoutf("%s = %s", c, floatstr(*id->storage.f));
+                    }
+                    else if(id->minvalf>id->maxvalf)
+                    {
+                        conoutf(Console_Error, "variable %s is read-only", id->name);
+                    }
                     else
                     {
                         OVERRIDEVAR(id->overrideval.f = *id->storage.f, );
@@ -558,7 +730,10 @@ char *executeret(const char *p)               // all evaluation happens here, re
                     break;
 
                 case Id_StringVar:
-                    if(numargs <= 1) conoutf(strchr(*id->storage.s, '"') ? "%s = [%s]" : "%s = \"%s\"", c, *id->storage.s);
+                    if(numargs <= 1)
+                    {
+                        conoutf(strchr(*id->storage.s, '"') ? "%s = [%s]" : "%s = \"%s\"", c, *id->storage.s);
+                    }
                     else
                     {
                         OVERRIDEVAR(id->overrideval.s = *id->storage.s, delete[] id->overrideval.s);
@@ -581,14 +756,23 @@ char *executeret(const char *p)               // all evaluation happens here, re
                     }
                     _numargs = numargs-1;
                     bool wasoverriding = overrideidents;
-                    if(id->override!=NO_OVERRIDE) overrideidents = true;
+                    if(id->override!=NO_OVERRIDE)
+                    {
+                        overrideidents = true;
+                    }
                     char *wasexecuting = id->isexecuting;
                     id->isexecuting = id->action;
                     setretval(executeret(id->action));
-                    if(id->isexecuting != id->action && id->isexecuting != wasexecuting) delete[] id->isexecuting;
+                    if(id->isexecuting != id->action && id->isexecuting != wasexecuting)
+                    {
+                        delete[] id->isexecuting;
+                    }
                     id->isexecuting = wasexecuting;
                     overrideidents = wasoverriding;
-                    for(int i = 1; i<numargs; i++) popident(*argids[i-1]);
+                    for(int i = 1; i<numargs; i++)
+                    {
+                        popident(*argids[i-1]);
+                    }
                     continue;
                 }
             }
@@ -602,7 +786,11 @@ int execute(const char *p)
 {
     char *ret = executeret(p);
     int i = 0;
-    if(ret) { i = parseint(ret); delete[] ret; }
+    if(ret)
+    {
+        i = parseint(ret);
+        delete[] ret;
+    }
     return i;
 }
 
@@ -611,7 +799,10 @@ bool execfile(const char *cfgfile)
     string s;
     s_strcpy(s, cfgfile);
     char *buf = loadfile(path(s), NULL);
-    if(!buf) return false;
+    if(!buf)
+    {
+        return false;
+    }
     execute(buf);
     delete[] buf;
     return true;
@@ -619,7 +810,10 @@ bool execfile(const char *cfgfile)
 
 void exec(const char *cfgfile)
 {
-    if(!execfile(cfgfile)) conoutf(Console_Error, "could not read \"%s\"", cfgfile);
+    if(!execfile(cfgfile))
+    {
+        conoutf(Console_Error, "could not read \"%s\"", cfgfile);
+    }
 }
 
 // below the commands that implement a small imperative language. thanks to the semantics of
@@ -644,13 +838,25 @@ void floatret(float v)
 ICOMMAND(if, "sss", (char *cond, char *t, char *f), commandret = executeret(cond[0]!='0' ? t : f));
 ICOMMAND(loop, "sis", (char *var, int *n, char *body),
 {
-    if(*n<=0) return;
+    if(*n<=0)
+    {
+        return;
+    }
     ident *id = newident(var);
-    if(id->type!=ID_ALIAS) return;
+    if(id->type!=ID_ALIAS)
+    {
+        return;
+    }
     for(int i = 0; i < *n; i++)
     {
-        if(i) sprintf(id->action, "%d", i);
-        else pushident(*id, newstring("0", 16));
+        if(i)
+        {
+            sprintf(id->action, "%d", i);
+        }
+        else
+        {
+            pushident(*id, newstring("0", 16));
+        }
         execute(body);
     }
     popident(*id);
@@ -681,9 +887,15 @@ void format(char **args, int *numargs)
                 const char *sub = i < *numargs ? args[i] : "";
                 while(*sub) s.add(*sub++);
             }
-            else s.add(i);
+            else
+            {
+                s.add(i);
+            }
         }
-        else s.add(c);
+        else
+        {
+            s.add(c);
+        }
     }
     s.add('\0');
     result(s.getbuf());
@@ -716,7 +928,10 @@ char *indexlist(const char *s, int pos)
     if(*e=='"')
     {
         e++;
-        if(s[-1]=='"') --s;
+        if(s[-1]=='"')
+        {
+            --s;
+        }
     }
     return newstring(e, s-e);
 }
@@ -725,7 +940,10 @@ void listlen(char *s)
 {
     int n = 0;
     whitespaceskip;
-    for(; *s; n++) elementskip, whitespaceskip;
+    for(; *s; n++)
+    {
+        elementskip, whitespaceskip;
+    }
     intret(n);
 }
 
@@ -736,7 +954,8 @@ void at(char *s, int *pos)
 
 void substr(char *s, int *start, int *count)
 {
-    int len = strlen(s), offset = clamp(*start, 0, len);
+    int len = strlen(s),
+        offset = clamp(*start, 0, len);
     commandret = newstring(&s[offset], *count <= 0 ? len - offset : std::min(*count, len - offset));
 }
 
@@ -755,30 +974,30 @@ COMMAND(substr, "sii");
 COMMAND(listlen, "s");
 COMMANDN(getalias, getalias_, "s");
 
-void add  (int *a, int *b) { intret(*a + *b); }          COMMANDN(+, add, "ii");
-void mul  (int *a, int *b) { intret(*a * *b); }          COMMANDN(*, mul, "ii");
-void sub  (int *a, int *b) { intret(*a - *b); }          COMMANDN(-, sub, "ii");
-void div_ (int *a, int *b) { intret(*b ? *a / *b : 0); } COMMANDN(div, div_, "ii");
-void mod_ (int *a, int *b) { intret(*b ? *a % *b : 0); } COMMANDN(mod, mod_, "ii");
+void add  (int *a, int *b) { intret(*a + *b); }                 COMMANDN(+, add, "ii");
+void mul  (int *a, int *b) { intret(*a * *b); }                 COMMANDN(*, mul, "ii");
+void sub  (int *a, int *b) { intret(*a - *b); }                 COMMANDN(-, sub, "ii");
+void div_ (int *a, int *b) { intret(*b ? *a / *b : 0); }        COMMANDN(div, div_, "ii");
+void mod_ (int *a, int *b) { intret(*b ? *a % *b : 0); }        COMMANDN(mod, mod_, "ii");
 void addf  (float *a, float *b) { floatret(*a + *b); }          COMMANDN(+f, addf, "ff");
 void mulf  (float *a, float *b) { floatret(*a * *b); }          COMMANDN(*f, mulf, "ff");
 void subf  (float *a, float *b) { floatret(*a - *b); }          COMMANDN(-f, subf, "ff");
 void divf_ (float *a, float *b) { floatret(*b ? *a / *b : 0); } COMMANDN(divf, divf_, "ff");
 void modf_ (float *a, float *b) { floatret(*b ? fmod(*a, *b) : 0); } COMMANDN(modf, modf_, "ff");
-void equal(int *a, int *b) { intret((int)(*a == *b)); }  COMMANDN(=, equal, "ii");
-void nequal(int *a, int *b) { intret((int)(*a != *b)); } COMMANDN(!=, nequal, "ii");
-void lt   (int *a, int *b) { intret((int)(*a < *b)); }   COMMANDN(<, lt, "ii");
-void gt   (int *a, int *b) { intret((int)(*a > *b)); }   COMMANDN(>, gt, "ii");
-void lte  (int *a, int *b) { intret((int)(*a <= *b)); } COMMANDN(<=, lte, "ii");
-void gte  (int *a, int *b) { intret((int)(*a >= *b)); } COMMANDN(>=, gte, "ii");
+void equal(int *a, int *b) { intret((int)(*a == *b)); }       COMMANDN(=, equal, "ii");
+void nequal(int *a, int *b) { intret((int)(*a != *b)); }      COMMANDN(!=, nequal, "ii");
+void lt   (int *a, int *b) { intret((int)(*a < *b)); }        COMMANDN(<, lt, "ii");
+void gt   (int *a, int *b) { intret((int)(*a > *b)); }        COMMANDN(>, gt, "ii");
+void lte  (int *a, int *b) { intret((int)(*a <= *b)); }       COMMANDN(<=, lte, "ii");
+void gte  (int *a, int *b) { intret((int)(*a >= *b)); }       COMMANDN(>=, gte, "ii");
 void equalf(float *a, float *b) { intret((int)(*a == *b)); }  COMMANDN(=f, equalf, "ff");
 void nequalf(float *a, float *b) { intret((int)(*a != *b)); } COMMANDN(!=f, nequalf, "ff");
 void ltf   (float *a, float *b) { intret((int)(*a < *b)); }   COMMANDN(<f, ltf, "ff");
 void gtf   (float *a, float *b) { intret((int)(*a > *b)); }   COMMANDN(>f, gtf, "ff");
-void ltef  (float *a, float *b) { intret((int)(*a <= *b)); } COMMANDN(<=f, ltef, "ff");
-void gtef  (float *a, float *b) { intret((int)(*a >= *b)); } COMMANDN(>=f, gtef, "ff");
-void xora (int *a, int *b) { intret(*a ^ *b); }          COMMANDN(^, xora, "ii");
-void nota (int *a)         { intret(*a == 0); }          COMMANDN(!, nota, "i");
+void ltef  (float *a, float *b) { intret((int)(*a <= *b)); }  COMMANDN(<=f, ltef, "ff");
+void gtef  (float *a, float *b) { intret((int)(*a >= *b)); }  COMMANDN(>=f, gtef, "ff");
+void xora (int *a, int *b) { intret(*a ^ *b); }               COMMANDN(^, xora, "ii");
+void nota (int *a)         { intret(*a == 0); }               COMMANDN(!, nota, "i");
 void mina (int *a, int *b) { intret(std::min(*a, *b)); }      COMMANDN(min, mina, "ii");
 void maxa (int *a, int *b) { intret(std::max(*a, *b)); }      COMMANDN(max, maxa, "ii");
 
@@ -804,13 +1023,22 @@ char *strreplace(const char *s, const char *oldval, const char *newval)
         const char *found = strstr(s, oldval);
         if(found)
         {
-            while(s < found) buf.add(*s++);
-            for(const char *n = newval; *n; n++) buf.add(*n);
+            while(s < found)
+            {
+                buf.add(*s++);
+            }
+            for(const char *n = newval; *n; n++)
+            {
+                buf.add(*n);
+            }
             s = found + oldlen;
         }
         else
         {
-            while(*s) buf.add(*s++);
+            while(*s)
+            {
+                buf.add(*s++);
+            }
             buf.add('\0');
             return newstring(buf.getbuf(), buf.length());
         }
