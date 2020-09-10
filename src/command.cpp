@@ -571,7 +571,7 @@ char *conc(char **w, int n, bool space)
 
 VARN(numargs, _numargs, 0, 0, 25);
 
-#define parseint(s) strtol((s), NULL, 0)
+#define PARSEINT(s) strtol((s), NULL, 0)
 
 char *commandret = NULL;
 
@@ -652,7 +652,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                         switch(*a)
                         {
                             case 's':                                 v[n] = w[++wn];     n++; break;
-                            case 'i': nstor[n].i = parseint(w[++wn]); v[n] = &nstor[n].i; n++; break;
+                            case 'i': nstor[n].i = PARSEINT(w[++wn]); v[n] = &nstor[n].i; n++; break;
                             case 'f': nstor[n].f = atof(w[++wn]);     v[n] = &nstor[n].f; n++; break;
                             case 'V': v[n++] = w+1; nstor[n].i = numargs-1; v[n] = &nstor[n].i; n++; break;
                             case 'C': if(!cargs) cargs = conc(w+1, numargs-1, true); v[n++] = cargs; break;
@@ -695,7 +695,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                             } \
                             else if(id->override!=NO_OVERRIDE) { resetval; id->override = NO_OVERRIDE; }
                         OVERRIDEVAR(id->overrideval.i = *id->storage.i, )
-                        int i1 = parseint(w[1]);
+                        int i1 = PARSEINT(w[1]);
                         if(i1<id->minval || i1>id->maxval)
                         {
                             i1 = i1<id->minval ? id->minval : id->maxval;                // clamp to valid range
@@ -788,7 +788,7 @@ int execute(const char *p)
     int i = 0;
     if(ret)
     {
-        i = parseint(ret);
+        i = PARSEINT(ret);
         delete[] ret;
     }
     return i;
@@ -901,30 +901,30 @@ void format(char **args, int *numargs)
     result(s.getbuf());
 }
 
-#define whitespaceskip s += strspn(s, "\n\t ")
-#define elementskip *s=='"' ? (++s, s += strcspn(s, "\"\n\0"), s += *s=='"') : s += strcspn(s, "\n\t \0")
+#define WHITESPACESKIP s += strspn(s, "\n\t ")
+#define ELEMENTSKIP *s=='"' ? (++s, s += strcspn(s, "\"\n\0"), s += *s=='"') : s += strcspn(s, "\n\t \0")
 
 void explodelist(const char *s, vector<char *> elems)
 {
-    whitespaceskip;
+    WHITESPACESKIP;
     while(*s)
     {
         const char *elem = s;
-        elementskip;
+        ELEMENTSKIP;
         elems.add(*elem=='"' ? newstring(elem+1, s-elem-(s[-1]=='"' ? 2 : 1)) : newstring(elem, s-elem));
-        whitespaceskip;
+        WHITESPACESKIP;
     }
 }
 
 char *indexlist(const char *s, int pos)
 {
-    whitespaceskip;
+    WHITESPACESKIP;
     for(int i = 0; i < pos; i++)
     {
-        elementskip, whitespaceskip;
+        ELEMENTSKIP, WHITESPACESKIP;
     }
     const char *e = s;
-    elementskip;
+    ELEMENTSKIP;
     if(*e=='"')
     {
         e++;
@@ -939,10 +939,10 @@ char *indexlist(const char *s, int pos)
 void listlen(char *s)
 {
     int n = 0;
-    whitespaceskip;
+    WHITESPACESKIP;
     for(; *s; n++)
     {
-        elementskip, whitespaceskip;
+        ELEMENTSKIP, WHITESPACESKIP;
     }
     intret(n);
 }
