@@ -4770,10 +4770,6 @@ namespace server
 
         void reqadd(clientinfo *ci, int skill)
         {
-            if(!ci->local && !ci->privilege)
-            {
-                return;
-            }
             if(!addai(skill, !ci->local && ci->privilege < Priv_Admin ? botlimit : -1))
             {
                 sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "failed to create or assign bot");
@@ -4782,10 +4778,6 @@ namespace server
 
         void reqdel(clientinfo *ci)
         {
-            if(!ci->local && !ci->privilege)
-            {
-                return;
-            }
             if(!deleteai())
             {
                 sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "failed to remove any bots");

@@ -879,7 +879,7 @@ void updatetime()
     }
 }
 
-void serverslice(uint timeout)   // main server update, called from main loop in sp, or from below in dedicated server
+void serverslice(uint timeout)   // main server update, called from below in dedicated server
 {
     // below is network only
     int millis = static_cast<int>(enet_time_get());
@@ -1401,7 +1401,7 @@ void initserver(bool listen)
     #ifdef WIN32
         setupwindow("Tesseract server");
     #endif
-    execfile("config/server-init.cfg");
+    exec("../config/server-init.cfg");
     if(listen)
     {
         setuplistenserver();
