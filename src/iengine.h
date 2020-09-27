@@ -28,11 +28,6 @@ enum
     Edit_Redo
 };
 
-struct editinfo;
-extern editinfo *localedit;
-
-extern void freeeditinfo(editinfo *&e);
-
 // command
 extern int variable(const char *name, int min, int cur, int max, int *storage, void (*fun)(), int flags);
 extern float fvariable(const char *name, float min, float cur, float max, float *storage, void (*fun)(), int flags);
@@ -80,11 +75,7 @@ extern void logoutf(const char *fmt, ...) PRINTFARGS(1, 2);
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
 
 // worldio
-extern bool load_world(const char *mname, const char *cname = NULL);
-extern bool save_world(const char *mname);
 extern void fixmapname(char *name);
-extern uint getmapcrc();
-extern void clearmapcrc();
 extern bool loadents(const char *fname, vector<entity> &ents, uint *crc = NULL);
 
 // server
@@ -118,7 +109,6 @@ extern void flushserver(bool force);
 extern int getservermtu();
 extern int getnumclients();
 extern uint getclientip(int n);
-extern void localconnect();
 extern const char *disconnectreason(int reason);
 extern void disconnect_client(int n, int reason);
 extern void kicknonlocalclients(int reason = Discon_None);
@@ -127,7 +117,6 @@ extern bool haslocalclients();
 extern void sendserverinforeply(ucharbuf &p);
 extern bool requestmaster(const char *req);
 extern bool requestmasterf(const char *fmt, ...) PRINTFARGS(1, 2);
-extern bool isdedicatedserver();
 
 // crypto
 extern void genprivkey(const char *seed, vector<char> &privstr, vector<char> &pubstr);
