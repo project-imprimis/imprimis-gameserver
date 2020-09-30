@@ -267,7 +267,7 @@ namespace server
         char *authkickreason;
 
         clientinfo() : getdemo(NULL), getmap(NULL), clipboard(NULL), authchallenge(NULL), authkickreason(NULL) { reset(); }
-        ~clientinfo() { events.deletecontents(); cleanclipboard(); cleanauth(); }
+        ~clientinfo() { events.deletecontents(); cleanclipboard();}
 
         void addevent(gameevent *e)
         {
@@ -352,13 +352,6 @@ namespace server
             DELETEA(authkickreason);
         }
 
-        void cleanauth(bool full = true)
-        {
-            authreq = 0;
-            if(authchallenge) { freechallenge(authchallenge); authchallenge = NULL; }
-            if(full) cleanauthkick();
-        }
-
         void reset()
         {
             name[0] = 0;
@@ -374,7 +367,6 @@ namespace server
             aireinit = 0;
             needclipboard = 0;
             cleanclipboard();
-            cleanauth();
             mapchange();
         }
 
@@ -1368,7 +1360,7 @@ namespace server
         int privilege;
 
         userinfo() : pubkey(NULL), privilege(Priv_None) {}
-        ~userinfo() { delete[] name; delete[] desc; if(pubkey) freepubkey(pubkey); }
+        ~userinfo() { delete[] name; delete[] desc;}
     };
     hashset<userinfo> users;
 
@@ -1376,10 +1368,8 @@ namespace server
     {
         userkey key(name, desc);
         userinfo &u = users[key];
-        if(u.pubkey) { freepubkey(u.pubkey); u.pubkey = NULL; }
         if(!u.name) u.name = newstring(name);
         if(!u.desc) u.desc = newstring(desc);
-        u.pubkey = parsepubkey(pubkey);
         switch(priv[0])
         {
             case 'a': case 'A': u.privilege = Priv_Admin; break;
@@ -1395,20 +1385,6 @@ namespace server
     }
     COMMAND(clearusers, "");
 
-    void hashpassword(int cn, int sessionid, const char *pwd, char *result, int maxlen)
-    {
-        char buf[2*sizeof(string)];
-        formatstring(buf, "%d %d %s", cn, sessionid, pwd);
-        if(!hashstring(buf, result, maxlen)) *result = '\0';
-    }
-
-    bool checkpassword(clientinfo *ci, const char *wanted, const char *given)
-    {
-        string hash;
-        hashpassword(ci->clientnum, ci->sessionid, wanted, hash, sizeof(hash));
-        return !strcmp(hash, given);
-    }
-
     void revokemaster(clientinfo *ci)
     {
         ci->privilege = Priv_None;
@@ -1423,7 +1399,7 @@ namespace server
         const char *name = "";
         if(val)
         {
-            bool haspass = adminpass[0] && checkpassword(ci, adminpass, pass);
+            bool haspass = adminpass[0];
             int wantpriv = ci->local || haspass ? Priv_Admin : authpriv;
             if(wantpriv <= ci->privilege) return true;
             else if(wantpriv <= Priv_Master && !force)
@@ -2748,10 +2724,6 @@ namespace server
     void clientdisconnect(int n)
     {
         clientinfo *ci = getinfo(n);
-        for(int i = 0; i < clients.length(); i++)
-        {
-            if(clients[i]->authkickvictim == ci->clientnum) clients[i]->cleanauth();
-        }
         if(ci->connected)
         {
             if(ci->privilege)
@@ -2848,10 +2820,9 @@ namespace server
         if(modecheck(gamemode, Mode_LocalOnly)) return Discon_Local;
         if(serverpass[0])
         {
-            if(!checkpassword(ci, serverpass, pwd)) return Discon_Password;
             return Discon_None;
         }
-        if(adminpass[0] && checkpassword(ci, adminpass, pwd)) return Discon_None;
+        if(adminpass[0]) return Discon_None;
         if(numclients(-1, false, true)>=maxclients) return Discon_MaxClients;
         uint ip = getclientip(ci->clientnum);
         if(checkbans(ip)) return Discon_IPBan;
@@ -2877,114 +2848,6 @@ namespace server
         return NULL;
     }
 
-    void authfailed(clientinfo *ci)
-    {
-        if(!ci)
-        {
-            return;
-        }
-        ci->cleanauth();
-        if(ci->connectauth)
-        {
-            disconnect_client(ci->clientnum, ci->connectauth);
-        }
-    }
-
-    void authfailed(uint id)
-    {
-        authfailed(findauth(id));
-    }
-
-    void authsucceeded(uint id)
-    {
-        clientinfo *ci = findauth(id);
-        if(!ci) return;
-        ci->cleanauth(ci->connectauth!=0);
-        if(ci->connectauth) connected(ci);
-        if(ci->authkickvictim >= 0)
-        {
-            if(setmaster(ci, true, "", ci->authname, NULL, Priv_Auth, false, true))
-                trykick(ci, ci->authkickvictim, ci->authkickreason, ci->authname, NULL, Priv_Auth);
-            ci->cleanauthkick();
-        }
-        else setmaster(ci, true, "", ci->authname, NULL, Priv_Auth);
-    }
-
-    void authchallenged(uint id, const char *val, const char *desc = "")
-    {
-        clientinfo *ci = findauth(id);
-        if(!ci) return;
-        sendf(ci->clientnum, 1, "risis", NetMsg_AuthChallenge, desc, id, val);
-    }
-
-    uint nextauthreq = 0;
-
-    bool tryauth(clientinfo *ci, const char *user, const char *desc)
-    {
-        ci->cleanauth();
-        if(!nextauthreq) nextauthreq = 1;
-        ci->authreq = nextauthreq++;
-        filtertext(ci->authname, user, false, false, 100);
-        copystring(ci->authdesc, desc);
-        if(ci->authdesc[0])
-        {
-            userinfo *u = users.access(userkey(ci->authname, ci->authdesc));
-            if(u)
-            {
-                uint seed[3] = { ::hthash(serverauth) + uint(detrnd(size_t(ci) + size_t(user) + size_t(desc), 0x10000)), uint(totalmillis), uint(rand()) };
-                vector<char> buf;
-                ci->authchallenge = genchallenge(u->pubkey, seed, sizeof(seed), buf);
-                sendf(ci->clientnum, 1, "risis", NetMsg_AuthChallenge, desc, ci->authreq, buf.getbuf());
-            }
-            else ci->cleanauth();
-        }
-        else if(!requestmasterf("reqauth %u %s\n", ci->authreq, ci->authname))
-        {
-            ci->cleanauth();
-            sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "not connected to authentication server");
-        }
-        if(ci->authreq) return true;
-        if(ci->connectauth) disconnect_client(ci->clientnum, ci->connectauth);
-        return false;
-    }
-
-    bool answerchallenge(clientinfo *ci, uint id, char *val, const char *desc)
-    {
-        if(ci->authreq != id || strcmp(ci->authdesc, desc))
-        {
-            ci->cleanauth();
-            return !ci->connectauth;
-        }
-        for(char *s = val; *s; s++)
-        {
-            if(!isxdigit(*s)) { *s = '\0'; break; }
-        }
-        if(desc[0])
-        {
-            if(ci->authchallenge && checkchallenge(val, ci->authchallenge))
-            {
-                userinfo *u = users.access(userkey(ci->authname, ci->authdesc));
-                if(u)
-                {
-                    if(ci->connectauth) connected(ci);
-                    if(ci->authkickvictim >= 0)
-                    {
-                        if(setmaster(ci, true, "", ci->authname, ci->authdesc, u->privilege, false, true))
-                            trykick(ci, ci->authkickvictim, ci->authkickreason, ci->authname, ci->authdesc, u->privilege);
-                    }
-                    else setmaster(ci, true, "", ci->authname, ci->authdesc, u->privilege);
-                }
-            }
-            ci->cleanauth();
-        }
-        else if(!requestmasterf("confauth %u %s\n", id, val))
-        {
-            ci->cleanauth();
-            sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "not connected to authentication server");
-        }
-        return ci->authreq || !ci->connectauth;
-    }
-
     void masterconnected()
     {
     }
@@ -2994,24 +2857,7 @@ namespace server
         for(int i = clients.length(); --i >=0;) //note reverse iteration
         {
             clientinfo *ci = clients[i];
-            if(ci->authreq) authfailed(ci);
         }
-    }
-
-    void processmasterinput(const char *cmd, int cmdlen, const char *args)
-    {
-        uint id;
-        string val;
-        if(sscanf(cmd, "failauth %u", &id) == 1)
-            authfailed(id);
-        else if(sscanf(cmd, "succauth %u", &id) == 1)
-            authsucceeded(id);
-        else if(sscanf(cmd, "chalauth %u %255s", &id, val) == 2)
-            authchallenged(id, val);
-        else if(matchstring(cmd, cmdlen, "cleargbans"))
-            gbans.clear();
-        else if(sscanf(cmd, "addgban %100s", val) == 1)
-            gbans.add(val);
     }
 
     void receivefile(int sender, uchar *data, int len)
@@ -3137,7 +2983,7 @@ namespace server
                             int disc = allowconnect(ci, password);
                             if(disc)
                             {
-                                if(disc == Discon_Local || !serverauth[0] || strcmp(serverauth, authdesc) || !tryauth(ci, authname, authdesc))
+                                if(disc == Discon_Local || !serverauth[0] || strcmp(serverauth, authdesc))
                                 {
                                     disconnect_client(sender, disc);
                                     return;
@@ -3154,11 +3000,6 @@ namespace server
                             getstring(desc, p, sizeof(desc));
                             uint id = (uint)getint(p);
                             getstring(ans, p, sizeof(ans));
-                            if(!answerchallenge(ci, id, ans, desc))
-                            {
-                                disconnect_client(sender, ci->connectauth);
-                                return;
-                            }
                             break;
                         }
 
@@ -3989,7 +3830,6 @@ namespace server
                     string desc, name;
                     getstring(desc, p, sizeof(desc));
                     getstring(name, p, sizeof(name));
-                    tryauth(ci, name, desc);
                     break;
                 }
                 case NetMsg_AuthKick:
@@ -4017,7 +3857,7 @@ namespace server
                     {
                         trykick(ci, victim, text);
                     }
-                    else if(trykick(ci, victim, text, name, desc, authpriv, true) && tryauth(ci, name, desc))
+                    else if(trykick(ci, victim, text, name, desc, authpriv, true))
                     {
                         ci->authkickvictim = victim;
                         ci->authkickreason = newstring(text);
@@ -4030,7 +3870,6 @@ namespace server
                     getstring(desc, p, sizeof(desc));
                     uint id = (uint)getint(p);
                     getstring(ans, p, sizeof(ans));
-                    answerchallenge(ci, id, ans, desc);
                     break;
                 }
                 case NetMsg_PauseGame:
@@ -4244,16 +4083,18 @@ namespace server
     int numchannels() { return 3; }
 
 //extinfo
-#define EXT_ACK                         -1
-#define EXT_VERSION                     105
-#define EXT_NO_ERROR                    0
-#define EXT_ERROR                       1
-#define EXT_PLAYERSTATS_RESP_IDS        -10
-#define EXT_PLAYERSTATS_RESP_STATS      -11
-#define EXT_UPTIME                      0
-#define EXT_PLAYERSTATS                 1
-#define EXT_TEAMSCORE                   2
-
+enum
+{
+    EXT_ACK                      =  -1,
+    EXT_VERSION                  =   105,
+    EXT_NO_ERROR                 =   0,
+    EXT_ERROR                    =   1,
+    EXT_PLAYERSTATS_RESP_IDS     =  -10,
+    EXT_PLAYERSTATS_RESP_STATS   =  -11,
+    EXT_UPTIME                   =   0,
+    EXT_PLAYERSTATS              =   1,
+    EXT_TEAMSCORE                =   2,
+};
 /*
     Client:
     -----
