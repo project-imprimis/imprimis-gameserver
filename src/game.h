@@ -396,17 +396,17 @@ enum
 #define EXP_SELFPUSH 2.5f
 #define EXP_DISTSCALE 0.5f
 // this defines weapon properties
-//                                   1    8            9       10      11      12         13          14     15    16       17      18   19
-static const struct attackinfo { int gun, attackdelay, damage, spread, margin, projspeed, kickamount, range, rays, hitpush, exprad, worldfx, use; } attacks[Attack_NumAttacks] =
+//                                   8            9       14     15    17      19
+static const struct attackinfo { int attackdelay, damage, range, rays, exprad, use; } attacks[Attack_NumAttacks] =
 
-//    1          8      9  10 11    12  13    14 15    16  17 18 19
+//    8     9   14   15  17 19
 {
-    { Gun_Rail,  1300, 10, 0, 0,    0, 30, 2048, 1, 1500,  0, 0, 0 },
-    { Gun_Rail,   500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
-    { Gun_Pulse,  500, 20, 0, 1,  700, 50, 1024, 1, 2500, 50, 1, 0 },
-    { Gun_Pulse,  500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
-    { Gun_Eng,    500,  0, 0, 1,  700, 20,   32, 1,   10, 50, 2, 0 },
-    { Gun_Eng,    500, 10, 0, 2,    0,  0,   14, 1,    0,  0, 0, 0 },
+    { 1300, 10, 2048, 1,  0, 0 },
+    {  500, 10,   14, 1,  0, 0 },
+    {  500, 20, 1024, 1, 50, 0 },
+    {  500, 10,   14, 1,  0, 0 },
+    {  500,  0,   32, 1, 50, 0 },
+    {  500, 10,   14, 1,  0, 0 },
 };
 
 enum

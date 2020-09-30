@@ -2370,8 +2370,14 @@ namespace server
             }
 
             float damage = attacks[atk].damage*(1-h.dist/EXP_DISTSCALE/attacks[atk].exprad);
-            if(target==ci) damage /= EXP_SELFDAMDIV;
-            if(damage > 0) dodamage(target, ci, std::max(int(damage), 1), atk, h.dir);
+            if(target==ci)
+            {
+                damage /= EXP_SELFDAMDIV;
+            }
+            if(damage > 0)
+            {
+                dodamage(target, ci, std::max(int(damage), 1), atk, h.dir);
+            }
         }
     }
 
@@ -2382,32 +2388,46 @@ namespace server
         if(!gs.isalive(gamemillis) ||
            wait<gs.gunwait ||
            !VALID_ATTACK(atk))
+        {
             return;
-        int gun = attacks[atk].gun;
-        if(gs.ammo[gun]<=0 || (attacks[atk].range && from.dist(to) > attacks[atk].range + 1))
+        }
+        if(attacks[atk].range && from.dist(to) > attacks[atk].range + 1)
+        {
             return;
-        gs.ammo[gun] -= attacks[atk].use;
+        }
         gs.lastshot = millis;
         gs.gunwait = attacks[atk].attackdelay;
+        //send info about projectile if valid
         sendf(-1, 1, "rii9x", NetMsg_ShotFX, ci->clientnum, atk, id,
                 int(from.x*DMF), int(from.y*DMF), int(from.z*DMF),
                 int(to.x*DMF), int(to.y*DMF), int(to.z*DMF),
                 ci->ownernum);
         gs.shotdamage += attacks[atk].damage*attacks[atk].rays;
+        //damage & rays code
         switch(atk)
         {
-            case Attack_PulseShoot: gs.projs.add(id); break;
+            case Attack_PulseShoot:
+            {
+                gs.projs.add(id);
+                break;
+            }
             default:
             {
-                int totalrays = 0, maxrays = attacks[atk].rays;
+                int totalrays = 0,
+                    maxrays = attacks[atk].rays;
                 for(int i = 0; i < hits.length(); i++)
                 {
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
-                    if(!target || target->state.state!=ClientState_Alive || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > attacks[atk].range + 1) continue;
-
+                    if(!target || target->state.state!=ClientState_Alive || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > attacks[atk].range + 1)
+                    {
+                        continue;
+                    }
                     totalrays += h.rays;
-                    if(totalrays>maxrays) continue;
+                    if(totalrays>maxrays)
+                    {
+                        continue;
+                    }
                     int damage = h.rays*attacks[atk].damage;
                     dodamage(target, ci, damage, atk, h.dir);
                 }
