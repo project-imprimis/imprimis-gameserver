@@ -130,23 +130,6 @@ void pusha(const char *name, char *action)
     pushident(*newident(name), action);
 }
 
-void push(char *name, char *action)
-{
-    pusha(name, newstring(action));
-}
-
-void pop(char *name)
-{
-    ident *id = idents->access(name);
-    if(id)
-    {
-        popident(*id);
-    }
-}
-
-COMMAND(push, "ss");
-COMMAND(pop, "s");
-
 void aliasa(const char *name, char *action)
 {
     ident *b = idents->access(name);
@@ -193,11 +176,7 @@ void aliasa(const char *name, char *action)
     }
 }
 
-void alias(const char *name, const char *action) { aliasa(name, newstring(action)); }
-
-COMMAND(alias, "ss");
-
-// variable's and commands are registered through globals, see cube.h
+// variables and commands are registered through globals, see cube.h
 
 int variable(const char *name, int min, int cur, int max, int *storage, void (*fun)(), int flags)
 {
@@ -831,6 +810,22 @@ void floatret(float v)
 {
     commandret = newstring(floatstr(v));
 }
+
+#define WHITESPACESKIP s += strspn(s, "\n\t ")
+#define ELEMENTSKIP *s=='"' ? (++s, s += strcspn(s, "\"\n\0"), s += *s=='"') : s += strcspn(s, "\n\t \0")
+
+void explodelist(const char *s, vector<char *> elems)
+{
+    WHITESPACESKIP;
+    while(*s)
+    {
+        const char *elem = s;
+        ELEMENTSKIP;
+        elems.add(*elem=='"' ? newstring(elem+1, s-elem-(s[-1]=='"' ? 2 : 1)) : newstring(elem, s-elem));
+        WHITESPACESKIP;
+    }
+}
+
 
 COMMAND(exec, "s");
 ICOMMAND(echo, "C", (char *s), conoutf(Console_Echo, "\f1%s", s));
