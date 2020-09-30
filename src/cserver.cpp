@@ -2042,26 +2042,6 @@ namespace server
         sendpacket(-1, 1, p.finalize(), ci->clientnum);
     }
 
-    void loaditems()
-    {
-        resetitems();
-        notgotitems = true;
-        if(modecheck(gamemode, Mode_Edit) || !loadents(smapname, ments, &mcrc))
-            return;
-        for(int i = 0; i < ments.length(); i++)
-        {
-            if(canspawnitem(ments[i].type))
-            {
-                server_entity se = { GamecodeEnt_NotUsed, 0, false };
-                while(sents.length()<=i) sents.add(se);
-                sents[i].type = ments[i].type;
-                if(!modecheck(gamemode, Mode_LocalOnly) && delayspawn(sents[i].type)) sents[i].spawntime = spawntime(sents[i].type);
-                else sents[i].spawned = true;
-            }
-        }
-        notgotitems = false;
-    }
-
     void changemap(const char *s, int mode)
     {
         stopdemo();
@@ -2076,7 +2056,6 @@ namespace server
         interm = 0;
         nextexceeded = 0;
         copystring(smapname, s);
-        loaditems();
         scores.shrink(0);
         shouldcheckteamkills = false;
         teamkills.shrink(0);
@@ -3096,6 +3075,35 @@ namespace server
         if(servermotd[0]) sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, servermotd);
     }
 
+
+    void validmapname(char *dst, const char *src, const char *prefix = NULL, const char *alt = "untitled", size_t maxlen = 100)
+    {
+        if(prefix) while(*prefix) *dst++ = *prefix++;
+        const char *start = dst;
+        if(src)
+        {
+            for(int i = 0; i < int(maxlen); ++i)
+            {
+                char c = *src++;
+                if(iscubealnum(c) || c == '_' || c == '-' || c == '/' || c == '\\') *dst++ = c;
+                else break;
+            }
+        }
+
+        if(dst > start)
+        {
+            *dst = '\0';
+        }
+        else if(dst != alt)
+        {
+            copystring(dst, alt, maxlen);
+        }
+    }
+
+    void fixmapname(char *name)
+    {
+        validmapname(name, name, NULL, "");
+    }
 
     void parsepacket(int sender, int chan, packetbuf &p)     // has to parse exactly each byte of the packet
     {

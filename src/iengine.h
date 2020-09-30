@@ -74,10 +74,6 @@ extern void logoutf(const char *fmt, ...) PRINTFARGS(1, 2);
 // main
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
 
-// worldio
-extern void fixmapname(char *name);
-extern bool loadents(const char *fname, vector<entity> &ents, uint *crc = NULL);
-
 // server
 #define MAXCLIENTS 128                 // DO NOT set this any higher
 #define MAXTRANS 5000                  // max amount of data to swallow in 1 go
