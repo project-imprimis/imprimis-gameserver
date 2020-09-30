@@ -1305,8 +1305,6 @@ extern stream *opentempfile(const char *filename, const char *mode);
 extern stream *opengzfile(const char *filename, const char *mode, stream *file = NULL, int level = Z_BEST_COMPRESSION);
 extern stream *openutf8file(const char *filename, const char *mode, stream *file = NULL);
 extern char *loadfile(const char *fn, size_t *size, bool utf8 = true);
-extern bool listdir(const char *dir, bool rel, const char *ext, vector<char *> &files);
-extern int listfiles(const char *dir, const char *ext, vector<char *> &files);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 
 extern void putint(ucharbuf &p, int n);
