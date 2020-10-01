@@ -14,6 +14,39 @@
 #define DNF 100.0f              // for normalized vectors
 #define DVELF 1.0f              // for playerspeed based velocity vectors
 
+enum
+{
+    EngineEnt_Empty=0,
+    EngineEnt_Light,
+    EngineEnt_Mapmodel,
+    EngineEnt_Playerstart,
+    EngineEnt_Particles,
+    EngineEnt_Sound,
+    EngineEnt_Spotlight,
+    EngineEnt_Decal,
+    EngineEnt_GameSpecific,
+};
+
+struct entity                                   // persistent map entity
+{
+    vec o;                                      // position
+    short attr1, attr2, attr3, attr4, attr5;    // attributes
+    uchar type;                                 // type is one of the above
+    uchar reserved;
+};
+
+#define MAXENTS 10000
+
+enum
+{
+    ClientState_Alive = 0,
+    ClientState_Dead,
+    ClientState_Spawning,
+    ClientState_Lagged,
+    ClientState_Editing,
+    ClientState_Spectator,
+};
+
 //these are called "GamecodeEnt" to avoid name collision (as opposed to gameents or engine static ents)
 enum                            // static entity types
 {
