@@ -676,10 +676,6 @@ void processmasterinput()
         {
             conoutf("master server registration succeeded");
         }
-        else
-        {
-            server::processmasterinput(input, cmdlen, args);
-        }
         end++;
         masterinpos = end - masterin.getbuf();
         input = end;

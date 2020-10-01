@@ -30,7 +30,6 @@ namespace server
     extern int serverport();
     extern const char *defaultmaster();
     extern int masterport();
-    extern void processmasterinput(const char *cmd, int cmdlen, const char *args);
     extern void masterconnected();
     extern void masterdisconnected();
     extern bool ispaused();
