@@ -1,9 +1,25 @@
 
-enum { Id_Var, Id_FloatVar, Id_StringVar, ID_COMMAND, ID_CCOMMAND, ID_ALIAS };
+enum
+{
+    Id_Var,
+    Id_FloatVar,
+    Id_StringVar,
+    ID_COMMAND,
+    ID_CCOMMAND,
+    ID_ALIAS
+};
 
-enum { NO_OVERRIDE = INT_MAX, OVERRIDDEN = 0 };
+enum
+{
+    NO_OVERRIDE = INT_MAX,
+    OVERRIDDEN = 0
+};
 
-enum { IDF_PERSIST = 1<<0, IDF_OVERRIDE = 1<<1 };
+enum
+{
+    IDF_PERSIST = 1<<0,
+    IDF_OVERRIDE = 1<<1
+};
 
 struct identstack
 {
