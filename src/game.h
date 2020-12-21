@@ -70,6 +70,7 @@ enum
     Gun_Rail = 0,
     Gun_Pulse,
     Gun_Eng,
+    Gun_Carbine,
     Gun_NumGuns
 };
 
@@ -81,6 +82,8 @@ enum
     Attack_PulseMelee,
     Attack_EngShoot,
     Attack_EngMelee,
+    Attack_CarbineShoot,
+    Attack_CarbineMelee,
     Attack_NumAttacks
 };
 
@@ -440,6 +443,8 @@ static const struct attackinfo { int attackdelay, damage, range, rays, exprad, u
     {  500, 10,   14, 1,  0, 0 },
     {  500,  0,  160, 1, 20, 0 },
     {  500, 10,   14, 1,  0, 0 },
+    {   80,  2,  512, 1,  0, 0 },
+    {  500,  7,   14, 1,  0, 0 }
 };
 
 enum
