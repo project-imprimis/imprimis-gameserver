@@ -4482,7 +4482,7 @@ enum
             {
                 owner->bots.add(ci);
             }
-            ci->state.skill = skill <= 0 ? randomint(50) + 51 : clamp(skill, 1, 101);
+            ci->state.skill = skill <= 0 ? randomint(25) + 51 : clamp(skill, 1, 101);
             clients.add(ci);
             ci->state.lasttimeplayed = lastmillis;
             copystring(ci->name, "bot", MAXNAMELEN+1);
