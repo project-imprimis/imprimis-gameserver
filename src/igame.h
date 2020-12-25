@@ -31,7 +31,6 @@ namespace server
     extern const char *defaultmaster();
     extern int masterport();
     extern void masterconnected();
-    extern void masterdisconnected();
     extern bool ispaused();
     extern int scaletime(int t);
 }

@@ -2849,14 +2849,6 @@ namespace server
     {
     }
 
-    void masterdisconnected()
-    {
-        for(int i = clients.length(); --i >=0;) //note reverse iteration
-        {
-            clientinfo *ci = clients[i];
-        }
-    }
-
     void receivefile(int sender, uchar *data, int len)
     {
         if(len <= 0 || len > 4*1024*1024) return;
@@ -2995,7 +2987,6 @@ namespace server
                         {
                             string desc, ans;
                             getstring(desc, p, sizeof(desc));
-                            uint id = (uint)getint(p);
                             getstring(ans, p, sizeof(ans));
                             break;
                         }
@@ -3863,10 +3854,6 @@ namespace server
                 }
                 case NetMsg_AuthAnswer:
                 {
-                    string desc, ans;
-                    getstring(desc, p, sizeof(desc));
-                    uint id = (uint)getint(p);
-                    getstring(ans, p, sizeof(ans));
                     break;
                 }
                 case NetMsg_PauseGame:

@@ -563,7 +563,6 @@ void disconnectmaster()
 {
     if(mastersock != ENET_SOCKET_NULL)
     {
-        server::masterdisconnected();
         enet_socket_destroy(mastersock);
         mastersock = ENET_SOCKET_NULL;
     }
