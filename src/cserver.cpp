@@ -1569,9 +1569,9 @@ namespace server
 
         uchar operator[](int msg) const { return msg >= 0 && msg < NetMsg_NumMsgs ? msgmask[msg] : 0; }
     } msgfilter(-1, NetMsg_Connect, NetMsg_ServerInfo, NetMsg_InitClient, NetMsg_Welcome, NetMsg_MapChange, NetMsg_ServerMsg, NetMsg_Damage, NetMsg_Hitpush, NetMsg_ShotFX, NetMsg_ExplodeFX, NetMsg_Died, NetMsg_SpawnState, NetMsg_ForceDeath, NetMsg_TeamInfo, NetMsg_ItemAcceptance, NetMsg_ItemSpawn, NetMsg_TimeUp, NetMsg_ClientDiscon, NetMsg_CurrentMaster, NetMsg_Pong, NetMsg_Resume, NetMsg_SendDemoList, NetMsg_SendDemo, NetMsg_DemoPlayback, NetMsg_SendMap, NetMsg_DropFlag, NetMsg_ScoreFlag, NetMsg_ReturnFlag, NetMsg_ResetFlag, NetMsg_Client, NetMsg_AuthChallenge, NetMsg_InitAI, NetMsg_DemoPacket,
-                -2, NetMsg_CalcLight, NetMsg_Remip, NetMsg_Newmap, NetMsg_GetMap, NetMsg_SendMap, NetMsg_Clipboard,
+                -2, NetMsg_CalcLight, NetMsg_Remip, NetMsg_Newmap, NetMsg_Clipboard,
                 -3, NetMsg_EditEnt, NetMsg_EditFace, NetMsg_EditTex, NetMsg_EditMat, NetMsg_EditFlip, NetMsg_Copy, NetMsg_Paste, NetMsg_Rotate, NetMsg_Replace, NetMsg_DelCube, NetMsg_EditVar, NetMsg_EditVSlot, NetMsg_Undo, NetMsg_Redo,
-                -4, NetMsg_Pos, NetMsg_NumMsgs),
+                -4, NetMsg_Pos, NetMsg_NumMsgs,  NetMsg_GetMap, NetMsg_SendMap),
       connectfilter(-1, NetMsg_Connect, -2, NetMsg_AuthAnswer, -3, NetMsg_Ping, NetMsg_NumMsgs);
 
     int checktype(int type, clientinfo *ci)
@@ -1854,7 +1854,7 @@ namespace server
 
     bool hasmap(clientinfo *ci)
     {
-        return (modecheck(gamemode, Mode_Edit) && (clients.length() > 0 || ci->local)) ||
+        return ((clients.length() > 0 || ci->local)) ||
                (smapname[0] && (modecheck(gamemode, Mode_Untimed) || gamemillis < gamelimit || (ci->state.state==ClientState_Spectator && !ci->privilege && !ci->local) || numclients(ci->clientnum, true, true, true)));
     }
 
@@ -2567,7 +2567,7 @@ namespace server
 
     void checkmaps(int req = -1)
     {
-        if(modecheck(gamemode, Mode_Edit) || !smapname[0])
+        if(!smapname[0])
         {
             return;
         }
@@ -2859,7 +2859,7 @@ namespace server
 
     void receivefile(int sender, uchar *data, int len)
     {
-        if(!modecheck(gamemode, Mode_Edit) || len <= 0 || len > 4*1024*1024) return;
+        if(len <= 0 || len > 4*1024*1024) return;
         clientinfo *ci = getinfo(sender);
         if(ci->state.state==ClientState_Spectator && !ci->privilege && !ci->local) return;
         if(mapdata) DELETEP(mapdata);
