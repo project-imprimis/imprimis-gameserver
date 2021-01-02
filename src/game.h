@@ -102,7 +102,8 @@ enum
     Mode_Lobby          = 1<<6,
     Mode_Rail           = 1<<7,
     Mode_Pulse          = 1<<8,
-    Mode_All            = 1<<9
+    Mode_Continuous     = 1<<9, //continuous scoring
+    Mode_All            = 1<<10
 };
 
 enum
@@ -115,13 +116,12 @@ static struct gamemodeinfo
 {
     const char *name, *prettyname;
     int flags;
-    const char *info;
 } gamemodes[] =
 //list of valid game modes with their name/prettyname/game flags/desc
 {
-    { "demo", "Demo", Mode_Demo | Mode_LocalOnly, NULL},
-    { "edit", "Edit", Mode_Edit | Mode_All, "Cooperative Editing:\nEdit maps with multiple players simultaneously." },
-    { "ctf", "CTF", Mode_CTF | Mode_Team | Mode_All, "Capture The Flag:\nCapture \fs\f3the enemy flag\fr and bring it back to \fs\f1your flag\fr to score points for \fs\f1your team\fr." },
+    { "demo", "Demo", Mode_Demo | Mode_LocalOnly},
+    { "edit", "Edit", Mode_Edit | Mode_All},
+    { "tdm", "TDM",  Mode_Team | Mode_All | Mode_Continuous},
 };
 
 //these are the checks for particular mechanics in particular modes
@@ -284,7 +284,9 @@ enum
     NetMsg_SwitchTeam,
     NetMsg_ServerCommand,
     NetMsg_DemoPacket,
-    NetMsg_NumMsgs //104
+    NetMsg_GetScore,
+
+    NetMsg_NumMsgs //105
 };
 
 static const int msgsizes[] =               // size inclusive message token, 0 for variable or not-checked sizes
@@ -397,6 +399,8 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     NetMsg_SwitchTeam, 2,
     NetMsg_ServerCommand, 0,
     NetMsg_DemoPacket, 0,
+
+    NetMsg_GetScore, 0,
     -1
 };
 
@@ -557,15 +561,21 @@ inline bool htcmp(int team, const teamscore &t) { return team == t.team; }
 
 struct teaminfo
 {
-    int frags;
+    int frags, score;
 
     teaminfo() { reset(); }
 
-    void reset() { frags = 0; }
+    void reset()
+    {
+        frags = 0;
+        score = 0;
+    }
 };
 
 namespace server
 {
+    extern int gamemode;
+
     extern const char *modename(int n, const char *unknown = "unknown");
     extern const char *modeprettyname(int n, const char *unknown = "unknown");
     extern const char *mastermodename(int n, const char *unknown = "unknown");
@@ -577,6 +587,109 @@ namespace server
     extern int msgsizelookup(int msg);
     extern bool serveroption(const char *arg);
     extern bool delayspawn(int type);
+
+    struct gameevent;
+
+    template <int N>
+    struct projectilestate
+    {
+        int projs[N];
+        int numprojs;
+
+        projectilestate() : numprojs(0) {}
+
+        void reset() { numprojs = 0; }
+
+        void add(int val)
+        {
+            if(numprojs>=N) numprojs = 0;
+            projs[numprojs++] = val;
+        }
+
+        bool remove(int val)
+        {
+            for(int i = 0; i < numprojs; ++i)
+            {
+                if(projs[i]==val)
+                {
+                    projs[i] = projs[--numprojs];
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
+    struct servstate : gamestate
+    {
+        vec o;
+        int state, editstate;
+        int lastdeath, deadflush, lastspawn, lifesequence;
+        int lastshot;
+        projectilestate<8> projs;
+        int frags, score, deaths, teamkills, shotdamage, damage;
+        int lasttimeplayed, timeplayed;
+        float effectiveness;
+
+        servstate() : state(ClientState_Dead), editstate(ClientState_Dead), lifesequence(0) {}
+
+        bool isalive(int gamemillis);
+        bool waitexpired(int gamemillis);
+        void reset();
+        void respawn();
+        void reassign();
+    };
+
+    struct clientinfo
+    {
+        int clientnum, ownernum, connectmillis, sessionid, overflow;
+        string name, mapvote;
+        int team, playermodel, playercolor;
+        int modevote;
+        int privilege;
+        bool connected, local, timesync;
+        int gameoffset, lastevent, pushed, exceeded;
+        servstate state;
+        vector<gameevent *> events;
+        vector<uchar> position, messages;
+        uchar *wsdata;
+        int wslen;
+        vector<clientinfo *> bots;
+        int ping, aireinit;
+        string clientmap;
+        int mapcrc;
+        bool warned, gameclip;
+        ENetPacket *getdemo, *getmap, *clipboard;
+        int lastclipboard, needclipboard;
+        int connectauth;
+        uint authreq;
+        string authname, authdesc;
+        void *authchallenge;
+        int authkickvictim;
+        char *authkickreason;
+
+        clientinfo() : getdemo(NULL), getmap(NULL), clipboard(NULL), authchallenge(NULL), authkickreason(NULL) { reset(); }
+        ~clientinfo() { events.deletecontents(); cleanclipboard();}
+
+        enum
+        {
+            PUSHMILLIS = 3000
+        };
+
+        void addevent(gameevent *e);
+        int calcpushrange();
+        bool checkpushed(int millis, int range);
+        void scheduleexceeded();
+        void setexceeded();
+        void setpushed();
+        bool checkexceeded();
+        void mapchange();
+        void reassign();
+        void cleanclipboard(bool fullclean = true);
+        void cleanauthkick();
+        void reset();
+        int geteventmillis(int servmillis, int clientmillis);
+    };
 }
 
 #endif
