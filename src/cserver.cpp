@@ -20,6 +20,7 @@
 #include "igame.h"
 
 #include "game.h"
+#include "mapcontrol.h"
 
 //server game handling
 //includes:
@@ -115,103 +116,60 @@ namespace server
         void process(clientinfo *ci);
     };
 
-    template <int N>
-    struct projectilestate
+    //servstate
+    bool servstate::isalive(int gamemillis)
     {
-        int projs[N];
-        int numprojs;
+        return state==ClientState_Alive || (state==ClientState_Dead && gamemillis - lastdeath <= DEATHMILLIS);
+    }
 
-        projectilestate() : numprojs(0) {}
-
-        void reset() { numprojs = 0; }
-
-        void add(int val)
-        {
-            if(numprojs>=N) numprojs = 0;
-            projs[numprojs++] = val;
-        }
-
-        bool remove(int val)
-        {
-            for(int i = 0; i < numprojs; ++i)
-            {
-                if(projs[i]==val)
-                {
-                    projs[i] = projs[--numprojs];
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
-
-    struct servstate : gamestate
+    bool servstate::waitexpired(int gamemillis)
     {
-        vec o;
-        int state, editstate;
-        int lastdeath, deadflush, lastspawn, lifesequence;
-        int lastshot;
-        projectilestate<8> projs;
-        int frags, flags, deaths, teamkills, shotdamage, damage;
-        int lasttimeplayed, timeplayed;
-        float effectiveness;
+        return gamemillis - lastshot >= gunwait;
+    }
 
-        servstate() : state(ClientState_Dead), editstate(ClientState_Dead), lifesequence(0) {}
+    void servstate::reset()
+    {
+        if(state!=ClientState_Spectator) state = editstate = ClientState_Dead;
+        //sets client health
+        maxhealth = 10;
+        projs.reset();
 
-        bool isalive(int gamemillis)
-        {
-            return state==ClientState_Alive || (state==ClientState_Dead && gamemillis - lastdeath <= DEATHMILLIS);
-        }
+        timeplayed = 0;
+        effectiveness = 0;
+        frags = score = deaths = teamkills = shotdamage = damage = 0;
 
-        bool waitexpired(int gamemillis)
-        {
-            return gamemillis - lastshot >= gunwait;
-        }
+        lastdeath = 0;
 
-        void reset()
-        {
-            if(state!=ClientState_Spectator) state = editstate = ClientState_Dead;
-            //sets client health
-            maxhealth = 10;
-            projs.reset();
+        respawn();
+    }
 
-            timeplayed = 0;
-            effectiveness = 0;
-            frags = flags = deaths = teamkills = shotdamage = damage = 0;
+    void servstate::respawn()
+    {
+        gamestate::respawn();
+        o = vec(-1e10f, -1e10f, -1e10f);
+        deadflush = 0;
+        lastspawn = -1;
+        lastshot = 0;
+    }
 
-            lastdeath = 0;
-
-            respawn();
-        }
-
-        void respawn()
-        {
-            gamestate::respawn();
-            o = vec(-1e10f, -1e10f, -1e10f);
-            deadflush = 0;
-            lastspawn = -1;
-            lastshot = 0;
-        }
-
-        void reassign()
-        {
-            respawn();
-            projs.reset();
-        }
-    };
-
+    void servstate::reassign()
+    {
+        respawn();
+        projs.reset();
+    }
+    //end servstate
     struct savedscore
     {
         uint ip;
         string name;
-        int frags, flags, deaths, teamkills, shotdamage, damage;
+        int frags, score, deaths, teamkills, shotdamage, damage;
         int timeplayed;
         float effectiveness;
 
         void save(servstate &gs)
         {
             frags = gs.frags;
-            flags = gs.flags;
+            score = gs.score;
             deaths = gs.deaths;
             teamkills = gs.teamkills;
             shotdamage = gs.shotdamage;
@@ -223,7 +181,7 @@ namespace server
         void restore(servstate &gs)
         {
             gs.frags = frags;
-            gs.flags = flags;
+            gs.score = score;
             gs.deaths = deaths;
             gs.teamkills = teamkills;
             gs.shotdamage = shotdamage;
@@ -235,149 +193,115 @@ namespace server
 
     extern int gamemillis, nextexceeded;
 
-    struct clientinfo
+// clientinfo implementation
+
+    void clientinfo::addevent(gameevent *e)
     {
-        int clientnum, ownernum, connectmillis, sessionid, overflow;
-        string name, mapvote;
-        int team, playermodel, playercolor;
-        int modevote;
-        int privilege;
-        bool connected, local, timesync;
-        int gameoffset, lastevent, pushed, exceeded;
-        servstate state;
-        vector<gameevent *> events;
-        vector<uchar> position, messages;
-        uchar *wsdata;
-        int wslen;
-        vector<clientinfo *> bots;
-        int ping, aireinit;
-        string clientmap;
-        int mapcrc;
-        bool warned, gameclip;
-        ENetPacket *getdemo, *getmap, *clipboard;
-        int lastclipboard, needclipboard;
-        int connectauth;
-        uint authreq;
-        string authname, authdesc;
-        void *authchallenge;
-        int authkickvictim;
-        char *authkickreason;
+        if(state.state==ClientState_Spectator || events.length()>100) delete e;
+        else events.add(e);
+    }
 
-        clientinfo() : getdemo(NULL), getmap(NULL), clipboard(NULL), authchallenge(NULL), authkickreason(NULL) { reset(); }
-        ~clientinfo() { events.deletecontents(); cleanclipboard();}
+    int clientinfo::calcpushrange()
+    {
+        ENetPeer *peer = getclientpeer(ownernum);
+        return PUSHMILLIS + (peer ? peer->roundTripTime + peer->roundTripTimeVariance : ENET_PEER_DEFAULT_ROUND_TRIP_TIME);
+    }
 
-        void addevent(gameevent *e)
+    bool clientinfo::checkpushed(int millis, int range)
+    {
+        return millis >= pushed - range && millis <= pushed + range;
+    }
+
+    void clientinfo::scheduleexceeded()
+    {
+        if(state.state!=ClientState_Alive || !exceeded) return;
+        int range = calcpushrange();
+        if(!nextexceeded || exceeded + range < nextexceeded) nextexceeded = exceeded + range;
+    }
+
+    void clientinfo::setexceeded()
+    {
+        if(state.state==ClientState_Alive && !exceeded && !checkpushed(gamemillis, calcpushrange())) exceeded = gamemillis;
+        scheduleexceeded();
+    }
+
+    void clientinfo::setpushed()
+    {
+        pushed = std::max(pushed, gamemillis);
+        if(exceeded && checkpushed(exceeded, calcpushrange())) exceeded = 0;
+    }
+
+    bool clientinfo::checkexceeded()
+    {
+        return state.state==ClientState_Alive && exceeded && gamemillis > exceeded + calcpushrange();
+    }
+
+    void clientinfo::mapchange()
+    {
+        mapvote[0] = 0;
+        modevote = INT_MAX;
+        state.reset();
+        events.deletecontents();
+        overflow = 0;
+        timesync = false;
+        lastevent = 0;
+        exceeded = 0;
+        pushed = 0;
+        clientmap[0] = '\0';
+        mapcrc = 0;
+        warned = false;
+        gameclip = false;
+    }
+
+    void clientinfo::reassign()
+    {
+        state.reassign();
+        events.deletecontents();
+        timesync = false;
+        lastevent = 0;
+    }
+
+    void clientinfo::cleanclipboard(bool fullclean)
+    {
+        if(clipboard) { if(--clipboard->referenceCount <= 0) enet_packet_destroy(clipboard); clipboard = NULL; }
+        if(fullclean) lastclipboard = 0;
+    }
+
+    void clientinfo::cleanauthkick()
+    {
+        authkickvictim = -1;
+        DELETEA(authkickreason);
+    }
+
+    void clientinfo::reset()
+    {
+        name[0] = 0;
+        team = 0;
+        playermodel = -1;
+        playercolor = 0;
+        privilege = Priv_None;
+        connected = local = false;
+        connectauth = 0;
+        position.setsize(0);
+        messages.setsize(0);
+        ping = 0;
+        aireinit = 0;
+        needclipboard = 0;
+        cleanclipboard();
+        mapchange();
+    }
+
+    int clientinfo::geteventmillis(int servmillis, int clientmillis)
+    {
+        if(!timesync || (events.empty() && state.waitexpired(servmillis)))
         {
-            if(state.state==ClientState_Spectator || events.length()>100) delete e;
-            else events.add(e);
+            timesync = true;
+            gameoffset = servmillis - clientmillis;
+            return servmillis;
         }
-
-        enum
-        {
-            PUSHMILLIS = 3000
-        };
-
-        int calcpushrange()
-        {
-            ENetPeer *peer = getclientpeer(ownernum);
-            return PUSHMILLIS + (peer ? peer->roundTripTime + peer->roundTripTimeVariance : ENET_PEER_DEFAULT_ROUND_TRIP_TIME);
-        }
-
-        bool checkpushed(int millis, int range)
-        {
-            return millis >= pushed - range && millis <= pushed + range;
-        }
-
-        void scheduleexceeded()
-        {
-            if(state.state!=ClientState_Alive || !exceeded) return;
-            int range = calcpushrange();
-            if(!nextexceeded || exceeded + range < nextexceeded) nextexceeded = exceeded + range;
-        }
-
-        void setexceeded()
-        {
-            if(state.state==ClientState_Alive && !exceeded && !checkpushed(gamemillis, calcpushrange())) exceeded = gamemillis;
-            scheduleexceeded();
-        }
-
-        void setpushed()
-        {
-            pushed = std::max(pushed, gamemillis);
-            if(exceeded && checkpushed(exceeded, calcpushrange())) exceeded = 0;
-        }
-
-        bool checkexceeded()
-        {
-            return state.state==ClientState_Alive && exceeded && gamemillis > exceeded + calcpushrange();
-        }
-
-        void mapchange()
-        {
-            mapvote[0] = 0;
-            modevote = INT_MAX;
-            state.reset();
-            events.deletecontents();
-            overflow = 0;
-            timesync = false;
-            lastevent = 0;
-            exceeded = 0;
-            pushed = 0;
-            clientmap[0] = '\0';
-            mapcrc = 0;
-            warned = false;
-            gameclip = false;
-        }
-
-        void reassign()
-        {
-            state.reassign();
-            events.deletecontents();
-            timesync = false;
-            lastevent = 0;
-        }
-
-        void cleanclipboard(bool fullclean = true)
-        {
-            if(clipboard) { if(--clipboard->referenceCount <= 0) enet_packet_destroy(clipboard); clipboard = NULL; }
-            if(fullclean) lastclipboard = 0;
-        }
-
-        void cleanauthkick()
-        {
-            authkickvictim = -1;
-            DELETEA(authkickreason);
-        }
-
-        void reset()
-        {
-            name[0] = 0;
-            team = 0;
-            playermodel = -1;
-            playercolor = 0;
-            privilege = Priv_None;
-            connected = local = false;
-            connectauth = 0;
-            position.setsize(0);
-            messages.setsize(0);
-            ping = 0;
-            aireinit = 0;
-            needclipboard = 0;
-            cleanclipboard();
-            mapchange();
-        }
-
-        int geteventmillis(int servmillis, int clientmillis)
-        {
-            if(!timesync || (events.empty() && state.waitexpired(servmillis)))
-            {
-                timesync = true;
-                gameoffset = servmillis - clientmillis;
-                return servmillis;
-            }
-            else return gameoffset + clientmillis;
-        }
-    };
+        else return gameoffset + clientmillis;
+    }
+    //end of clientinfo
 
     struct ban
     {
@@ -896,10 +820,6 @@ namespace server
         virtual bool extinfoteam(int team, ucharbuf &p) { return false; }
     };
 
-    #define SERVERMODE 1
-    #include "ctf.h"
-
-    ctfservermode ctfmode;
     servermode *smode = NULL;
 
     bool canspawnitem(int type) { return VALID_ITEM(type); }
@@ -936,13 +856,13 @@ namespace server
         return true;
     }
 
-    static teaminfo teaminfos[MAXTEAMS];
+    teaminfo teaminfos[MAXTEAMS];
 
     void clearteaminfo()
     {
         for(int i = 0; i < MAXTEAMS; ++i)
         {
-            teaminfos[i].reset();
+            server::teaminfos[i].reset();
         }
     }
 
@@ -1568,8 +1488,8 @@ namespace server
         }
 
         uchar operator[](int msg) const { return msg >= 0 && msg < NetMsg_NumMsgs ? msgmask[msg] : 0; }
-    } msgfilter(-1, NetMsg_Connect, NetMsg_ServerInfo, NetMsg_InitClient, NetMsg_Welcome, NetMsg_MapChange, NetMsg_ServerMsg, NetMsg_Damage, NetMsg_Hitpush, NetMsg_ShotFX, NetMsg_ExplodeFX, NetMsg_Died, NetMsg_SpawnState, NetMsg_ForceDeath, NetMsg_TeamInfo, NetMsg_ItemAcceptance, NetMsg_ItemSpawn, NetMsg_TimeUp, NetMsg_ClientDiscon, NetMsg_CurrentMaster, NetMsg_Pong, NetMsg_Resume, NetMsg_SendDemoList, NetMsg_SendDemo, NetMsg_DemoPlayback, NetMsg_SendMap, NetMsg_DropFlag, NetMsg_ScoreFlag, NetMsg_ReturnFlag, NetMsg_ResetFlag, NetMsg_Client, NetMsg_AuthChallenge, NetMsg_InitAI, NetMsg_DemoPacket,
-                -2, NetMsg_CalcLight, NetMsg_Remip, NetMsg_Newmap, NetMsg_Clipboard,
+    } msgfilter(-1, NetMsg_Connect, NetMsg_ServerInfo, NetMsg_InitClient, NetMsg_Welcome, NetMsg_MapChange, NetMsg_ServerMsg, NetMsg_Damage, NetMsg_Hitpush, NetMsg_ShotFX, NetMsg_ExplodeFX, NetMsg_Died, NetMsg_SpawnState, NetMsg_ForceDeath, NetMsg_TeamInfo, NetMsg_ItemAcceptance, NetMsg_ItemSpawn, NetMsg_TimeUp, NetMsg_ClientDiscon, NetMsg_CurrentMaster, NetMsg_Pong, NetMsg_Resume, NetMsg_SendDemoList, NetMsg_SendDemo, NetMsg_DemoPlayback, NetMsg_SendMap, NetMsg_DropFlag, NetMsg_ScoreFlag, NetMsg_ReturnFlag, NetMsg_ResetFlag, NetMsg_Client, NetMsg_AuthChallenge, NetMsg_InitAI, NetMsg_DemoPacket, NetMsg_GetScore,
+                -2, NetMsg_CalcLight, NetMsg_Remip, NetMsg_Newmap, NetMsg_GetMap, NetMsg_SendMap, NetMsg_Clipboard,
                 -3, NetMsg_EditEnt, NetMsg_EditFace, NetMsg_EditTex, NetMsg_EditMat, NetMsg_EditFlip, NetMsg_Copy, NetMsg_Paste, NetMsg_Rotate, NetMsg_Replace, NetMsg_DelCube, NetMsg_EditVar, NetMsg_EditVSlot, NetMsg_Undo, NetMsg_Redo,
                 -4, NetMsg_Pos, NetMsg_NumMsgs,  NetMsg_GetMap, NetMsg_SendMap),
       connectfilter(-1, NetMsg_Connect, -2, NetMsg_AuthAnswer, -3, NetMsg_Ping, NetMsg_NumMsgs);
@@ -1975,7 +1895,7 @@ namespace server
                 putint(p, oi->clientnum);
                 putint(p, oi->state.state);
                 putint(p, oi->state.frags);
-                putint(p, oi->state.flags);
+                putint(p, oi->state.score);
                 putint(p, oi->state.deaths);
                 sendstate(oi->state, p);
             }
@@ -2002,7 +1922,7 @@ namespace server
     {
         servstate &gs = ci->state;
         sendf(-1, 1, "ri3i7vi", NetMsg_Resume, ci->clientnum, gs.state,
-            gs.frags, gs.flags, gs.deaths,
+            gs.frags, gs.score, gs.deaths,
             gs.lifesequence,
             gs.health, gs.maxhealth,
             gs.gunselect, Gun_NumGuns, gs.ammo, -1);
@@ -2045,7 +1965,6 @@ namespace server
         clearteaminfo();
         if(modecheck(gamemode, Mode_Team)) autoteam();
 
-        if(modecheck(gamemode, Mode_CTF)) smode = &ctfmode;
         else smode = NULL;
 
         if(!modecheck(gamemode, Mode_Untimed) && smapname[0]) sendf(-1, 1, "ri2", NetMsg_TimeUp, gamemillis < gamelimit && !interm ? std::max((gamelimit - gamemillis)/1000, 1) : 0);
@@ -2056,7 +1975,7 @@ namespace server
             ci->state.lasttimeplayed = lastmillis;
             if(!modecheck(gamemode, Mode_LocalOnly) && ci->state.state!=ClientState_Spectator) sendspawn(ci);
         }
-
+        clearspawns();
         aiman::changemap();
 
         if(modecheck(gamemode, Mode_Demo))
@@ -3219,7 +3138,7 @@ namespace server
                     break;
                 }
                 case NetMsg_TrySpawn:
-                    if(!ci || !cq || cq->state.state!=ClientState_Dead || cq->state.lastspawn>=0 || (smode && !smode->canspawn(cq)))
+                    if(!ci || !cq || cq->state.state!=ClientState_Dead || (smode && !smode->canspawn(cq)))
                     {
                         break;
                     }
@@ -3263,11 +3182,16 @@ namespace server
                 case NetMsg_Spawn:
                 {
                     int ls = getint(p), gunselect = getint(p);
-                    if(!cq || (cq->state.state!=ClientState_Alive && cq->state.state!=ClientState_Dead && cq->state.state!=ClientState_Editing) || ls!=cq->state.lifesequence || cq->state.lastspawn<0 || !VALID_GUN(gunselect))
-                    {
+                    if(!cq || //if no client actually present
+                       (cq->state.state!=ClientState_Alive && //if player isn't alive, dead, or editing
+                        cq->state.state!=ClientState_Dead &&
+                        cq->state.state!=ClientState_Editing) ||
+                        ls!=cq->state.lifesequence || //of if lifeseq is wrong
+                        !VALID_GUN(gunselect)) //or if gunselect is invalid
+                    { //then don't allow spawning
                         break;
                     }
-                    cq->state.lastspawn = -1;
+                    cq->state.lastspawn = gamemillis;
                     cq->state.state = ClientState_Alive;
                     cq->state.gunselect = gunselect;
                     cq->exceeded = 0;
@@ -3987,24 +3911,6 @@ namespace server
                     getstring(text, p);
                     break;
                 }
-                //ctf messages formerly in ctf.h
-                case NetMsg_TryDropFlag:
-                {
-                    if((ci->state.state!=ClientState_Spectator || ci->local || ci->privilege) && cq && smode==&ctfmode) ctfmode.dropflag(cq);
-                    break;
-                }
-                case NetMsg_TakeFlag:
-                {
-                    int flag = getint(p), version = getint(p);
-                    if((ci->state.state!=ClientState_Spectator || ci->local || ci->privilege) && cq && smode==&ctfmode) ctfmode.takeflag(cq, flag, version);
-                    break;
-                }
-                case NetMsg_InitFlags:
-                {
-                    if(smode==&ctfmode) ctfmode.parseflags(p, (ci->state.state!=ClientState_Spectator || ci->privilege || ci->local) && !strcmp(ci->clientmap, smapname));
-                    break;
-                }
-                //end of ctf
                 case -1:
                 {
                     disconnect_client(sender, Discon_MsgError);
@@ -4066,6 +3972,7 @@ namespace server
     int masterport() { return TESSERACT_MASTER_PORT; }
     int numchannels() { return 3; }
 
+
 //extinfo
 enum
 {
@@ -4110,7 +4017,7 @@ enum
         sendstring(ci->name, q);
         sendstring(TEAM_NAME(modecheck(gamemode, Mode_Team) ? ci->team : 0), q);
         putint(q, ci->state.frags);
-        putint(q, ci->state.flags);
+        putint(q, ci->state.score);
         putint(q, ci->state.deaths);
         putint(q, ci->state.teamkills);
         putint(q, ci->state.damage*100/std::max(ci->state.shotdamage,1));

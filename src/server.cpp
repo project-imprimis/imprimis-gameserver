@@ -22,6 +22,8 @@
 
 #include "iengine.h"
 #include "igame.h"
+#include "game.h"
+#include "mapcontrol.h"
 
 #define LOGSTRLEN 512
 
@@ -154,6 +156,7 @@ vector<client *> clients;
 
 ENetHost *serverhost = NULL;
 int laststatus = 0;
+int lastcheckscore = 0;
 ENetSocket lansock = ENET_SOCKET_NULL;
 
 int localclients = 0,
@@ -890,6 +893,13 @@ void serverslice(uint timeout)   // main server update, called from below in ded
     totalmillis = millis;
     updatetime();
     server::serverupdate(); //see game/server.cpp for meat of server update routine
+
+    if(totalmillis-lastcheckscore > 1000) //check scores 1/sec
+    {
+        lastcheckscore = totalmillis;
+        updatescores(); //see game/mapcontrol.cpp for updating player scores
+        sendscore(); //sends tallies of scores out to players
+    }
 
     flushmasteroutput();
     checkserversockets();

@@ -20,7 +20,7 @@ struct vec
     explicit vec(int v[3]) : x(v[0]), y(v[1]), z(v[2]) {}
     explicit vec(const float *v) : x(v[0]), y(v[1]), z(v[2]) {}
     explicit vec(const ivec &v);
-    
+
     vec(float yaw, float pitch) : x(-sinf(yaw)*cosf(pitch)), y(cosf(yaw)*cosf(pitch)), z(sinf(pitch)) {}
     vec &set(int i, float f) { v[i] = f; return *this; }
 
@@ -66,6 +66,9 @@ struct vec
     vec &sub(const vec &o)   { x -= o.x; y -= o.y; z -= o.z; return *this; }
     vec &min(const vec &o)   { x = ::std::min(x, o.x); y = ::std::min(y, o.y); z = ::std::min(z, o.z); return *this; }
     vec &max(const vec &o)   { x = ::std::max(x, o.x); y = ::std::max(y, o.y); z = ::std::max(z, o.z); return *this; }
+
+    vec operator+(const vec &o) const {return vec(x + o.x, y + o.y, z + o.z);}
+    vec operator-(const vec &o) const {return vec(x - o.x, y - o.y, z - o.z);}
 
     //dot products
     float dot2(const vec &o) const { return x*o.x + y*o.y; }
