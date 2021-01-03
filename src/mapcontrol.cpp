@@ -21,14 +21,29 @@
 
 #include "game.h"
 
+//location for the spawns
 vec spawn1 = vec(0,0,0),
     spawn2 = vec(0,0,0);
+
+constexpr int maxgamescore = 500; //score margin at which to end the game
 
 namespace server
 {
     extern vector<clientinfo *> clients;
     extern int gamemillis;
     extern teaminfo teaminfos[MAXTEAMS];
+}
+
+bool mapcontrolintermission()
+{
+    if(std::abs(server::teaminfos[0].score - server::teaminfos[1].score) < maxgamescore)
+    {
+        return false; //keep playing
+    }
+    else
+    {
+        return true; //one team has enough points, end the game
+    }
 }
 
 void clearspawns()
@@ -58,15 +73,15 @@ void calcscores()
         {
             if(ci->team == 1)
             {
-                int score = 3*static_cast<int>(delta1.magnitude())/fieldsize;
+                int score = 4*static_cast<int>(delta1.magnitude())/fieldsize;
                 ci->state.score += score;
-                server::teaminfos[0].score += score;
+                server::teaminfos[0].score += score; //add score accrued to team the player belongs to
             }
             else
             {
-                int score = 3*static_cast<int>(delta2.magnitude())/fieldsize;
+                int score = 4*static_cast<int>(delta2.magnitude())/fieldsize;
                 ci->state.score += score;
-                server::teaminfos[1].score += score;
+                server::teaminfos[1].score += score; //add score accrued to team the player belongs to
             }
         }
     }
@@ -91,6 +106,7 @@ void calibratespawn()
         }
     }
 }
+
 
 void sendscore()
 {

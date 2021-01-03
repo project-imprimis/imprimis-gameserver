@@ -2111,7 +2111,7 @@ namespace server
 
     void checkintermission()
     {
-        if(gamemillis >= gamelimit && !interm)
+        if(gamemillis >= gamelimit && !interm || mapcontrolintermission())
         {
             sendf(-1, 1, "ri2", NetMsg_TimeUp, 0);
             if(smode) smode->intermission();
