@@ -40,8 +40,6 @@ namespace game
             if(!server::serveroption(args[i]))
                 conoutf(Console_Error, "unknown command-line option: %s", args[i]);
     }
-
-    const char *gameident() { return "Tesseract"; }
 }
 
 extern ENetAddress masteraddress;

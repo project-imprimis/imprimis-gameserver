@@ -3,8 +3,6 @@
 namespace game
 {
     extern void parseoptions(vector<const char *> &args);
-
-    extern const char *gameident();
 }
 
 namespace server
