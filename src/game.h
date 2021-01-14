@@ -190,7 +190,6 @@ enum
     NetMsg_Spawn,
     NetMsg_ForceDeath,
     NetMsg_GunSelect, //20
-    NetMsg_Taunt,
     NetMsg_MapChange,
     NetMsg_MapVote,
     NetMsg_TeamInfo,
@@ -200,8 +199,8 @@ enum
     NetMsg_Teleport,
     NetMsg_Jumppad,
 
-    NetMsg_Ping, //30
-    NetMsg_Pong,
+    NetMsg_Ping,
+    NetMsg_Pong, //30
     NetMsg_ClientPing,
     NetMsg_TimeUp,
     NetMsg_ForceIntermission,
@@ -211,8 +210,8 @@ enum
     //edit
     NetMsg_EditMode,
     NetMsg_EditEnt,
-    NetMsg_EditFace, //40
-    NetMsg_EditTex,
+    NetMsg_EditFace,
+    NetMsg_EditTex, //40
     NetMsg_EditMat,
     NetMsg_EditFlip,
     NetMsg_Copy,
@@ -222,8 +221,8 @@ enum
     NetMsg_DelCube,
     NetMsg_AddCube,
     NetMsg_CalcLight,
-    NetMsg_Remip, //50
-    NetMsg_EditVSlot,
+    NetMsg_Remip,
+    NetMsg_EditVSlot, //50
     NetMsg_Undo,
     NetMsg_Redo,
     NetMsg_Newmap,
@@ -233,8 +232,8 @@ enum
     NetMsg_EditVar,
     //master
     NetMsg_MasterMode,
-    NetMsg_Kick, //60
-    NetMsg_ClearBans,
+    NetMsg_Kick,
+    NetMsg_ClearBans, //60
     NetMsg_CurrentMaster,
     NetMsg_Spectator,
     NetMsg_SetMasterMaster,
@@ -244,8 +243,8 @@ enum
     NetMsg_SendDemoList,
     NetMsg_GetDemo,
     NetMsg_SendDemo,
-    NetMsg_DemoPlayback, //70
-    NetMsg_RecordDemo,
+    NetMsg_DemoPlayback,
+    NetMsg_RecordDemo, //70
     NetMsg_StopDemo,
     NetMsg_ClearDemos,
     //flag
@@ -255,9 +254,9 @@ enum
     NetMsg_TryDropFlag,
     NetMsg_DropFlag,
     NetMsg_ScoreFlag,
-    NetMsg_InitFlags, //80
+    NetMsg_InitFlags,
     //misc
-    NetMsg_SayTeam,
+    NetMsg_SayTeam, //80
     NetMsg_Client,
     NetMsg_AuthTry,
     NetMsg_AuthKick,
@@ -266,8 +265,8 @@ enum
     NetMsg_ReqAuth,
     NetMsg_PauseGame,
     NetMsg_GameSpeed,
-    NetMsg_AddBot, //90
-    NetMsg_DelBot,
+    NetMsg_AddBot,
+    NetMsg_DelBot, //90
     NetMsg_InitAI,
     NetMsg_FromAI,
     NetMsg_BotLimit,
@@ -276,13 +275,13 @@ enum
     NetMsg_CheckMaps,
     NetMsg_SwitchName,
     NetMsg_SwitchModel,
-    NetMsg_SwitchColor, //100
-    NetMsg_SwitchTeam,
+    NetMsg_SwitchColor,
+    NetMsg_SwitchTeam, //100
     NetMsg_ServerCommand,
     NetMsg_DemoPacket,
     NetMsg_GetScore,
 
-    NetMsg_NumMsgs //105
+    NetMsg_NumMsgs //104
 };
 
 static const int msgsizes[] =               // size inclusive message token, 0 for variable or not-checked sizes
@@ -309,7 +308,6 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     NetMsg_Spawn, 3,
     NetMsg_ForceDeath, 2,
     NetMsg_GunSelect, 2,
-    NetMsg_Taunt, 1,
     NetMsg_MapChange, 0,
     NetMsg_MapVote, 0,
     NetMsg_TeamInfo, 0,
