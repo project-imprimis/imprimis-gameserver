@@ -77,13 +77,9 @@ enum
 enum
 {
     Attack_RailShot = 0,
-    Attack_RailMelee,
     Attack_PulseShoot,
-    Attack_PulseMelee,
     Attack_EngShoot,
-    Attack_EngMelee,
     Attack_CarbineShoot,
-    Attack_CarbineMelee,
     Attack_NumAttacks
 };
 
@@ -442,13 +438,9 @@ static const struct attackinfo { int attackdelay, damage, range, rays, exprad, u
 //    8     9   14   15  17 19
 {
     {  250,  5, 2048, 1,  0, 0 },
-    {  500, 10,   14, 1,  0, 0 },
     { 3000, 15, 1024, 1, 50, 0 },
-    {  500, 10,   14, 1,  0, 0 },
     {  500,  0,  160, 1, 20, 0 },
-    {  500, 10,   14, 1,  0, 0 },
     {   80,  2,  512, 1,  0, 0 },
-    {  500,  7,   14, 1,  0, 0 }
 };
 
 enum
