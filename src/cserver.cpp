@@ -329,13 +329,18 @@ namespace server
 
     bool notgotitems = true;        // true when map has changed and waiting for clients to send item
     int gamemode = 0;
-    int gamemillis = 0, gamelimit = 0, nextexceeded = 0, gamespeed = 100;
-    bool gamepaused = false, shouldstep = true;
+    int gamemillis = 0,
+        gamelimit = 0,
+        nextexceeded = 0,
+        gamespeed = 100;
+    bool gamepaused = false,
+         shouldstep = true;
 
     string smapname = "";
     int interm = 0;
     enet_uint32 lastsend = 0;
-    int mastermode = MasterMode_Open, mastermask = MM_PRIVSERV;
+    int mastermode = MasterMode_Open,
+        mastermask = MM_PRIVSERV;
     stream *mapdata = NULL;
 
     vector<uint> allowedips;
