@@ -3,11 +3,6 @@
 #ifndef _TOOLS_H
 #define _TOOLS_H
 
-#ifdef NULL
-#undef NULL
-#endif
-#define NULL 0
-
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -198,7 +193,7 @@ struct databuf
     int len, maxlen;
     uchar flags;
 
-    databuf() : buf(NULL), len(0), maxlen(0), flags(0) {}
+    databuf() : buf(nullptr), len(0), maxlen(0), flags(0) {}
 
     template<class U>
     databuf(T *buf, U maxlen) : buf(buf), len(0), maxlen((int)maxlen), flags(0) {}
@@ -302,7 +297,7 @@ struct packetbuf : ucharbuf
     packetbuf(ENetPacket *packet) : ucharbuf(packet->data, packet->dataLength), packet(packet), growth(0) {}
     packetbuf(int growth, int pflags = 0) : growth(growth)
     {
-        packet = enet_packet_create(NULL, growth, pflags);
+        packet = enet_packet_create(nullptr, growth, pflags);
         buf = (uchar *)packet->data;
         maxlen = packet->dataLength;
     }
@@ -348,7 +343,7 @@ struct packetbuf : ucharbuf
 
     void cleanup()
     {
-        if(growth > 0 && packet && !packet->referenceCount) { enet_packet_destroy(packet); packet = NULL; buf = NULL; len = maxlen = 0; }
+        if(growth > 0 && packet && !packet->referenceCount) { enet_packet_destroy(packet); packet = nullptr; buf = nullptr; len = maxlen = 0; }
     }
 };
 
@@ -546,11 +541,11 @@ struct vector
     T *buf;
     int alen, ulen;
 
-    vector() : buf(NULL), alen(0), ulen(0)
+    vector() : buf(nullptr), alen(0), ulen(0)
     {
     }
 
-    vector(const vector &v) : buf(NULL), alen(0), ulen(0)
+    vector(const vector &v) : buf(nullptr), alen(0), ulen(0)
     {
         *this = v;
     }
@@ -616,7 +611,7 @@ struct vector
     T &operator[](int i) { return buf[i]; }
     const T &operator[](int i) const { return buf[i]; }
 
-    T *disown() { T *r = buf; buf = NULL; alen = ulen = 0; return r; }
+    T *disown() { T *r = buf; buf = nullptr; alen = ulen = 0; return r; }
 
     void shrink(int i) { if(isclass<T>::no) ulen = i; else while(ulen>i) drop(); }
     void setsize(int i) { ulen = i; }
@@ -906,8 +901,8 @@ struct hashbase
       : size(size)
     {
         numelems = 0;
-        chunks = NULL;
-        unused = NULL;
+        chunks = nullptr;
+        unused = nullptr;
         chains = new chain *[size];
         memset(chains, 0, size*sizeof(chain *));
     }
@@ -959,7 +954,7 @@ struct hashbase
     template<class U>
     T *access(const U &key)
     {
-        HTFIND(&, NULL);
+        HTFIND(&, nullptr);
     }
 
     template<class U, class V>
@@ -1021,7 +1016,7 @@ struct hashbase
             }
             c->next = unused;
             unused = chains[i];
-            chains[i] = NULL;
+            chains[i] = nullptr;
         }
         numelems = 0;
     }
@@ -1040,7 +1035,7 @@ struct hashbase
         if(!numelems) return;
         memset(chains, 0, size*sizeof(chain *));
         numelems = 0;
-        unused = NULL;
+        unused = nullptr;
         deletechunks();
     }
 
@@ -1282,12 +1277,12 @@ inline uchar uni2cube(int c)
     return uint(c) <= 0x7FF ? uni2cubechars[uni2cubeoffsets[c>>8] + (c&0xFF)] : 0;
 }
 
-extern size_t decodeutf8(uchar *dst, size_t dstlen, const uchar *src, size_t srclen, size_t *carry = NULL);
-extern size_t encodeutf8(uchar *dstbuf, size_t dstlen, const uchar *srcbuf, size_t srclen, size_t *carry = NULL);
+extern size_t decodeutf8(uchar *dst, size_t dstlen, const uchar *src, size_t srclen, size_t *carry = nullptr);
+extern size_t encodeutf8(uchar *dstbuf, size_t dstlen, const uchar *srcbuf, size_t srclen, size_t *carry = nullptr);
 
 extern string homedir;
 
-extern char *makerelpath(const char *dir, const char *file, const char *prefix = NULL, const char *cmd = NULL);
+extern char *makerelpath(const char *dir, const char *file, const char *prefix = nullptr, const char *cmd = nullptr);
 extern char *path(char *s);
 extern char *path(const char *s, bool copy);
 extern const char *parentdir(const char *directory);
@@ -1302,8 +1297,8 @@ extern stream *openrawfile(const char *filename, const char *mode);
 extern stream *openzipfile(const char *filename, const char *mode);
 extern stream *openfile(const char *filename, const char *mode);
 extern stream *opentempfile(const char *filename, const char *mode);
-extern stream *opengzfile(const char *filename, const char *mode, stream *file = NULL, int level = Z_BEST_COMPRESSION);
-extern stream *openutf8file(const char *filename, const char *mode, stream *file = NULL);
+extern stream *opengzfile(const char *filename, const char *mode, stream *file = nullptr, int level = Z_BEST_COMPRESSION);
+extern stream *openutf8file(const char *filename, const char *mode, stream *file = nullptr);
 extern char *loadfile(const char *fn, size_t *size, bool utf8 = true);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 

@@ -27,14 +27,14 @@
 
 #define LOGSTRLEN 512
 
-static FILE *logfile = NULL;
+static FILE *logfile = nullptr;
 
 void closelogfile()
 {
     if(logfile)
     {
         fclose(logfile);
-        logfile = NULL;
+        logfile = nullptr;
     }
 }
 
@@ -59,7 +59,7 @@ void setlogfile(const char *fname)
         }
     }
     FILE *f = getlogfile();
-    if(f) setvbuf(f, NULL, _IOLBF, BUFSIZ);
+    if(f) setvbuf(f, nullptr, _IOLBF, BUFSIZ);
 }
 
 void logoutf(const char *fmt, ...)
@@ -104,7 +104,7 @@ void fatal(const char *fmt, ...)
         logoutf("%s", msg);
     }
 #ifdef WIN32
-    MessageBox(NULL, msg, "Tesseract fatal error", MB_OK|MB_SYSTEMMODAL);
+    MessageBox(nullptr, msg, "Tesseract fatal error", MB_OK|MB_SYSTEMMODAL);
 #else
     fprintf(stderr, "server error: %s\n", msg);
 #endif
@@ -154,7 +154,7 @@ struct client                   // server side version of "dynent" type
 
 vector<client *> clients;
 
-ENetHost *serverhost = NULL;
+ENetHost *serverhost = nullptr;
 int laststatus = 0;
 int lastcheckscore = 0;
 ENetSocket lansock = ENET_SOCKET_NULL;
@@ -173,7 +173,7 @@ bool haslocalclients()
 
 client &addclient(int type)
 {
-    client *c = NULL;
+    client *c = nullptr;
     for(int i = 0; i < clients.length(); i++)
     {
         if(clients[i]->type==ServerClient_Empty)
@@ -219,7 +219,7 @@ void delclient(client *c)
             nonlocalclients--;
             if(c->peer)
             {
-                c->peer->data = NULL;
+                c->peer->data = nullptr;
                 break;
             }
         }
@@ -234,18 +234,18 @@ void delclient(client *c)
         }
     }
     c->type = ServerClient_Empty;
-    c->peer = NULL;
+    c->peer = nullptr;
     if(c->info)
     {
         server::deleteclientinfo(c->info);
-        c->info = NULL;
+        c->info = nullptr;
     }
 }
 
 void cleanupserver()
 {
     enet_host_destroy(serverhost);
-    serverhost = NULL;
+    serverhost = nullptr;
     if(lansock != ENET_SOCKET_NULL)
     {
         enet_socket_destroy(lansock);
@@ -277,12 +277,12 @@ int getservermtu()
 
 void *getclientinfo(int i)
 {
-    return !clients.inrange(i) || clients[i]->type==ServerClient_Empty ? NULL : clients[i]->info;
+    return !clients.inrange(i) || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
 }
 
 ENetPeer *getclientpeer(int i)
 {
-    return clients.inrange(i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : NULL;
+    return clients.inrange(i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
 }
 
 int getnumclients()
@@ -384,23 +384,23 @@ ENetPacket *sendf(int cn, int chan, const char *format, ...)
     va_end(args);
     ENetPacket *packet = p.finalize();
     sendpacket(cn, chan, packet, exclude);
-    return packet->referenceCount > 0 ? packet : NULL;
+    return packet->referenceCount > 0 ? packet : nullptr;
 }
 
 ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
 {
     if(cn < 0)
     {
-        return NULL;
+        return nullptr;
     }
     else if(!clients.inrange(cn))
     {
-        return NULL;
+        return nullptr;
     }
     int len = static_cast<int>(std::min(file->size(), stream::offset(INT_MAX)));
     if(len <= 0 || len > 16<<20)
     {
-        return NULL;
+        return nullptr;
     }
     packetbuf p(MAXTRANS+len, ENET_PACKET_FLAG_RELIABLE);
     va_list args;
@@ -439,7 +439,7 @@ ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
     {
         sendpacket(cn, chan, packet, -1);
     }
-    return packet->referenceCount > 0 ? packet : NULL;
+    return packet->referenceCount > 0 ? packet : nullptr;
 }
 
 //takes an int representing a value from the Discon enum and returns a drop message
@@ -489,7 +489,7 @@ const char *disconnectreason(int reason)
         }
         default:
         {
-            return NULL;
+            return nullptr;
         }
     }
 }
@@ -705,7 +705,7 @@ void flushmasteroutput()
     ENetBuffer buf;
     buf.data = &masterout[masteroutpos];
     buf.dataLength = masterout.length() - masteroutpos;
-    int sent = enet_socket_send(mastersock, NULL, &buf, 1);
+    int sent = enet_socket_send(mastersock, nullptr, &buf, 1);
     if(sent >= 0)
     {
         masteroutpos += sent;
@@ -730,7 +730,7 @@ void flushmasterinput()
     ENetBuffer buf;
     buf.data = masterin.getbuf() + masterin.length();
     buf.dataLength = masterin.capacity() - masterin.length();
-    int recv = enet_socket_receive(mastersock, NULL, &buf, 1);
+    int recv = enet_socket_receive(mastersock, nullptr, &buf, 1);
     if(recv > 0)
     {
         masterin.advance(recv);
@@ -1003,13 +1003,13 @@ struct logline
 };
 
 static string apptip = "";
-static HINSTANCE appinstance = NULL;
+static HINSTANCE appinstance = nullptr;
 static ATOM wndclass = 0;
-static HWND appwindow = NULL,
-            conwindow = NULL;
-static HICON appicon = NULL;
-static HMENU appmenu = NULL;
-static HANDLE outhandle = NULL;
+static HWND appwindow = nullptr,
+            conwindow = nullptr;
+static HICON appicon = nullptr;
+static HMENU appmenu = nullptr;
+static HANDLE outhandle = nullptr;
 static const int MAXLOGLINES = 200;
 static queue<logline, MAXLOGLINES> loglines;
 
@@ -1053,7 +1053,7 @@ static void cleanupwindow()
     if(appmenu)
     {
         DestroyMenu(appmenu);
-        appmenu = NULL;
+        appmenu = nullptr;
     }
     if(wndclass)
     {
@@ -1085,7 +1085,7 @@ static void writeline(logline &line)
     {
         size_t numu = encodeutf8(ubuf, sizeof(ubuf), &(reinterpret_cast<uchar*>line.buf)[carry], len - carry, &carry);
         DWORD written = 0;
-        WriteConsole(outhandle, ubuf, numu, &written, NULL);
+        WriteConsole(outhandle, ubuf, numu, &written, nullptr);
     }
 }
 
@@ -1141,7 +1141,7 @@ static LRESULT CALLBACK handlemessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
                 {
                     POINT pos;
                     GetCursorPos(&pos);
-                    TrackPopupMenu(appmenu, TPM_CENTERALIGN|TPM_BOTTOMALIGN|TPM_RIGHTBUTTON, pos.x, pos.y, 0, hWnd, NULL);
+                    TrackPopupMenu(appmenu, TPM_CENTERALIGN|TPM_BOTTOMALIGN|TPM_RIGHTBUTTON, pos.x, pos.y, 0, hWnd, nullptr);
                     PostMessage(hWnd, WM_NULL, 0, 0);
                     break;
                 }
@@ -1193,7 +1193,7 @@ static LRESULT CALLBACK handlemessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 static void setupwindow(const char *title)
 {
     copystring(apptip, title);
-    //appinstance = GetModuleHandle(NULL);
+    //appinstance = GetModuleHandle(nullptr);
     if(!appinstance)
     {
         fatal("failed getting application instance");
@@ -1209,15 +1209,15 @@ static void setupwindow(const char *title)
         fatal("failed creating popup menu");
     }
     AppendMenu(appmenu, MF_STRING, MENU_OPENCONSOLE, "Open Console");
-    AppendMenu(appmenu, MF_SEPARATOR, 0, NULL);
+    AppendMenu(appmenu, MF_SEPARATOR, 0, nullptr);
     AppendMenu(appmenu, MF_STRING, MENU_EXIT, "Exit");
     //SetMenuDefaultItem(appmenu, 0, FALSE);
 
     WNDCLASS wc;
     memset(&wc, 0, sizeof(wc));
-    wc.hCursor = NULL; //LoadCursor(NULL, IDC_ARROW);
+    wc.hCursor = nullptr; //LoadCursor(nullptr, IDC_ARROW);
     wc.hIcon = appicon;
-    wc.lpszMenuName = NULL;
+    wc.lpszMenuName = nullptr;
     wc.lpszClassName = title;
     wc.style = 0;
     wc.hInstance = appinstance;
@@ -1229,7 +1229,7 @@ static void setupwindow(const char *title)
     {
         fatal("failed registering window class");
     }
-    appwindow = CreateWindow(MAKEINTATOM(wndclass), title, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, HWND_MESSAGE, NULL, appinstance, NULL);
+    appwindow = CreateWindow(MAKEINTATOM(wndclass), title, 0, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, HWND_MESSAGE, nullptr, appinstance, nullptr);
     if(!appwindow)
     {
         fatal("failed creating window");
@@ -1273,7 +1273,7 @@ static char *parsecommandline(const char *src, vector<char *> &args)
         }
         *dst++ = '\0';
     }
-    args.add(NULL);
+    args.add(nullptr);
     return buf;
 }
 
@@ -1336,7 +1336,7 @@ void rundedicatedserver()
     for(;;)
     {
         MSG msg;
-        while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             if(msg.message == WM_QUIT)
             {
@@ -1445,7 +1445,7 @@ vector<const char *> gameargs;
 
 int main(int argc, char **argv)
 {
-    setlogfile(NULL);
+    setlogfile(nullptr);
     if(enet_initialize()<0)
     {
         fatal("Unable to initialise network module");

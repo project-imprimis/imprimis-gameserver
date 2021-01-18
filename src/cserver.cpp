@@ -261,7 +261,7 @@ namespace server
 
     void clientinfo::cleanclipboard(bool fullclean)
     {
-        if(clipboard) { if(--clipboard->referenceCount <= 0) enet_packet_destroy(clipboard); clipboard = NULL; }
+        if(clipboard) { if(--clipboard->referenceCount <= 0) enet_packet_destroy(clipboard); clipboard = nullptr; }
         if(fullclean) lastclipboard = 0;
     }
 
@@ -341,7 +341,7 @@ namespace server
     enet_uint32 lastsend = 0;
     int mastermode = MasterMode_Open,
         mastermask = MM_PRIVSERV;
-    stream *mapdata = NULL;
+    stream *mapdata = nullptr;
 
     vector<uint> allowedips;
     vector<ban> bannedips;
@@ -366,7 +366,7 @@ namespace server
 
     vector<clientinfo *> connects, clients, bots;
 
-    void kickclients(uint ip, clientinfo *actor = NULL, int priv = Priv_None)
+    void kickclients(uint ip, clientinfo *actor = nullptr, int priv = Priv_None)
     {
         for(int i = clients.length(); --i >=0;) //note reverse iteration
         {
@@ -554,7 +554,7 @@ namespace server
     vector<demofile> demos;
 
     bool demonextmatch = false;
-    stream *demotmp = NULL, *demorecord = NULL, *demoplayback = NULL;
+    stream *demotmp = nullptr, *demorecord = nullptr, *demoplayback = nullptr;
     int nextplayback = 0, demomillis = 0;
 
     VAR(maxdemos, 0, 5, 25);
@@ -640,7 +640,7 @@ namespace server
 
     void checkteamkills() //players who do too many teamkills may get kicked from the server
     {
-        teamkillkick *kick = NULL;
+        teamkillkick *kick = nullptr;
         if(!modecheck(gamemode, Mode_Untimed))
         {
             for(int i = 0; i < teamkillkicks.length(); i++)
@@ -677,7 +677,7 @@ namespace server
     {
         if(n < MAXCLIENTS) return (clientinfo *)getclientinfo(n);
         n -= MAXCLIENTS;
-        return bots.inrange(n) ? bots[n] : NULL;
+        return bots.inrange(n) ? bots[n] : nullptr;
     }
 
     uint mcrc = 0;
@@ -782,7 +782,7 @@ namespace server
         return false;
     }
 
-    const char *colorname(clientinfo *ci, const char *name = NULL)
+    const char *colorname(clientinfo *ci, const char *name = nullptr)
     {
         if(!name) name = ci->name;
         if(name[0] && !duplicatename(ci, name) && ci->state.aitype == AI_None) return name;
@@ -823,7 +823,7 @@ namespace server
         virtual bool extinfoteam(int team, ucharbuf &p) { return false; }
     };
 
-    servermode *smode = NULL;
+    servermode *smode = nullptr;
 
     bool canspawnitem(int type) { return VALID_ITEM(type); }
 
@@ -871,7 +871,7 @@ namespace server
 
     clientinfo *choosebestclient(float &bestrank)
     {
-        clientinfo *best = NULL;
+        clientinfo *best = nullptr;
         bestrank = -1;
         for(int i = 0; i < clients.length(); i++)
         {
@@ -947,7 +947,7 @@ namespace server
         teamrank() : rank(0), clients(0) {}
     };
 
-    int chooseworstteam(clientinfo *exclude = NULL)
+    int chooseworstteam(clientinfo *exclude = nullptr)
     {
         teamrank teamranks[MAXTEAMS];
         for(int i = 0; i < clients.length(); i++)
@@ -994,7 +994,7 @@ namespace server
         if(!demotmp) return;
         int len = (int)std::min(demotmp->size(), stream::offset((maxdemosize<<20) + 0x10000));
         demofile &d = demos.add();
-        time_t t = time(NULL);
+        time_t t = time(nullptr);
         char *timestr = ctime(&t), *trim = timestr + strlen(timestr);
         while(trim>timestr && iscubespace(*--trim)) *trim = '\0';
         formatstring(d.info, "%s: %s, %s, %.2f%s", timestr, modeprettyname(gamemode), smapname, len > 1024*1024 ? len/(1024*1024.f) : len/1024.0f, len > 1024*1024 ? "MB" : "kB");
@@ -1043,7 +1043,7 @@ namespace server
         demotmp = opentempfile("demorecord", "w+b");
         if(!demotmp) return;
 
-        stream *f = opengzfile(NULL, "wb", demotmp);
+        stream *f = opengzfile(nullptr, "wb", demotmp);
         if(!f) { DELETEP(demotmp); return; }
 
         sendservmsg("recording demo");
@@ -1057,7 +1057,7 @@ namespace server
         demorecord->write(&hdr, sizeof(demoheader));
 
         packetbuf p(MAXTRANS, ENET_PACKET_FLAG_RELIABLE);
-        welcomepacket(p, NULL);
+        welcomepacket(p, nullptr);
         writedemo(1, p.buf, p.len);
     }
 
@@ -1097,7 +1097,7 @@ namespace server
         for(int i = 0; i < clients.length(); i++)
         {
             clientinfo *ci = clients[i];
-            if(ci->getmap == packet) ci->getmap = NULL;
+            if(ci->getmap == packet) ci->getmap = nullptr;
         }
     }
 
@@ -1106,7 +1106,7 @@ namespace server
         for(int i = 0; i < clients.length(); i++)
         {
             clientinfo *ci = clients[i];
-            if(ci->getdemo == packet) ci->getdemo = NULL;
+            if(ci->getdemo == packet) ci->getdemo = nullptr;
         }
     }
 
@@ -1186,7 +1186,7 @@ namespace server
                 enddemoplayback();
                 return;
             }
-            ENetPacket *packet = enet_packet_create(NULL, len+1, 0);
+            ENetPacket *packet = enet_packet_create(nullptr, len+1, 0);
             if(!packet || demoplayback->read(packet->data+1, len)!=size_t(len))
             {
                 if(packet) enet_packet_destroy(packet);
@@ -1211,7 +1211,7 @@ namespace server
         else enddemorecord();
     }
 
-    void pausegame(bool val, clientinfo *ci = NULL)
+    void pausegame(bool val, clientinfo *ci = nullptr)
     {
         if(gamepaused==val) return;
         gamepaused = val;
@@ -1245,7 +1245,7 @@ namespace server
 
     bool ispaused() { return gamepaused; }
 
-    void changegamespeed(int val, clientinfo *ci = NULL)
+    void changegamespeed(int val, clientinfo *ci = nullptr)
     {
         val = clamp(val, 10, 1000);
         if(gamespeed==val) return;
@@ -1267,7 +1267,7 @@ namespace server
         char *name;
         char *desc;
 
-        userkey() : name(NULL), desc(NULL) {}
+        userkey() : name(nullptr), desc(nullptr) {}
         userkey(char *name, char *desc) : name(name), desc(desc) {}
     };
 
@@ -1279,7 +1279,7 @@ namespace server
         void *pubkey;
         int privilege;
 
-        userinfo() : pubkey(NULL), privilege(Priv_None) {}
+        userinfo() : pubkey(nullptr), privilege(Priv_None) {}
         ~userinfo() { delete[] name; delete[] desc;}
     };
     hashset<userinfo> users;
@@ -1313,7 +1313,7 @@ namespace server
 
     extern void connected(clientinfo *ci);
 
-    bool setmaster(clientinfo *ci, bool val, const char *pass = "", const char *authname = NULL, const char *authdesc = NULL, int authpriv = Priv_Master, bool force = false, bool trial = false)
+    bool setmaster(clientinfo *ci, bool val, const char *pass = "", const char *authname = nullptr, const char *authdesc = nullptr, int authpriv = Priv_Master, bool force = false, bool trial = false)
     {
         if(authname && !val) return false;
         const char *name = "";
@@ -1402,12 +1402,12 @@ namespace server
         return true;
     }
 
-    bool trykick(clientinfo *ci, int victim, const char *reason = NULL, const char *authname = NULL, const char *authdesc = NULL, int authpriv = Priv_None, bool trial = false)
+    bool trykick(clientinfo *ci, int victim, const char *reason = nullptr, const char *authname = nullptr, const char *authdesc = nullptr, int authpriv = Priv_None, bool trial = false)
     {
         int priv = ci->privilege;
         if(authname)
         {
-            if(priv >= authpriv || ci->local) authname = authdesc = NULL;
+            if(priv >= authpriv || ci->local) authname = authdesc = nullptr;
             else priv = authpriv;
         }
         if((priv || ci->local) && ci->clientnum!=victim)
@@ -1534,7 +1534,7 @@ namespace server
         int uses, len;
         uchar *data;
 
-        worldstate() : uses(0), len(0), data(NULL) {}
+        worldstate() : uses(0), len(0), data(nullptr) {}
 
         void setup(int n) { len = n; data = new uchar[n]; }
         void cleanup() { DELETEA(data); len = 0; }
@@ -1646,7 +1646,7 @@ namespace server
         {
             clientinfo &ci = *clients[i];
             ci.overflow = 0;
-            ci.wsdata = NULL;
+            ci.wsdata = nullptr;
             wsmax += ci.position.length();
             if(ci.messages.length()) wsmax += 10 + ci.messages.length();
         }
@@ -1968,7 +1968,7 @@ namespace server
         clearteaminfo();
         if(modecheck(gamemode, Mode_Team)) autoteam();
 
-        else smode = NULL;
+        else smode = nullptr;
 
         if(!modecheck(gamemode, Mode_Untimed) && smapname[0]) sendf(-1, 1, "ri2", NetMsg_TimeUp, gamemillis < gamelimit && !interm ? std::max((gamelimit - gamemillis)/1000, 1) : 0);
         for(int i = 0; i < clients.length(); i++)
@@ -2030,7 +2030,7 @@ namespace server
             if(oi->state.aitype!=AI_None) continue;
             maxvotes++;
             if(!MODE_VALID(oi->modevote)) continue;
-            votecount *vc = NULL;
+            votecount *vc = nullptr;
             for(int j = 0; j < votes.length(); j++)
             {
                 if(!strcmp(oi->mapvote, votes[j].map) && oi->modevote==votes[j].mode)
@@ -2045,7 +2045,7 @@ namespace server
             }
             vc->count++;
         }
-        votecount *best = NULL;
+        votecount *best = nullptr;
         for(int i = 0; i < votes.length(); i++)
         {
             if(!best || votes[i].count > best->count || (votes[i].count == best->count && randomint(2)))
@@ -2167,7 +2167,7 @@ namespace server
                 }
                 actor->state.effectiveness += fragvalue*friends/float(std::max(enemies, 1));
             }
-            teaminfo *t = modecheck(gamemode, Mode_Team) && VALID_TEAM(actor->team) ? &teaminfos[actor->team-1] : NULL;
+            teaminfo *t = modecheck(gamemode, Mode_Team) && VALID_TEAM(actor->team) ? &teaminfos[actor->team-1] : nullptr;
             if(t) t->frags += fragvalue;
             sendf(-1, 1, "ri5", NetMsg_Died, target->clientnum, actor->clientnum, actor->state.frags, t ? t->frags : 0);
             target->position.setsize(0);
@@ -2192,11 +2192,11 @@ namespace server
         int fragvalue = smode ? smode->fragvalue(ci, ci) : -1;
         ci->state.frags += fragvalue;
         ci->state.deaths++;
-        teaminfo *t = modecheck(gamemode, Mode_Team) && VALID_TEAM(ci->team) ? &teaminfos[ci->team-1] : NULL;
+        teaminfo *t = modecheck(gamemode, Mode_Team) && VALID_TEAM(ci->team) ? &teaminfos[ci->team-1] : nullptr;
         if(t) t->frags += fragvalue;
         sendf(-1, 1, "ri5", NetMsg_Died, ci->clientnum, ci->clientnum, gs.frags, t ? t->frags : 0);
         ci->position.setsize(0);
-        if(smode) smode->died(ci, NULL);
+        if(smode) smode->died(ci, nullptr);
         gs.state = ClientState_Dead;
         gs.lastdeath = gamemillis;
         gs.respawn();
@@ -2511,7 +2511,7 @@ namespace server
             }
             else
             {
-                crcinfo *match = NULL;
+                crcinfo *match = nullptr;
                 for(int j = 0; j < crcs.length(); j++)
                 {
                     if(crcs[j].crc == ci->mapcrc)
@@ -2764,7 +2764,7 @@ namespace server
                 return clients[i];
             }
         }
-        return NULL;
+        return nullptr;
     }
 
     void masterconnected()
@@ -2833,7 +2833,7 @@ namespace server
     }
 
 
-    void validmapname(char *dst, const char *src, const char *prefix = NULL, const char *alt = "untitled", size_t maxlen = 100)
+    void validmapname(char *dst, const char *src, const char *prefix = nullptr, const char *alt = "untitled", size_t maxlen = 100)
     {
         if(prefix) while(*prefix) *dst++ = *prefix++;
         const char *start = dst;
@@ -2859,7 +2859,7 @@ namespace server
 
     void fixmapname(char *name)
     {
-        validmapname(name, name, NULL, "");
+        validmapname(name, name, nullptr, "");
     }
 
     void parsepacket(int sender, int chan, packetbuf &p)     // has to parse exactly each byte of the packet
@@ -2867,7 +2867,7 @@ namespace server
         if(sender<0 || p.packet->flags&ENET_PACKET_FLAG_UNSEQUENCED || chan > 2) return;
         char text[MAXTRANS];
         int type;
-        clientinfo *ci = sender>=0 ? getinfo(sender) : NULL, *cq = ci, *cm = ci;
+        clientinfo *ci = sender>=0 ? getinfo(sender) : nullptr, *cq = ci, *cm = ci;
         if(ci && !ci->connected)
         {
             if(chan==0) return;
@@ -2954,7 +2954,7 @@ namespace server
                     clientinfo *cp = getinfo(pcn);
                     if(cp && pcn != sender && cp->ownernum != sender)
                     {
-                        cp = NULL;
+                        cp = nullptr;
                     }
                     vec pos;
                     for(int k = 0; k < 3; ++k)
@@ -3026,7 +3026,7 @@ namespace server
                     clientinfo *cp = getinfo(pcn);
                     if(cp && pcn != sender && cp->ownernum != sender)
                     {
-                        cp = NULL;
+                        cp = nullptr;
                     }
                     if(cp && (!ci->local || demorecord || hasnonlocalclients()) && (cp->state.state==ClientState_Alive || cp->state.state==ClientState_Editing))
                     {
@@ -3042,7 +3042,7 @@ namespace server
                     clientinfo *cp = getinfo(pcn);
                     if(cp && pcn != sender && cp->ownernum != sender)
                     {
-                        cp = NULL;
+                        cp = nullptr;
                     }
                     if(cp && (!ci->local || demorecord || hasnonlocalclients()) && (cp->state.state==ClientState_Alive || cp->state.state==ClientState_Editing))
                     {
@@ -3064,7 +3064,7 @@ namespace server
                         cq = getinfo(qcn);
                         if(cq && qcn != sender && cq->ownernum != sender)
                         {
-                            cq = NULL;
+                            cq = nullptr;
                         }
                     }
                     break;
@@ -3131,7 +3131,7 @@ namespace server
                     checkmaps();
                     if(cq && cq != ci && cq->ownernum != ci->clientnum)
                     {
-                        cq = NULL;
+                        cq = nullptr;
                     }
                     break;
                 }
@@ -3158,7 +3158,7 @@ namespace server
                         }
                         else if(cq->ownernum != ci->clientnum)
                         {
-                            cq = NULL;
+                            cq = nullptr;
                             break;
                         }
                     }
@@ -3565,7 +3565,7 @@ namespace server
                     }
                     if(cq && cq != ci && cq->ownernum != ci->clientnum)
                     {
-                        cq = NULL;
+                        cq = nullptr;
                     }
                     break;
                 }
@@ -3706,7 +3706,7 @@ namespace server
                         {
                             break;
                         }
-                        setmaster(minfo, val!=0, "", NULL, NULL, Priv_Master, true);
+                        setmaster(minfo, val!=0, "", nullptr, nullptr, Priv_Master, true);
                     }
                     else setmaster(ci, val!=0, text);
                     // don't broadcast the master password
@@ -4097,7 +4097,7 @@ enum
             case EXT_PLAYERSTATS:
             {
                 int cn = getint(req); //a special player, -1 for all
-                clientinfo *ci = NULL;
+                clientinfo *ci = nullptr;
                 if(cn >= 0)
                 {
                     for(int i = 0; i < clients.length(); i++)
@@ -4202,7 +4202,7 @@ enum
                 {
                     continue;
                 }
-                teamscore *t = NULL;
+                teamscore *t = nullptr;
                 for(int j = 0; j < teams.length(); j++)
                 {
                     if(teams[j].team == ci->team)
@@ -4248,7 +4248,7 @@ enum
             while(reassign.length() && teams.length() && teams[0].score > teams.last().score + 1)
             {
                 teamscore &t = teams.last();
-                clientinfo *bot = NULL;
+                clientinfo *bot = nullptr;
                 for(int i = 0; i < reassign.length(); i++)
                 {
                     if(reassign[i] && reassign[i]->team != teams[0].team)
@@ -4303,9 +4303,9 @@ enum
             return false;
         }
 
-        clientinfo *findaiclient(clientinfo *exclude = NULL)
+        clientinfo *findaiclient(clientinfo *exclude = nullptr)
         {
-            clientinfo *least = NULL;
+            clientinfo *least = nullptr;
             for(int i = 0; i < clients.length(); i++)
             {
                 clientinfo *ci = clients[i];
@@ -4363,7 +4363,7 @@ enum
             else
             {
                 cn = bots.length();
-                bots.add(NULL);
+                bots.add(nullptr);
             }
             int team = modecheck(gamemode, Mode_Team) ? chooseteam() : 0;
             if(!bots[cn])
@@ -4454,7 +4454,7 @@ enum
             }
         }
 
-        void shiftai(clientinfo *ci, clientinfo *owner = NULL)
+        void shiftai(clientinfo *ci, clientinfo *owner = nullptr)
         {
             if(ci->ownernum >= 0 && !ci->aireinit && smode)
             {
@@ -4584,7 +4584,7 @@ enum
             }
             if(botbalance != (serverbotbalance != 0))
             {
-                setbotbalance(NULL, serverbotbalance != 0);
+                setbotbalance(nullptr, serverbotbalance != 0);
             }
         }
 

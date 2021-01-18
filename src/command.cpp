@@ -28,7 +28,7 @@ char *exchangestr(char *o, const char *n)
 
 typedef hashtable<const char *, ident> identtable;
 
-identtable *idents = NULL;        // contains ALL vars/commands/aliases
+identtable *idents = nullptr;        // contains ALL vars/commands/aliases
 
 bool overrideidents = false,
      persistidents = true;
@@ -43,7 +43,7 @@ void clearstack(ident &id)
         stack = stack->next;
         delete tmp;
     }
-    id.stack = NULL;
+    id.stack = nullptr;
 }
 
 void clear_command()
@@ -261,7 +261,7 @@ int getvarmax(const char *name)
 }
 bool identexists(const char *name)
 {
-    return idents->access(name)!=NULL;
+    return idents->access(name)!=nullptr;
 }
 
 ident *getident(const char *name)
@@ -406,7 +406,7 @@ char *parseexp(const char *&p, int right)          // parse any nested set of ()
             conoutf(Console_Error, "missing \"%c\"", right);
             wordbuf.setsize(0);
             bufnest--;
-            return NULL;
+            return nullptr;
         }
         wordbuf.add(c);
     }
@@ -503,7 +503,7 @@ char *parseword(const char *&p, int arg, int &infix)                       // pa
     }
     if(p-word==0)
     {
-        return NULL;
+        return nullptr;
     }
     if(arg==1 && p-word==1)
     {
@@ -549,15 +549,15 @@ char *conc(char **w, int n, bool space)
 
 VARN(numargs, _numargs, 0, 0, 25);
 
-#define PARSEINT(s) strtol((s), NULL, 0)
+#define PARSEINT(s) strtol((s), nullptr, 0)
 
-char *commandret = NULL;
+char *commandret = nullptr;
 
 char *executeret(const char *p)               // all evaluation happens here, recursively
 {
     const int MAXWORDS = 25;                    // limit, remove
     char *w[MAXWORDS];
-    char *retval = NULL;
+    char *retval = nullptr;
     #define setretval(v) { char *rv = v; if(rv) retval = rv; }
     for(bool cont = true; cont;)                // for each ; seperated statement
     {
@@ -595,7 +595,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
             {
                 case '=':
                     aliasa(c, numargs>2 ? w[2] : newstring(""));
-                    w[2] = NULL;
+                    w[2] = nullptr;
                     break;
             }
         }
@@ -623,7 +623,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                     } nstor[MAXWORDS];
                     int n = 0,
                         wn = 0;
-                    char *cargs = NULL;
+                    char *cargs = nullptr;
                     if(id->type==ID_CCOMMAND) v[n++] = id->self;
                     for(const char *a = id->narg; *a; a++)
                     {
@@ -652,7 +652,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                     }
                     if(cargs) delete[] cargs;
                     setretval(commandret);
-                    commandret = NULL;
+                    commandret = nullptr;
                     break;
                 }
 
@@ -776,7 +776,7 @@ bool execfile(const char *cfgfile)
 {
     string s;
     s_strcpy(s, cfgfile);
-    char *buf = loadfile(path(s), NULL);
+    char *buf = loadfile(path(s), nullptr);
     if(!buf)
     {
         return false;

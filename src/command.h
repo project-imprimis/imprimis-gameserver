@@ -78,22 +78,22 @@ struct ident
 
     ident() {}
     // Id_Var
-    ident(int t, const char *n, int m, int c, int x, int *s, void *f = NULL, int flags = 0)
+    ident(int t, const char *n, int m, int c, int x, int *s, void *f = nullptr, int flags = 0)
         : type(t), name(n), minval(m), maxval(x), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
     { val.i = c; storage.i = s; }
     // Id_FloatVar
-    ident(int t, const char *n, float m, float c, float x, float *s, void *f = NULL, int flags = 0)
+    ident(int t, const char *n, float m, float c, float x, float *s, void *f = nullptr, int flags = 0)
         : type(t), name(n), minvalf(m), maxvalf(x), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
     { val.f = c; storage.f = s; }
     // Id_StringVar
-    ident(int t, const char *n, char *c, char **s, void *f = NULL, int flags = 0)
+    ident(int t, const char *n, char *c, char **s, void *f = nullptr, int flags = 0)
         : type(t), name(n), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
     { val.s = c; storage.s = s; }
     // ID_ALIAS
     ident(int t, const char *n, char *a, int flags)
-        : type(t), name(n), override(NO_OVERRIDE), stack(NULL), action(a), flags(flags) {}
+        : type(t), name(n), override(NO_OVERRIDE), stack(nullptr), action(a), flags(flags) {}
     // ID_COMMAND, ID_CCOMMAND
-    ident(int t, const char *n, const char *narg, void *f = NULL, void *s = NULL, int flags = 0)
+    ident(int t, const char *n, const char *narg, void *f = nullptr, void *s = nullptr, int flags = 0)
         : type(t), name(n), fun((void (__cdecl *)(void))f), narg(narg), self(s), flags(flags) {}
 
     virtual ~ident() {}
@@ -113,13 +113,13 @@ void explodelist(const char *s, vector<char *> elems);
 #define COMMANDN(name, fun, nargs) static bool __dummy_##fun = addcommand(#name, (void (*)())fun, nargs)
 #define COMMAND(name, nargs) COMMANDN(name, name, nargs)
 
-#define _VAR(name, global, min, cur, max, persist)  int global = variable(#name, min, cur, max, &global, NULL, persist)
+#define _VAR(name, global, min, cur, max, persist)  int global = variable(#name, min, cur, max, &global, nullptr, persist)
 #define VARN(name, global, min, cur, max) _VAR(name, global, min, cur, max, 0)
 #define VAR(name, min, cur, max) _VAR(name, name, min, cur, max, 0)
 #define _VARF(name, global, min, cur, max, body, persist)  void var_##name(); int global = variable(#name, min, cur, max, &global, var_##name, persist); void var_##name() { body; }
 #define VARF(name, min, cur, max, body) _VARF(name, name, min, cur, max, body, 0)
 
-#define _SVAR(name, global, cur, persist) char *global = svariable(#name, cur, &global, NULL, persist)
+#define _SVAR(name, global, cur, persist) char *global = svariable(#name, cur, &global, nullptr, persist)
 #define SVAR(name, cur) _SVAR(name, name, cur, 0)
 #define _SVARF(name, global, cur, body, persist) void var_##name(); char *global = svariable(#name, cur, &global, var_##name, persist); void var_##name() { body; }
 #define SVARF(name, cur, body) _SVARF(name, name, cur, body, 0)
@@ -128,7 +128,7 @@ void explodelist(const char *s, vector<char *> elems);
 #define _COMMAND(idtype, tv, n, g, proto, b) \
     struct cmd_##n : ident \
     { \
-        cmd_##n(void *self = NULL) : ident(idtype, #n, g, (void *)run, self) \
+        cmd_##n(void *self = nullptr) : ident(idtype, #n, g, (void *)run, self) \
         { \
             addident(name, this); \
         } \

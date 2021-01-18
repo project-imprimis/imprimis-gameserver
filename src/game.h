@@ -658,7 +658,7 @@ namespace server
         int authkickvictim;
         char *authkickreason;
 
-        clientinfo() : getdemo(NULL), getmap(NULL), clipboard(NULL), authchallenge(NULL), authkickreason(NULL) { reset(); }
+        clientinfo() : getdemo(nullptr), getmap(nullptr), clipboard(nullptr), authchallenge(nullptr), authkickreason(nullptr) { reset(); }
         ~clientinfo() { events.deletecontents(); cleanclipboard();}
 
         enum
