@@ -578,8 +578,6 @@ namespace server
     extern bool serveroption(const char *arg);
     extern bool delayspawn(int type);
 
-    struct gameevent;
-
     template <int N>
     struct projectilestate
     {
@@ -630,6 +628,8 @@ namespace server
         void reassign();
     };
 
+    struct gameevent;
+
     struct clientinfo
     {
         int clientnum, ownernum, connectmillis, sessionid, overflow;
@@ -679,6 +679,16 @@ namespace server
         void cleanauthkick();
         void reset();
         int geteventmillis(int servmillis, int clientmillis);
+    };
+
+    struct gameevent
+    {
+        virtual ~gameevent() {}
+
+        virtual bool flush(clientinfo *ci, int fmillis);
+        virtual void process(clientinfo *ci) {}
+
+        virtual bool keepable() const { return false; }
     };
 }
 

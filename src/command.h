@@ -98,7 +98,11 @@ struct ident
 
     virtual ~ident() {}
 
-    ident &operator=(const ident &o) { memcpy(this, &o, sizeof(ident)); return *this; }        // force vtable copy, ugh
+    ident &operator=(const ident &o)
+    {
+        *this = o;
+        return *this;
+    }
 
     virtual void changed() { if(fun) fun(); }
 };

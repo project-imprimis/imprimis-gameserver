@@ -57,16 +57,6 @@ namespace server
 
     struct clientinfo;
 
-    struct gameevent
-    {
-        virtual ~gameevent() {}
-
-        virtual bool flush(clientinfo *ci, int fmillis);
-        virtual void process(clientinfo *ci) {}
-
-        virtual bool keepable() const { return false; }
-    };
-
     struct timedevent : gameevent
     {
         int millis;
@@ -2114,7 +2104,7 @@ namespace server
 
     void checkintermission()
     {
-        if(gamemillis >= gamelimit && !interm || mapcontrolintermission())
+        if(((gamemillis >= gamelimit) && !interm) || mapcontrolintermission())
         {
             sendf(-1, 1, "ri2", NetMsg_TimeUp, 0);
             if(smode) smode->intermission();

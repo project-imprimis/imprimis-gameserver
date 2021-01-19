@@ -129,7 +129,7 @@ struct s_sprintf_f
         va_end(v);
     }
 };
-inline char *s_strncpy(char *d, const char *s, size_t m) { strncpy(d,s,m); d[m-1] = 0; return d; }
+inline char *s_strncpy(char *d, const char *s, size_t m) { strncpy(d,s,m-1); d[m-1] = 0; return d; }
 inline char *s_strcpy(char *d, const char *s) { return s_strncpy(d,s,MAXSTRLEN); }
 #define s_sprintf(d) s_sprintf_f((char *)d)
 #define s_sprintfd(d) string d; s_sprintf(d)
