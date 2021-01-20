@@ -100,9 +100,9 @@ struct ident
 
     ident &operator=(const ident &o)
     {
-        *this = o;
+        memcpy(this, &o, sizeof(ident));
         return *this;
-    }
+    }        // force vtable copy, ugh
 
     virtual void changed() { if(fun) fun(); }
 };
