@@ -4180,7 +4180,7 @@ enum
     namespace aiman
     {
         bool dorefresh = false, botbalance = true;
-        VARN(serverbotlimit, botlimit, 0, 8, MAXBOTS);
+        VARN(serverbotlimit, botlimit, 0, 16, MAXBOTS);
         VAR(serverbotbalance, 0, 1, 1);
 
         void calcteams(vector<teamscore> &teams)
