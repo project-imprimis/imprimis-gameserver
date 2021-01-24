@@ -25,7 +25,7 @@
 #include "game.h"
 #include "mapcontrol.h"
 
-#define LOGSTRLEN 512
+constexpr int LOGSTRLEN = 512;
 
 static FILE *logfile = nullptr;
 
@@ -133,8 +133,7 @@ void conoutf(int type, const char *fmt, ...)
     va_end(args);
 }
 
-
-#define DEFAULTCLIENTS 8
+constexpr int DEFAULTCLIENTS = 8;
 
 enum
 {
@@ -752,7 +751,7 @@ void sendserverinforeply(ucharbuf &p)
     enet_socket_send(serverhost->socket, &serverinfoaddress, &buf, 1);
 }
 
-#define MAXPINGDATA 32
+constexpr int MAXPINGDATA = 32;
 
 void checkserversockets()        // reply all server info requests
 {
@@ -994,7 +993,7 @@ void flushserver(bool force)
 #ifdef WIN32
 #include "shellapi.h"
 
-#define IDI_ICON1 1
+constexpr int IDI_ICON1 = 1;
 
 struct logline
 {

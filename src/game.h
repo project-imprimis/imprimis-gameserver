@@ -10,9 +10,9 @@
 //game entity definition
 
 // network quantization scale
-#define DMF 16.0f                // for world locations
-#define DNF 100.0f              // for normalized vectors
-#define DVELF 1.0f              // for playerspeed based velocity vectors
+constexpr float DMF = 16.0f;               // for world locations
+constexpr float DNF = 100.0f;              // for normalized vectors
+constexpr float DVELF = 1.0f;              // for playerspeed based velocity vectors
 
 enum
 {
@@ -35,7 +35,7 @@ struct entity                                   // persistent map entity
     uchar reserved;
 };
 
-#define MAXENTS 10000
+constexpr int MAXENTS = 10000;
 
 enum
 {
@@ -122,8 +122,8 @@ static struct gamemodeinfo
 
 //these are the checks for particular mechanics in particular modes
 //e.g. MODE_RAIL sees if the mode only have railguns
-#define STARTGAMEMODE (-1)
-#define NUMGAMEMODES ((int)(sizeof(gamemodes)/sizeof(gamemodes[0])))
+constexpr int STARTGAMEMODE = -1;
+constexpr int  NUMGAMEMODES =((int)(sizeof(gamemodes)/sizeof(gamemodes[0])));
 
 //check fxn
 inline bool modecheck(int mode, int flag)
@@ -398,12 +398,12 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     -1
 };
 
-#define TESSERACT_SERVER_PORT 42069
-#define TESSERACT_LANINFO_PORT 42067
-#define TESSERACT_MASTER_PORT 42068
-#define PROTOCOL_VERSION 2              // bump when protocol changes
-#define DEMO_VERSION 1                  // bump when demo format changes
-#define DEMO_MAGIC "TESSERACT_DEMO\0\0"
+constexpr int TESSERACT_SERVER_PORT  = 42069;
+constexpr int TESSERACT_LANINFO_PORT = 42067;
+constexpr int  TESSERACT_MASTER_PORT = 42068;
+constexpr int  PROTOCOL_VERSION = 2;              // bump when protocol changes
+constexpr int  DEMO_VERSION = 1;                  // bump when demo format changes
+constexpr const char * DEMO_MAGIC = "TESSERACT_DEMO\0\0";
 
 struct demoheader
 {
@@ -411,7 +411,7 @@ struct demoheader
     int version, protocol;
 };
 
-#define MAXNAMELEN 15
+constexpr int MAXNAMELEN = 15;
 
 enum
 {
@@ -425,10 +425,10 @@ enum
 
 #define VALID_ITEM(n) false //no items in this game thus far
 
-#define MAXRAYS 1
-#define EXP_SELFDAMDIV 2
-#define EXP_SELFPUSH 2.5f
-#define EXP_DISTSCALE 0.5f
+constexpr int MAXRAYS = 1;
+constexpr int EXP_SELFDAMDIV = 2;
+constexpr float EXP_SELFPUSH   = 2.5f;
+constexpr float EXP_DISTSCALE  = 0.5f;
 // this defines weapon properties
 //                                   8            9       14     15    17      19
 static const struct attackinfo { int attackdelay, damage, range, rays, exprad, use; } attacks[Attack_NumAttacks] =
@@ -448,7 +448,7 @@ enum
     AI_Max
 };
 
-#define MAXBOTS 32
+constexpr int MAXBOTS = 32;
 
 // inherited by gameent and server clients
 struct gamestate
@@ -515,7 +515,7 @@ struct gamestate
     }
 };
 
-#define MAXTEAMS 2
+constexpr int MAXTEAMS = 2;
 static const char * const teamnames[1+MAXTEAMS] = { "", "azul", "rojo" };
 static const char * const teamtextcode[1+MAXTEAMS] = { "\f0", "\f1", "\f3" };
 inline int teamnumber(const char *name)

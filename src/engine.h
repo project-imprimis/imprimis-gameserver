@@ -1,8 +1,6 @@
 #ifndef __ENGINE_H__
 #define __ENGINE_H__
 
-#define _FILE_OFFSET_BITS 64
-
 #ifdef WIN32
 #define _USE_MATH_DEFINES
 #endif

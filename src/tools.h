@@ -10,18 +10,6 @@ typedef unsigned long ulong;
 typedef signed long long int llong;
 typedef unsigned long long int ullong;
 
-#if defined(__GNUC__) || (defined(_MSC_VER) && _MSC_VER >= 1400)
-#define RESTRICT __restrict
-#else
-#define RESTRICT
-#endif
-
-#ifdef __GNUC__
-#define UNUSED __attribute__((unused))
-#else
-#define UNUSED
-#endif
-
 #ifdef swap
 #undef swap
 #endif
@@ -38,29 +26,6 @@ inline T clamp(T a, U b, U c)
     return std::max(T(b), std::min(a, T(c)));
 }
 
-#ifdef __GNUC__
-#define BITSCAN(mask) (__builtin_ffs(mask)-1)
-#else
-#ifdef WIN32
-#pragma intrinsic(_BitScanForward)
-inline int BITSCAN(uint mask)
-{
-    ulong i;
-    return _BitScanForward(&i, mask) ? i : -1;
-}
-#else
-inline int BITSCAN(uint mask)
-{
-    if(!mask) return -1;
-    int i = 1;
-    if(!(mask&0xFFFF)) { i += 16; mask >>= 16; }
-    if(!(mask&0xFF)) { i += 8; mask >>= 8; }
-    if(!(mask&0xF)) { i += 4; mask >>= 4; }
-    if(!(mask&3)) { i += 2; mask >>= 2; }
-    return i - (mask&1);
-}
-#endif
-#endif
 
 inline int randomint(int x)
 {
@@ -80,12 +45,6 @@ inline float detrnd(uint s, int x)
 #define RAD (PI / 180.0f)
 
 #ifdef WIN32
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-#ifndef M_LN2
-#define M_LN2 0.693147180559945309417
-#endif
 
 #ifndef __GNUC__
 #pragma warning (3: 4189)       // local variable is initialized but not referenced
@@ -113,7 +72,7 @@ inline float detrnd(uint s, int x)
 
 // easy safe strings
 
-#define MAXSTRLEN 260
+constexpr int MAXSTRLEN = 260;
 typedef char string[MAXSTRLEN];
 
 inline void formatstring(char *d, const char *fmt, va_list v) { _vsnprintf(d, MAXSTRLEN, fmt, v); d[MAXSTRLEN-1] = 0; }
@@ -1117,7 +1076,6 @@ struct hashtable : hashbase<hashtable<K, T>, hashtableentry<K, T>, K, T>
     template<class U> static inline void setkey(elemtype &elem, const U &key) { elem.key = key; }
 };
 
-#define ENUMERATE_KT(ht,k,e,t,f,b) for(int i = 0; i < int((ht).size); ++i) for(void *ec = (ht).chains[i]; ec;) { k &e = (ht).enumkey(ec); t &f = (ht).enumdata(ec); ec = (ht).enumnext(ec); b; }
 #define ENUMERATE(ht,t,e,b)       for(int i = 0; i < int((ht).size); ++i) for(void *ec = (ht).chains[i]; ec;) { t &e = (ht).enumdata(ec); ec = (ht).enumnext(ec); b; }
 
 /* workaround for some C platforms that have these two functions as macros - not used anywhere */

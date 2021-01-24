@@ -63,8 +63,8 @@ extern void logoutf(const char *fmt, ...) PRINTFARGS(1, 2);
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
 
 // server
-#define MAXCLIENTS 128                 // DO NOT set this any higher
-#define MAXTRANS 5000                  // max amount of data to swallow in 1 go
+constexpr int MAXCLIENTS = 128;                 // DO NOT set this any higher
+constexpr int MAXTRANS   = 5000;                // max amount of data to swallow in 1 go
 
 extern int maxclients;
 
