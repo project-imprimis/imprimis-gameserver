@@ -386,7 +386,6 @@ void exec(const char *cfgfile)
 
 void intret(int v) { s_sprintfd(b)("%d", v); commandret = newstring(b); }
 
-
 #define WHITESPACESKIP s += strspn(s, "\n\t ")
 #define ELEMENTSKIP *s=='"' ? (++s, s += strcspn(s, "\"\n\0"), s += *s=='"') : s += strcspn(s, "\n\t \0")
 
@@ -401,7 +400,6 @@ void explodelist(const char *s, vector<char *> elems)
         WHITESPACESKIP;
     }
 }
-
 
 COMMAND(exec, "s");
 

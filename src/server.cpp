@@ -1011,7 +1011,7 @@ static HICON appicon = nullptr;
 static HMENU appmenu = nullptr;
 static HANDLE outhandle = nullptr;
 static const int MAXLOGLINES = 200;
-static queue<logline, MAXLOGLINES> loglines;
+static std::queue<logline, MAXLOGLINES> loglines;
 
 static void cleanupsystemtray()
 {
@@ -1111,7 +1111,7 @@ static void setupconsole()
     SetConsoleScreenBufferSize(outhandle, coninfo.dwSize);
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
-    for(int i = 0; i < loglines.length(); i++)
+    for(int i = 0; i < loglines.size(); i++)
     {
         writeline(loglines[i]);
     }
@@ -1295,7 +1295,8 @@ void logoutfv(const char *fmt, va_list args)
 {
     if(appwindow)
     {
-        logline &line = loglines.add();
+        loglines.add();
+        logline &line = loglines.back();
         vformatstring(line.buf, fmt, args, sizeof(line.buf));
         if(logfile)
         {
