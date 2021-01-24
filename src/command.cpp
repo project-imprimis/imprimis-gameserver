@@ -827,4 +827,9 @@ void explodelist(const char *s, vector<char *> elems)
 
 
 COMMAND(exec, "s");
-ICOMMAND(echo, "C", (char *s), conoutf(Console_Echo, "\f1%s", s));
+
+void echocmd(char *s)
+{
+    conoutf(Console_Echo, "\f1%s", s);
+}
+COMMANDN(echo, echocmd, "C");

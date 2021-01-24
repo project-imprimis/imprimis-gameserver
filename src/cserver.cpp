@@ -2720,8 +2720,11 @@ namespace server
         }
     }
 
-    ICOMMAND(clearipbans, "", (), ipbans.clear());
-    ICOMMAND(ipban, "s", (const char *ipname), ipbans.add(ipname));
+    void ipbancmd(const char *ipname)
+    {
+        ipbans.add(ipname);
+    }
+    COMMANDN(ipban, ipbancmd, "s");
 
     int allowconnect(clientinfo *ci, const char *pwd = "")
     {

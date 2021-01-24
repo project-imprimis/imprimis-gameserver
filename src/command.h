@@ -127,15 +127,3 @@ void explodelist(const char *s, vector<char *> elems);
 #define SVAR(name, cur) _SVAR(name, name, cur, 0)
 #define _SVARF(name, global, cur, body, persist) void var_##name(); char *global = svariable(#name, cur, &global, var_##name, persist); void var_##name() { body; }
 #define SVARF(name, cur, body) _SVARF(name, name, cur, body, 0)
-
-// new style macros, have the body inline, and allow binds to happen anywhere, even inside class constructors, and access the surrounding class
-#define _COMMAND(idtype, tv, n, g, proto, b) \
-    struct cmd_##n : ident \
-    { \
-        cmd_##n(void *self = nullptr) : ident(idtype, #n, g, (void *)run, self) \
-        { \
-            addident(name, this); \
-        } \
-        static void run proto { b; } \
-    } icom_##n tv
-#define ICOMMAND(n, g, proto, b) _COMMAND(ID_COMMAND, , n, g, proto, b)
