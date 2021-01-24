@@ -1,5 +1,5 @@
 // command.cpp: implements the parsing and execution of a tiny script language which
-// is largely backwards compatible with the quake console language.
+// allows server values to be set by configurable script
 
 #include "engine.h"
 
@@ -28,29 +28,10 @@ char *exchangestr(char *o, const char *n)
 
 typedef hashtable<const char *, ident> identtable;
 
-identtable *idents = nullptr;        // contains ALL vars/commands/aliases
+identtable *idents = nullptr;        // contains ALL vars/commands
 
 bool overrideidents = false,
      persistidents = true;
-
-void clearstack(ident &id)
-{
-    identstack *stack = id.stack;
-    while(stack)
-    {
-        delete[] stack->action;
-        identstack *tmp = stack;
-        stack = stack->next;
-        delete tmp;
-    }
-    id.stack = nullptr;
-}
-
-void clear_command()
-{
-    ENUMERATE(*idents, ident, i, if(i.type==ID_ALIAS) { DELETEA(i.name); DELETEA(i.action); if(i.stack) clearstack(i); });
-    if(idents) idents->clear();
-}
 
 void clearoverrides()
 {
@@ -59,19 +40,8 @@ void clearoverrides()
         {
             switch(i.type)
             {
-                case ID_ALIAS:
-                    if(i.action[0])
-                    {
-                        if(i.action != i.isexecuting) delete[] i.action;
-                        i.action = newstring("");
-                    }
-                    break;
                 case Id_Var:
                     *i.storage.i = i.overrideval.i;
-                    i.changed();
-                    break;
-                case Id_FloatVar:
-                    *i.storage.f = i.overrideval.f;
                     i.changed();
                     break;
                 case Id_StringVar:
@@ -84,95 +54,9 @@ void clearoverrides()
         });
 }
 
-void pushident(ident &id, char *val)
-{
-    if(id.type != ID_ALIAS)
-    {
-        return;
-    }
-    identstack *stack = new identstack;
-    stack->action = id.isexecuting==id.action ? newstring(id.action) : id.action;
-    stack->next = id.stack;
-    id.stack = stack;
-    id.action = val;
-}
-
 void popident(ident &id)
 {
-    if(id.type != ID_ALIAS || !id.stack)
-    {
-        return;
-    }
-    if(id.action != id.isexecuting)
-    {
-        delete[] id.action;
-    }
-    identstack *stack = id.stack;
-    id.action = stack->action;
-    id.stack = stack->next;
-    delete stack;
-}
-
-ident *newident(const char *name)
-{
-    ident *id = idents->access(name);
-    if(!id)
-    {
-        ident init(ID_ALIAS, newstring(name), newstring(""), persistidents ? IDF_PERSIST : 0);
-        id = &idents->access(init.name, init);
-    }
-    return id;
-}
-
-void pusha(const char *name, char *action)
-{
-    pushident(*newident(name), action);
-}
-
-void aliasa(const char *name, char *action)
-{
-    ident *b = idents->access(name);
-    if(!b)
-    {
-        ident b(ID_ALIAS, newstring(name), action, persistidents ? IDF_PERSIST : 0);
-        if(overrideidents)
-        {
-            b.override = OVERRIDDEN;
-        }
-        idents->access(b.name, b);
-    }
-    else if(b->type != ID_ALIAS)
-    {
-        conoutf(Console_Error, "cannot redefine builtin %s with an alias", name);
-        delete[] action;
-    }
-    else
-    {
-        if(b->action != b->isexecuting)
-        {
-            delete[] b->action;
-        }
-        b->action = action;
-        if(overrideidents) b->override = OVERRIDDEN;
-        else
-        {
-            if(b->override != NO_OVERRIDE)
-            {
-                b->override = NO_OVERRIDE;
-            }
-            if(persistidents)
-            {
-                if(!(b->flags & IDF_PERSIST))
-                {
-                    b->flags |= IDF_PERSIST;
-                }
-            }
-            else if(b->flags & IDF_PERSIST)
-            {
-                b->flags &= ~IDF_PERSIST;
-            }
-        }
-    }
+    return;
 }
 
 // variables and commands are registered through globals, see cube.h
@@ -184,17 +68,6 @@ int variable(const char *name, int min, int cur, int max, int *storage, void (*f
         idents = new identtable;
     }
     ident v(Id_Var, name, min, cur, max, storage, (void *)fun, flags);
-    idents->access(name, v);
-    return cur;
-}
-
-float fvariable(const char *name, float min, float cur, float max, float *storage, void (*fun)(), int flags)
-{
-    if(!idents)
-    {
-        idents = new identtable;
-    }
-    ident v(Id_FloatVar, name, min, cur, max, storage, (void *)fun, flags);
     idents->access(name, v);
     return cur;
 }
@@ -217,78 +90,6 @@ char *svariable(const char *name, const char *cur, char **storage, void (*fun)()
         return retval; \
     }
 #define GETVAR(id, name, retval) _GETVAR(id, Id_Var, name, retval)
-void setvar(const char *name, int i, bool dofunc)
-{
-    GETVAR(id, name, );
-    *id->storage.i = clamp(i, id->minval, id->maxval);
-    if(dofunc)
-    {
-        id->changed();
-    }
-}
-void setfvar(const char *name, float f, bool dofunc)
-{
-    _GETVAR(id, Id_FloatVar, name, );
-    *id->storage.f = clamp(f, id->minvalf, id->maxvalf);
-    if(dofunc)
-    {
-        id->changed();
-    }
-}
-void setsvar(const char *name, const char *str, bool dofunc)
-{
-    _GETVAR(id, Id_StringVar, name, );
-    *id->storage.s = exchangestr(*id->storage.s, str);
-    if(dofunc)
-    {
-        id->changed();
-    }
-}
-int getvar(const char *name)
-{
-    GETVAR(id, name, 0);
-    return *id->storage.i;
-}
-int getvarmin(const char *name)
-{
-    GETVAR(id, name, 0);
-    return id->minval;
-}
-int getvarmax(const char *name)
-{
-    GETVAR(id, name, 0);
-    return id->maxval;
-}
-bool identexists(const char *name)
-{
-    return idents->access(name)!=nullptr;
-}
-
-ident *getident(const char *name)
-{
-    return idents->access(name);
-}
-
-void touchvar(const char *name)
-{
-    ident *id = idents->access(name);
-    if(id) switch(id->type)
-    {
-        case Id_Var:
-        case Id_FloatVar:
-        case Id_StringVar:
-        {
-            id->changed();
-            break;
-        }
-    }
-}
-
-const char *getalias(const char *name)
-{
-    ident *i = idents->access(name);
-    return i && i->type==ID_ALIAS ? i->action : "";
-}
 
 bool addcommand(const char *name, void (*fun)(), const char *narg)
 {
@@ -301,132 +102,7 @@ bool addcommand(const char *name, void (*fun)(), const char *narg)
     return false;
 }
 
-void addident(const char *name, ident *id)
-{
-    if(!idents)
-    {
-        idents = new identtable;
-    }
-    idents->access(name, *id);
-}
-
 static vector<vector<char> *> wordbufs;
-static int bufnest = 0;
-
-char *parseexp(const char *&p, int right);
-
-void parsemacro(const char *&p, int level, vector<char> &wordbuf)
-{
-    int escape = 1;
-    while(*p=='@') p++, escape++;
-    if(level > escape)
-    {
-        while(escape--)
-        {
-            wordbuf.add('@');
-        }
-        return;
-    }
-    if(*p=='(')
-    {
-        char *ret = parseexp(p, ')');
-        if(ret)
-        {
-            for(char *sub = ret; *sub; )
-            {
-                wordbuf.add(*sub++);
-            }
-            delete[] ret;
-        }
-        return;
-    }
-    static vector<char> ident;
-    while(isalnum(*p) || *p=='_')
-    {
-        ident.add(*p++);
-    }
-    ident.add(0);
-    const char *alias = getalias(ident.getbuf());
-    while(*alias)
-    {
-        wordbuf.add(*alias++);
-    }
-}
-
-char *parseexp(const char *&p, int right)          // parse any nested set of () or []
-{
-    if(bufnest++>=wordbufs.length())
-    {
-        wordbufs.add(new vector<char>);
-    }
-    vector<char> &wordbuf = *wordbufs[bufnest-1];
-    int left = *p++;
-    for(int brak = 1; brak; )
-    {
-        int c = *p++;
-        if(c=='\r')
-        {
-            continue;               // hack
-        }
-        if(left=='[' && c=='@')
-        {
-            parsemacro(p, brak, wordbuf);
-            continue;
-        }
-        if(c=='\"')
-        {
-            wordbuf.add(c);
-            const char *end = p+strcspn(p, "\"\r\n\0");
-            while(p < end)
-            {
-                wordbuf.add(*p++);
-            }
-            if(*p=='\"')
-            {
-                wordbuf.add(*p++);
-            }
-            continue;
-        }
-        if(c=='/' && *p=='/')
-        {
-            p += strcspn(p, "\n\0");
-            continue;
-        }
-        if(c==left)
-        {
-            brak++;
-        }
-        else if(c==right)
-        {
-            brak--;
-        }
-        else if(!c)
-        {
-            p--;
-            conoutf(Console_Error, "missing \"%c\"", right);
-            wordbuf.setsize(0);
-            bufnest--;
-            return nullptr;
-        }
-        wordbuf.add(c);
-    }
-    wordbuf.pop();
-    char *s;
-    if(left=='(')
-    {
-        wordbuf.add(0);
-        char *ret = executeret(wordbuf.getbuf());                    // evaluate () exps directly, and substitute result
-        wordbuf.pop();
-        s = ret ? ret : newstring("");
-    }
-    else
-    {
-        s = newstring(wordbuf.getbuf(), wordbuf.length());
-    }
-    wordbuf.setsize(0);
-    bufnest--;
-    return s;
-}
 
 char *lookup(char *n)                           // find value of ident referenced with $ in exp
 {
@@ -438,17 +114,9 @@ char *lookup(char *n)                           // find value of ident reference
             s_sprintfd(t)("%d", *id->storage.i);
             return exchangestr(n, t);
         }
-        case Id_FloatVar:
-        {
-            return exchangestr(n, floatstr(*id->storage.f));
-        }
         case Id_StringVar:
         {
             return exchangestr(n, *id->storage.s);
-        }
-        case ID_ALIAS:
-        {
-            return exchangestr(n, id->action);
         }
     }
     conoutf(Console_Error, "unknown alias lookup: %s", n+1);
@@ -477,14 +145,6 @@ char *parseword(const char *&p, int arg, int &infix)                       // pa
             p++;
         }
         return s;
-    }
-    if(*p=='(')
-    {
-        return parseexp(p, ')');
-    }
-    if(*p=='[')
-    {
-        return parseexp(p, ']');
     }
     const char *word = p;
     for(;;)
@@ -589,17 +249,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
             continue;                       // empty statement
         }
         DELETEA(retval);
-        if(infix)
-        {
-            switch(infix)
-            {
-                case '=':
-                    aliasa(c, numargs>2 ? w[2] : newstring(""));
-                    w[2] = nullptr;
-                    break;
-            }
-        }
-        else
+        if(!infix)
         {
             ident *id = idents->access(c);
             if(!id)
@@ -631,9 +281,6 @@ char *executeret(const char *p)               // all evaluation happens here, re
                         {
                             case 's':                                 v[n] = w[++wn];     n++; break;
                             case 'i': nstor[n].i = PARSEINT(w[++wn]); v[n] = &nstor[n].i; n++; break;
-                            case 'f': nstor[n].f = atof(w[++wn]);     v[n] = &nstor[n].f; n++; break;
-                            case 'V': v[n++] = w+1; nstor[n].i = numargs-1; v[n] = &nstor[n].i; n++; break;
-                            case 'C': if(!cargs) cargs = conc(w+1, numargs-1, true); v[n++] = cargs; break;
                             default: fatal("builtin declared with illegal type");
                         }
                     }
@@ -684,29 +331,6 @@ char *executeret(const char *p)               // all evaluation happens here, re
                     }
                     break;
 
-                case Id_FloatVar:
-                    if(numargs <= 1)
-                    {
-                        conoutf("%s = %s", c, floatstr(*id->storage.f));
-                    }
-                    else if(id->minvalf>id->maxvalf)
-                    {
-                        conoutf(Console_Error, "variable %s is read-only", id->name);
-                    }
-                    else
-                    {
-                        OVERRIDEVAR(id->overrideval.f = *id->storage.f, );
-                        float f1 = atof(w[1]);
-                        if(f1<id->minvalf || f1>id->maxvalf)
-                        {
-                            f1 = f1<id->minvalf ? id->minvalf : id->maxvalf;                // clamp to valid range
-                            conoutf(Console_Error, "valid range for %s is %s..%s", id->name, floatstr(id->minvalf), floatstr(id->maxvalf));
-                        }
-                        *id->storage.f = f1;
-                        id->changed();
-                    }
-                    break;
-
                 case Id_StringVar:
                     if(numargs <= 1)
                     {
@@ -719,40 +343,6 @@ char *executeret(const char *p)               // all evaluation happens here, re
                         id->changed();
                     }
                     break;
-
-                case ID_ALIAS:                              // alias, also used as functions and (global) variables
-                {
-                    static vector<ident *> argids;
-                    for(int i = 1; i<numargs; i++)
-                    {
-                        if(i > argids.length())
-                        {
-                            s_sprintfd(argname)("arg%d", i);
-                            argids.add(newident(argname));
-                        }
-                        pushident(*argids[i-1], w[i]); // set any arguments as (global) arg values so functions can access them
-                    }
-                    _numargs = numargs-1;
-                    bool wasoverriding = overrideidents;
-                    if(id->override!=NO_OVERRIDE)
-                    {
-                        overrideidents = true;
-                    }
-                    char *wasexecuting = id->isexecuting;
-                    id->isexecuting = id->action;
-                    setretval(executeret(id->action));
-                    if(id->isexecuting != id->action && id->isexecuting != wasexecuting)
-                    {
-                        delete[] id->isexecuting;
-                    }
-                    id->isexecuting = wasexecuting;
-                    overrideidents = wasoverriding;
-                    for(int i = 1; i<numargs; i++)
-                    {
-                        popident(*argids[i-1]);
-                    }
-                    continue;
-                }
             }
         }
         for(int j = 0; j < numargs; j++) if(w[j]) delete[] w[j];
@@ -796,19 +386,6 @@ void exec(const char *cfgfile)
 
 void intret(int v) { s_sprintfd(b)("%d", v); commandret = newstring(b); }
 
-const char *floatstr(float v)
-{
-    static int n = 0;
-    static string t[3];
-    n = (n + 1)%3;
-    s_sprintf(t[n])(v==int(v) ? "%.1f" : "%.7g", v);
-    return t[n];
-}
-
-void floatret(float v)
-{
-    commandret = newstring(floatstr(v));
-}
 
 #define WHITESPACESKIP s += strspn(s, "\n\t ")
 #define ELEMENTSKIP *s=='"' ? (++s, s += strcspn(s, "\"\n\0"), s += *s=='"') : s += strcspn(s, "\n\t \0")
@@ -832,4 +409,4 @@ void echocmd(char *s)
 {
     conoutf(Console_Echo, "\f1%s", s);
 }
-COMMANDN(echo, echocmd, "C");
+COMMANDN(echo, echocmd, "s");

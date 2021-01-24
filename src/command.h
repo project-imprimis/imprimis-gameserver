@@ -2,11 +2,10 @@
 enum
 {
     Id_Var,
-    Id_FloatVar,
+    Id_FloatVar, //needed for forwarding edit packet changes
     Id_StringVar,
     ID_COMMAND,
-    ID_CCOMMAND,
-    ID_ALIAS
+    ID_CCOMMAND
 };
 
 enum
@@ -21,23 +20,15 @@ enum
     IDF_OVERRIDE = 1<<1
 };
 
-struct identstack
-{
-    char *action;
-    identstack *next;
-};
-
 union identval
 {
     int i;      // Id_Var
-    float f;    // Id_FloatVar
     char *s;    // Id_StringVar
 };
 
 union identvalptr
 {
     int *i;   // Id_Var
-    float *f; // Id_FloatVar
     char **s; // Id_StringVar
 };
 
@@ -45,35 +36,24 @@ struct ident
 {
     int type;           // one of ID_* above
     const char *name;
-    union
-    {
-        int minval;    // Id_Var
-        float minvalf; // Id_FloatVar
-    };
-    union
-    {
-        int maxval;    // Id_Var
-        float maxvalf; // Id_FloatVar
-    };
+    int minval;    // Id_Var
+    int maxval;    // Id_Var
     int override;       // either NO_OVERRIDE, OVERRIDDEN, or value
     union
     {
         void (__cdecl *fun)(); // Id_Var, ID_COMMAND, ID_CCOMMAND
-        identstack *stack;     // ID_ALIAS
     };
     union
     {
         const char *narg; // ID_COMMAND, ID_CCOMMAND
-        char *action;     // ID_ALIAS
-        identval val;     // Id_Var, Id_FloatVar, Id_StringVar
+        identval val;     // Id_Var, Id_StringVar
     };
     union
     {
         void *self;           // ID_COMMAND, ID_CCOMMAND
-        char *isexecuting;    // ID_ALIAS
-        identval overrideval; // Id_Var, Id_FloatVar, Id_StringVar
+        identval overrideval; // Id_Var, Id_StringVar
     };
-    identvalptr storage; // Id_Var, Id_FloatVar, Id_StringVar
+    identvalptr storage; // Id_Var, Id_StringVar
     int flags;
 
     ident() {}
@@ -81,17 +61,10 @@ struct ident
     ident(int t, const char *n, int m, int c, int x, int *s, void *f = nullptr, int flags = 0)
         : type(t), name(n), minval(m), maxval(x), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
     { val.i = c; storage.i = s; }
-    // Id_FloatVar
-    ident(int t, const char *n, float m, float c, float x, float *s, void *f = nullptr, int flags = 0)
-        : type(t), name(n), minvalf(m), maxvalf(x), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
-    { val.f = c; storage.f = s; }
     // Id_StringVar
     ident(int t, const char *n, char *c, char **s, void *f = nullptr, int flags = 0)
         : type(t), name(n), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
     { val.s = c; storage.s = s; }
-    // ID_ALIAS
-    ident(int t, const char *n, char *a, int flags)
-        : type(t), name(n), override(NO_OVERRIDE), stack(nullptr), action(a), flags(flags) {}
     // ID_COMMAND, ID_CCOMMAND
     ident(int t, const char *n, const char *narg, void *f = nullptr, void *s = nullptr, int flags = 0)
         : type(t), name(n), fun((void (__cdecl *)(void))f), narg(narg), self(s), flags(flags) {}
@@ -106,11 +79,7 @@ struct ident
 
     virtual void changed() { if(fun) fun(); }
 };
-extern void addident(const char *name, ident *id);
 extern void intret(int v);
-extern const char *floatstr(float v);
-extern void floatret(float v);
-extern void result(const char *s);
 void explodelist(const char *s, vector<char *> elems);
 
 // nasty macros for registering script functions, abuses globals to avoid excessive infrastructure
