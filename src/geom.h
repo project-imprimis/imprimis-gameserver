@@ -13,7 +13,7 @@ struct vec
         float v[3];
     };
 
-    vec() {}
+    vec() : x(0), y(0), z(0) {}
     explicit vec(int a) : x(a), y(a), z(a) {}
     explicit vec(float a) : x(a), y(a), z(a) {}
     vec(float a, float b, float c) : x(a), y(b), z(c) {}

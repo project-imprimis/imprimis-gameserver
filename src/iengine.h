@@ -7,7 +7,6 @@ extern int totalmillis;                 // total elapsed time
 extern uint totalsecs;
 extern int gamespeed, paused;
 
-
 // octaedit
 
 enum

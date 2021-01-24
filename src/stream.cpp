@@ -239,7 +239,6 @@ char *makerelpath(const char *dir, const char *file, const char *prefix, const c
     return tmp;
 }
 
-
 char *path(char *s)
 {
     for(char *curpart = s;;)
@@ -370,28 +369,6 @@ const char *sethomedir(const char *dir)
     if(!subhomedir(pdir, sizeof(pdir), dir) || !fixpackagedir(pdir)) return nullptr;
     copystring(homedir, pdir);
     return homedir;
-}
-
-const char *addpackagedir(const char *dir)
-{
-    string pdir;
-    copystring(pdir, dir);
-    if(!subhomedir(pdir, sizeof(pdir), dir) || !fixpackagedir(pdir)) return nullptr;
-    char *filter = pdir;
-    for(;;)
-    {
-        static int len = strlen("media");
-        filter = strstr(filter, "media");
-        if(!filter) break;
-        if(filter > pdir && filter[-1] == PATHDIV && filter[len] == PATHDIV) break;
-        filter += len;
-    }
-    packagedir &pf = packagedirs.add();
-    pf.dir = filter ? newstring(pdir, filter-pdir) : newstring(pdir);
-    pf.dirlen = filter ? filter-pdir : strlen(pdir);
-    pf.filter = filter ? newstring(filter) : nullptr;
-    pf.filterlen = filter ? strlen(filter) : 0;
-    return pf.dir;
 }
 
 const char *findfile(const char *filename, const char *mode)

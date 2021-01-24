@@ -1426,10 +1426,6 @@ bool serveroption(char *opt)
         {
             logoutf("Using home directory: %s", opt); sethomedir(opt+2); return true;
         }
-        case 'k':
-        {
-            logoutf("Adding package directory: %s", opt); addpackagedir(opt+2); return true;
-        }
         case 'g':
         {
             logoutf("Setting log file: %s", opt); setlogfile(opt+2); return true;

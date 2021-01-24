@@ -6,36 +6,16 @@
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
-typedef unsigned long ulong;
-typedef signed long long int llong;
-typedef unsigned long long int ullong;
 
-#ifdef swap
-#undef swap
-#endif
-template<class T>
-inline void swap(T &a, T &b)
-{
-    T t = a;
-    a = b;
-    b = t;
-}
 template<class T, class U>
 inline T clamp(T a, U b, U c)
 {
     return std::max(T(b), std::min(a, T(c)));
 }
 
-
 inline int randomint(int x)
 {
     return rand()%(x);
-}
-
-//1103515245+12345 are magic constants for LCG psuedorandom generator
-inline float detrnd(uint s, int x)
-{
-    return int(((s*1103515245+12345)>>16)%x);
 }
 
 #define DELETEP(p) if(p) { delete   p; p = 0; }
@@ -234,8 +214,6 @@ struct databuf
     int length() const { return len; }
     int remaining() const { return maxlen-len; }
     bool overread() const { return (flags&OVERREAD)!=0; }
-    bool overwrote() const { return (flags&OVERWROTE)!=0; }
-
     bool check(int n) { return remaining() >= n; }
 
     void forceoverread()
@@ -374,13 +352,13 @@ inline void quicksort(T *start, T *end, F fun)
         }
         else if(fun(*start, end[-1])) { pivot = *start; *start = *mid; } /*mid <= start < end */
         else if(fun(*mid, end[-1])) { pivot = end[-1]; end[-1] = *start; *start = *mid; } /* mid < end <= start */
-        else { pivot = *mid; swap(*start, end[-1]); }  /* end <= mid <= start */
+        else { pivot = *mid; std::swap(*start, end[-1]); }  /* end <= mid <= start */
         *mid = end[-2];
         do
         {
             while(fun(*i, pivot)) if(++i >= j) goto partitioned;
             while(fun(pivot, *--j)) if(i >= j) goto partitioned;
-            swap(*i, *j);
+            std::swap(*i, *j);
         }
         while(++i < j);
     partitioned:
@@ -437,61 +415,6 @@ inline bool htcmp(const char *x, const char *y)
     return !strcmp(x, y);
 }
 
-struct stringslice
-{
-    const char *str;
-    int len;
-    stringslice() {}
-    stringslice(const char *str, int len) : str(str), len(len) {}
-    stringslice(const char *str, const char *end) : str(str), len(int(end-str)) {}
-
-    const char *end() const { return &str[len]; }
-};
-
-inline char *newstring(const stringslice &s) { return newstring(s.str, s.len); }
-inline const char *stringptr(const char *s) { return s; }
-inline const char *stringptr(const stringslice &s) { return s.str; }
-inline int stringlen(const char *s) { return int(strlen(s)); }
-inline int stringlen(const stringslice &s) { return s.len; }
-
-inline char *copystring(char *d, const stringslice &s, size_t len)
-{
-    size_t slen = std::min(size_t(s.len), len-1);
-    memcpy(d, s.str, slen);
-    d[slen] = 0;
-    return d;
-}
-template<size_t N>
-inline char *copystring(char (&d)[N], const stringslice &s) { return copystring(d, s, N); }
-
-inline uint memhash(const void *ptr, int len)
-{
-    const uchar *data = (const uchar *)ptr;
-    uint h = 5381;
-    for(int i = 0; i < int(len); ++i)
-    {
-        h = ((h<<5)+h)^data[i];
-    }
-    return h;
-}
-
-inline uint hthash(const stringslice &s) { return memhash(s.str, s.len); }
-
-inline bool htcmp(const stringslice &x, const char *y)
-{
-    return x.len == (int)strlen(y) && !memcmp(x.str, y, x.len);
-}
-
-inline uint hthash(int key)
-{
-    return key;
-}
-
-inline bool htcmp(int x, int y)
-{
-    return x==y;
-}
-
 template <class T>
 struct vector
 {
@@ -531,30 +454,6 @@ struct vector
         if(ulen==alen) growbuf(ulen+1);
         new (&buf[ulen]) T;
         return buf[ulen++];
-    }
-
-    T &dup()
-    {
-        if(ulen==alen) growbuf(ulen+1);
-        new (&buf[ulen]) T(buf[ulen-1]);
-        return buf[ulen++];
-    }
-
-    void move(vector<T> &v)
-    {
-        if(!ulen)
-        {
-            swap(buf, v.buf);
-            swap(ulen, v.ulen);
-            swap(alen, v.alen);
-        }
-        else
-        {
-            growbuf(ulen+v.ulen);
-            if(v.ulen) memcpy(&buf[ulen], (void  *)v.buf, v.ulen*sizeof(T));
-            ulen += v.ulen;
-            v.ulen = 0;
-        }
     }
 
     bool inrange(size_t i) const { return i<size_t(ulen); }
@@ -622,13 +521,6 @@ struct vector
         advance(p.length());
     }
 
-    T *pad(int n)
-    {
-        T *buf = reserve(n).buf;
-        advance(n);
-        return buf;
-    }
-
     void put(const T &v) { add(v); }
 
     void put(const T *v, int n)
@@ -673,11 +565,6 @@ struct vector
         return -1;
     }
 
-    void addunique(const T &o)
-    {
-        if(find(o) < 0) add(o);
-    }
-
     void removeobj(const T &o)
     {
         for(int i = 0; i < int(ulen); ++i)
@@ -695,20 +582,6 @@ struct vector
                 setsize(dst);
                 break;
             }
-        }
-    }
-
-    void replacewithlast(const T &o)
-    {
-        if(!ulen) return;
-        for(int i = 0; i < int(ulen-1); ++i)
-        {
-            if(buf[i]==o)
-            {
-                buf[i] = buf[ulen-1];
-                break;
-            }
-            ulen--;
         }
     }
 
@@ -738,67 +611,6 @@ struct vector
         return &buf[i];
     }
 
-    void reverse()
-    {
-        for(int i = 0; i < int(ulen/2); ++i)
-        {
-            swap(buf[i], buf[ulen-1-i]);
-        }
-    }
-
-    static int heapparent(int i) { return (i - 1) >> 1; }
-    static int heapchild(int i) { return (i << 1) + 1; }
-
-    void buildheap()
-    {
-        for(int i = ulen/2; i >= 0; i--) downheap(i);
-    }
-
-    int upheap(int i)
-    {
-        float score = heapscore(buf[i]);
-        while(i > 0)
-        {
-            int pi = heapparent(i);
-            if(score >= heapscore(buf[pi])) break;
-            swap(buf[i], buf[pi]);
-            i = pi;
-        }
-        return i;
-    }
-
-    T &addheap(const T &x)
-    {
-        add(x);
-        return buf[upheap(ulen-1)];
-    }
-
-    int downheap(int i)
-    {
-        float score = heapscore(buf[i]);
-        for(;;)
-        {
-            int ci = heapchild(i);
-            if(ci >= ulen) break;
-            float cscore = heapscore(buf[ci]);
-            if(score > cscore)
-            {
-               if(ci+1 < ulen && heapscore(buf[ci+1]) < cscore) { swap(buf[ci+1], buf[i]); i = ci+1; }
-               else { swap(buf[ci], buf[i]); i = ci; }
-            }
-            else if(ci+1 < ulen && heapscore(buf[ci+1]) < score) { swap(buf[ci+1], buf[i]); i = ci+1; }
-            else break;
-        }
-        return i;
-    }
-
-    T removeheap()
-    {
-        T e = removeunordered(0);
-        if(ulen) downheap(0);
-        return e;
-    }
-
     template<class K>
     int htfind(const K &key)
     {
@@ -811,28 +623,6 @@ struct vector
         }
         return -1;
     }
-
-    #define UNIQUE(overwrite, cleanup) \
-        for(int i = 1; i < ulen; i++) if(htcmp(buf[i-1], buf[i])) \
-        { \
-            int n = i; \
-            while(++i < ulen) if(!htcmp(buf[n-1], buf[i])) { overwrite; n++; } \
-            cleanup; \
-            break; \
-        }
-    void unique() // contents must be initially sorted
-    {
-        UNIQUE(buf[n] = buf[i], setsize(n));
-    }
-    void uniquedeletecontents()
-    {
-        UNIQUE(swap(buf[n], buf[i]), deletecontents(n));
-    }
-    void uniquedeletearrays()
-    {
-        UNIQUE(swap(buf[n], buf[i]), deletearrays(n));
-    }
-    #undef UNIQUE
 };
 
 template<class H, class E, class K, class T>
@@ -958,26 +748,6 @@ struct hashbase
             }
         }
         return false;
-    }
-
-    void recycle()
-    {
-        if(!numelems) return;
-        for(int i = 0; i < int(size); ++i)
-        {
-            chain *c = chains[i];
-            if(!c) continue;
-            for(;;)
-            {
-                htrecycle(c->elem);
-                if(!c->next) break;
-                c = c->next;
-            }
-            c->next = unused;
-            unused = chains[i];
-            chains[i] = nullptr;
-        }
-        numelems = 0;
     }
 
     void deletechunks()
@@ -1157,11 +927,7 @@ enum
 extern const uchar cubectype[256];
 inline int iscubeprint(uchar c) { return cubectype[c]&CT_PRINT; }
 inline int iscubespace(uchar c) { return cubectype[c]&CT_SPACE; }
-inline int iscubealpha(uchar c) { return cubectype[c]&CT_ALPHA; }
 inline int iscubealnum(uchar c) { return cubectype[c]&(CT_ALPHA|CT_DIGIT); }
-inline int iscubelower(uchar c) { return cubectype[c]&CT_LOWER; }
-inline int iscubeupper(uchar c) { return cubectype[c]&CT_UPPER; }
-inline int iscubepunct(uchar c) { return cubectype[c] == CT_PRINT; }
 inline int cube2uni(uchar c)
 {
     extern const int cube2unichars[256];
@@ -1187,7 +953,6 @@ extern bool fileexists(const char *path, const char *mode);
 extern bool createdir(const char *path);
 extern size_t fixpackagedir(char *dir);
 extern const char *sethomedir(const char *dir);
-extern const char *addpackagedir(const char *dir);
 extern const char *findfile(const char *filename, const char *mode);
 extern bool findzipfile(const char *filename);
 extern stream *openrawfile(const char *filename, const char *mode);
@@ -1234,4 +999,3 @@ struct ipmask
 };
 
 #endif
-

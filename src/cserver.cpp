@@ -4255,7 +4255,7 @@ enum
                             {
                                 break;
                             }
-                            swap(teams[j], teams[j+1]);
+                            std::swap(teams[j], teams[j+1]);
                         }
                         break;
                     }
