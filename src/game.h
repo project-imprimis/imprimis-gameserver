@@ -676,7 +676,6 @@ namespace server
         void mapchange();
         void reassign();
         void cleanclipboard(bool fullclean = true);
-        void cleanauthkick();
         void reset();
         int geteventmillis(int servmillis, int clientmillis);
     };

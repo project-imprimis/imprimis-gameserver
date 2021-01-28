@@ -255,12 +255,6 @@ namespace server
         if(fullclean) lastclipboard = 0;
     }
 
-    void clientinfo::cleanauthkick()
-    {
-        authkickvictim = -1;
-        DELETEA(authkickreason);
-    }
-
     void clientinfo::reset()
     {
         name[0] = 0;
@@ -474,66 +468,6 @@ namespace server
         return false;
     }
 
-    int genmodemask(vector<char *> &modes)
-    {
-        int modemask = 0;
-        for(int i = 0; i < modes.length(); i++)
-        {
-            const char *mode = modes[i];
-            int op = mode[0];
-            switch(mode[0])
-            {
-                case '*':
-                    modemask |= 1<<NUMGAMEMODES;
-                    for(int k = 0; k < NUMGAMEMODES; ++k)
-                    {
-                        if(modecheck(k+STARTGAMEMODE, Mode_Untimed))
-                        {
-                            modemask |= 1<<k;
-                        }
-                    }
-                    continue;
-                case '!':
-                    mode++;
-                    if(mode[0] != '?') break;
-                case '?':
-                    mode++;
-                    for(int k = 0; k < NUMGAMEMODES; ++k)
-                    {
-                        if(searchmodename(gamemodes[k].name, mode))
-                        {
-                            if(op == '!') modemask &= ~(1<<k);
-                            else modemask |= 1<<k;
-                        }
-                    }
-                    continue;
-            }
-            int modenum = INT_MAX;
-            if(isdigit(mode[0]))
-            {
-                modenum = atoi(mode);
-            }
-            else
-            {
-                for(int k = 0; k < NUMGAMEMODES; ++k)
-                {
-                    if(searchmodename(gamemodes[k].name, mode))
-                    {
-                        modenum = k+STARTGAMEMODE;
-                        break;
-                    }
-                }
-            }
-            if(!MODE_VALID(modenum)) continue;
-            switch(op)
-            {
-                case '!': modemask &= ~(1 << (modenum - STARTGAMEMODE)); break;
-                default: modemask |= 1 << (modenum - STARTGAMEMODE); break;
-            }
-        }
-        return modemask;
-    }
-
     struct demofile
     {
         string info;
@@ -569,17 +503,7 @@ namespace server
 
     struct teamkillkick
     {
-        int modes, limit, ban;
-
-        bool match(int mode) const
-        {
-            return (modes&(1<<(mode-STARTGAMEMODE)))!=0;
-        }
-
-        bool includes(const teamkillkick &tk) const
-        {
-            return tk.modes != modes && (tk.modes & modes) == tk.modes;
-        }
+        int limit, ban;
     };
     vector<teamkillkick> teamkillkicks;
 
@@ -593,7 +517,6 @@ namespace server
         vector<char *> modes;
         explodelist(modestr, modes);
         teamkillkick &kick = teamkillkicks.add();
-        kick.modes = genmodemask(modes);
         kick.limit = *limit;
         kick.ban = *ban > 0 ? *ban*60000 : (*ban < 0 ? 0 : 30*60000);
         modes.deletearrays();
@@ -631,15 +554,9 @@ namespace server
     void checkteamkills() //players who do too many teamkills may get kicked from the server
     {
         teamkillkick *kick = nullptr;
-        if(!modecheck(gamemode, Mode_Untimed))
+        for(int i = 0; i < teamkillkicks.length(); i++)
         {
-            for(int i = 0; i < teamkillkicks.length(); i++)
-            {
-                if(teamkillkicks[i].match(gamemode) && (!kick || kick->includes(teamkillkicks[i])))
-                {
-                    kick = &teamkillkicks[i];
-                }
-            }
+            kick = &teamkillkicks[i];
         }
         if(kick)
         {
@@ -2055,20 +1972,6 @@ namespace server
         }
     }
 
-    void forcemap(const char *map, int mode)
-    {
-        stopdemo();
-        if(!map[0] && !modecheck(mode, Mode_Edit))
-        {
-            int idx = findmaprotation(mode, smapname);
-            if(idx < 0 && smapname[0]) idx = findmaprotation(mode, "");
-            if(idx < 0) return;
-            map = maprotations[idx].map;
-        }
-        if(hasnonlocalclients()) sendservmsgf("local player forced %s on map %s", modeprettyname(mode), map[0] ? map : "[new map]");
-        changemap(map, mode);
-    }
-
     void vote(const char *map, int reqmode, int sender)
     {
         clientinfo *ci = getinfo(sender);
@@ -2599,24 +2502,6 @@ namespace server
         aiman::clearai();
     }
 
-    void localconnect(int n)
-    {
-        clientinfo *ci = getinfo(n);
-        ci->clientnum = ci->ownernum = n;
-        ci->connectmillis = totalmillis;
-        ci->sessionid = (randomint(0x1000000)*((totalmillis%10000)+1))&0xFFFFFF;
-        ci->local = true;
-
-        connects.add(ci);
-        sendservinfo(ci);
-    }
-
-    void localdisconnect(int n)
-    {
-        if(modecheck(gamemode, Mode_Demo)) enddemoplayback();
-        clientdisconnect(n);
-    }
-
     int clientconnect(int n, uint ip)
     {
         clientinfo *ci = getinfo(n);
@@ -2748,18 +2633,6 @@ namespace server
         return ci && ci->connected;
     }
 
-    clientinfo *findauth(uint id)
-    {
-        for(int i = 0; i < clients.length(); i++)
-        {
-            if(clients[i]->authreq == id)
-            {
-                return clients[i];
-            }
-        }
-        return nullptr;
-    }
-
     void masterconnected()
     {
     }
@@ -2823,36 +2696,6 @@ namespace server
         if(modecheck(gamemode, Mode_Demo)) setupdemoplayback();
 
         if(servermotd[0]) sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, servermotd);
-    }
-
-
-    void validmapname(char *dst, const char *src, const char *prefix = nullptr, const char *alt = "untitled", size_t maxlen = 100)
-    {
-        if(prefix) while(*prefix) *dst++ = *prefix++;
-        const char *start = dst;
-        if(src)
-        {
-            for(int i = 0; i < int(maxlen); ++i)
-            {
-                char c = *src++;
-                if(iscubealnum(c) || c == '_' || c == '-' || c == '/' || c == '\\') *dst++ = c;
-                else break;
-            }
-        }
-
-        if(dst > start)
-        {
-            *dst = '\0';
-        }
-        else if(dst != alt)
-        {
-            copystring(dst, alt, maxlen);
-        }
-    }
-
-    void fixmapname(char *name)
-    {
-        validmapname(name, name, nullptr, "");
     }
 
     void parsepacket(int sender, int chan, packetbuf &p)     // has to parse exactly each byte of the packet
@@ -3377,7 +3220,6 @@ namespace server
                 {
                     getstring(text, p);
                     filtertext(text, text, false);
-                    fixmapname(text);
                     int reqmode = getint(p);
                     vote(text, reqmode, sender);
                     break;
