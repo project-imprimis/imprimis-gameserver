@@ -55,17 +55,17 @@ struct vec
     vec &sub(float f)        { x -= f; y -= f; z -= f; return *this; }
     vec &sub2(float f)       { x -= f; y -= f; return *this; } //unused
     vec &subz(float f)       { z -= f; return *this; } //unused
-    vec &min(float f)        { x = ::std::min(x, f); y = ::std::min(y, f); z = ::std::min(z, f); return *this; }
-    vec &max(float f)        { x = ::std::max(x, f); y = ::std::max(y, f); z = ::std::max(z, f); return *this; }
-    vec &clamp(float l, float h) { x = ::clamp(x, l, h); y = ::clamp(y, l, h); z = ::clamp(z, l, h); return *this; }
+    vec &min(float f)        { x = std::min(x, f); y = std::min(y, f); z = std::min(z, f); return *this; }
+    vec &max(float f)        { x = std::max(x, f); y = std::max(y, f); z = std::max(z, f); return *this; }
+    vec &clamp(float l, float h) { x = std::clamp(x, l, h); y = std::clamp(y, l, h); z = std::clamp(z, l, h); return *this; }
 
     //elementwise vector operators
     vec &mul(const vec &o)   { x *= o.x; y *= o.y; z *= o.z; return *this; }
     vec &div(const vec &o)   { x /= o.x; y /= o.y; z /= o.z; return *this; }
     vec &add(const vec &o)   { x += o.x; y += o.y; z += o.z; return *this; }
     vec &sub(const vec &o)   { x -= o.x; y -= o.y; z -= o.z; return *this; }
-    vec &min(const vec &o)   { x = ::std::min(x, o.x); y = ::std::min(y, o.y); z = ::std::min(z, o.z); return *this; }
-    vec &max(const vec &o)   { x = ::std::max(x, o.x); y = ::std::max(y, o.y); z = ::std::max(z, o.z); return *this; }
+    vec &min(const vec &o)   { x = std::min(x, o.x); y = std::min(y, o.y); z = std::min(z, o.z); return *this; }
+    vec &max(const vec &o)   { x = std::max(x, o.x); y = std::max(y, o.y); z = std::max(z, o.z); return *this; }
 
     vec operator+(const vec &o) const {return vec(x + o.x, y + o.y, z + o.z);}
     vec operator-(const vec &o) const {return vec(x - o.x, y - o.y, z - o.z);}
