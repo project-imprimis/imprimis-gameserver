@@ -226,8 +226,6 @@ namespace server
 
     void clientinfo::mapchange()
     {
-        mapvote[0] = 0;
-        modevote = INT_MAX;
         state.reset();
         events.deletecontents();
         overflow = 0;
@@ -653,9 +651,10 @@ namespace server
         return false;
     }
 
+    void changemap(const char *name, int mode);
     void serverinit()
     {
-        smapname[0] = '\0';
+        changemap("tdm1e", 1);
         resetitems();
     }
 
@@ -1818,7 +1817,6 @@ namespace server
 
     bool restorescore(clientinfo *ci)
     {
-        //if(ci->local) return false;
         savedscore *sc = findscore(ci, false);
         if(sc)
         {
@@ -1916,93 +1914,6 @@ namespace server
         }
         maprotation &rot = maprotations[curmaprotation];
         changemap(rot.map, rot.findmode(gamemode));
-    }
-
-    struct votecount
-    {
-        char *map;
-        int mode, count;
-        votecount() {}
-        votecount(char *s, int n) : map(s), mode(n), count(0) {}
-    };
-
-    void checkvotes(bool force = false)
-    {
-        vector<votecount> votes;
-        int maxvotes = 0;
-        for(int i = 0; i < clients.length(); i++)
-        {
-            clientinfo *oi = clients[i];
-            if(oi->state.state==ClientState_Spectator && !oi->privilege && !oi->local) continue;
-            if(oi->state.aitype!=AI_None) continue;
-            maxvotes++;
-            if(!MODE_VALID(oi->modevote)) continue;
-            votecount *vc = nullptr;
-            for(int j = 0; j < votes.length(); j++)
-            {
-                if(!strcmp(oi->mapvote, votes[j].map) && oi->modevote==votes[j].mode)
-                {
-                    vc = &votes[j];
-                    break;
-                }
-            }
-            if(!vc)
-            {
-                vc = &votes.add(votecount(oi->mapvote, oi->modevote));
-            }
-            vc->count++;
-        }
-        votecount *best = nullptr;
-        for(int i = 0; i < votes.length(); i++)
-        {
-            if(!best || votes[i].count > best->count || (votes[i].count == best->count && randomint(2)))
-            {
-                best = &votes[i];
-            }
-        }
-        if(force || (best && best->count > maxvotes/2))
-        {
-            if(demorecord) enddemorecord();
-            if(best && (best->count > (force ? 1 : maxvotes/2)))
-            {
-                sendservmsg(force ? "vote passed by default" : "vote passed by majority");
-                changemap(best->map, best->mode);
-            }
-            else rotatemap(true);
-        }
-    }
-
-    void vote(const char *map, int reqmode, int sender)
-    {
-        clientinfo *ci = getinfo(sender);
-        if(!ci || (ci->state.state==ClientState_Spectator && !ci->privilege && !ci->local) || (!ci->local && modecheck(reqmode, Mode_LocalOnly))) return;
-        if(!MODE_VALID(reqmode)) return;
-        if(!map[0] && !modecheck(reqmode, Mode_Edit))
-        {
-            int idx = findmaprotation(reqmode, smapname);
-            if(idx < 0 && smapname[0]) idx = findmaprotation(reqmode, "");
-            if(idx < 0) return;
-            map = maprotations[idx].map;
-        }
-        if(lockmaprotation && !ci->local && ci->privilege < (lockmaprotation > 1 ? Priv_Admin : Priv_Master) && findmaprotation(reqmode, map) < 0)
-        {
-            sendf(sender, 1, "ris", NetMsg_ServerMsg, "This server has locked the map rotation.");
-            return;
-        }
-        copystring(ci->mapvote, map);
-        ci->modevote = reqmode;
-        if(ci->local || (ci->privilege && mastermode>=MasterMode_Veto))
-        {
-            if(demorecord) enddemorecord();
-            if(!ci->local || hasnonlocalclients())
-                sendservmsgf("%s forced %s on map %s", colorname(ci), modeprettyname(ci->modevote), ci->mapvote[0] ? ci->mapvote : "[new map]");
-            changemap(ci->mapvote, ci->modevote);
-        }
-        else
-        {
-            sendservmsgf("%s suggests %s on map %s (select map to vote)", colorname(ci), modeprettyname(reqmode), map[0] ? map : "[new map]");
-            checkvotes();
-        }
     }
 
     void checkintermission()
@@ -2346,11 +2257,11 @@ namespace server
         if(shouldstep && !gamepaused) //while unpaused & players ingame, check if match should be over
         {
             if(!modecheck(gamemode, Mode_Untimed) && smapname[0] && gamemillis-curtime>0) checkintermission();
-            if(interm > 0 && gamemillis>interm)
+            if(interm > 0)
             {
                 if(demorecord) enddemorecord(); //close demo if one is being recorded
                 interm = -1;
-                checkvotes(true);
+                changemap("tdm1e", 1);
             }
         }
 
@@ -3218,10 +3129,14 @@ namespace server
                 }
                 case NetMsg_MapVote:
                 {
+                    constexpr int localhostip = 16777343; //127.0.0.1 endian swapped
                     getstring(text, p);
                     filtertext(text, text, false);
                     int reqmode = getint(p);
-                    vote(text, reqmode, sender);
+                    if(getclientip(sender) == localhostip) //allow manual override only for localhost
+                    {
+                        changemap(text, reqmode);
+                    }
                     break;
                 }
                 case NetMsg_ItemList:
