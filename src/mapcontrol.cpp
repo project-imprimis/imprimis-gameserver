@@ -65,6 +65,10 @@ void calcscores()
         vec delta1 = spawn1-loc;
         vec delta2 = spawn2-loc;
         int fieldsize = (spawn2 - spawn1).magnitude();
+        if(fieldsize == 0) //make sure it's not zero to avoid div by 0
+        {
+            fieldsize = 1;
+        }
         if(delta2.magnitude() > fieldsize || delta1.magnitude() > fieldsize)
         {
             ci->state.score += 0; //out of battlefield, award no points
