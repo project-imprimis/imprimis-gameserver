@@ -1397,7 +1397,7 @@ namespace server
         }
 
         uchar operator[](int msg) const { return msg >= 0 && msg < NetMsg_NumMsgs ? msgmask[msg] : 0; }
-    } msgfilter(-1, NetMsg_Connect, NetMsg_ServerInfo, NetMsg_InitClient, NetMsg_Welcome, NetMsg_MapChange, NetMsg_ServerMsg, NetMsg_Damage, NetMsg_Hitpush, NetMsg_ShotFX, NetMsg_ExplodeFX, NetMsg_Died, NetMsg_SpawnState, NetMsg_ForceDeath, NetMsg_TeamInfo, NetMsg_ItemAcceptance, NetMsg_ItemSpawn, NetMsg_TimeUp, NetMsg_ClientDiscon, NetMsg_CurrentMaster, NetMsg_Pong, NetMsg_Resume, NetMsg_SendDemoList, NetMsg_SendDemo, NetMsg_DemoPlayback, NetMsg_SendMap, NetMsg_DropFlag, NetMsg_ScoreFlag, NetMsg_ReturnFlag, NetMsg_ResetFlag, NetMsg_Client, NetMsg_AuthChallenge, NetMsg_InitAI, NetMsg_DemoPacket, NetMsg_GetScore,
+    } msgfilter(-1, NetMsg_Connect, NetMsg_ServerInfo, NetMsg_InitClient, NetMsg_Welcome, NetMsg_MapChange, NetMsg_ServerMsg, NetMsg_Damage, NetMsg_Hitpush, NetMsg_ShotFX, NetMsg_ExplodeFX, NetMsg_Died, NetMsg_SpawnState, NetMsg_ForceDeath, NetMsg_TeamInfo, NetMsg_ItemAcceptance, NetMsg_ItemSpawn, NetMsg_TimeUp, NetMsg_ClientDiscon, NetMsg_CurrentMaster, NetMsg_Pong, NetMsg_Resume, NetMsg_SendDemoList, NetMsg_SendDemo, NetMsg_DemoPlayback, NetMsg_SendMap, NetMsg_Client, NetMsg_AuthChallenge, NetMsg_InitAI, NetMsg_DemoPacket, NetMsg_GetScore,
                 -2, NetMsg_CalcLight, NetMsg_Remip, NetMsg_Newmap, NetMsg_GetMap, NetMsg_SendMap, NetMsg_Clipboard,
                 -3, NetMsg_EditEnt, NetMsg_EditFace, NetMsg_EditTex, NetMsg_EditMat, NetMsg_EditFlip, NetMsg_Copy, NetMsg_Paste, NetMsg_Rotate, NetMsg_Replace, NetMsg_DelCube, NetMsg_EditVar, NetMsg_EditVSlot, NetMsg_Undo, NetMsg_Redo,
                 -4, NetMsg_Pos, NetMsg_NumMsgs,  NetMsg_GetMap, NetMsg_SendMap),
@@ -2765,40 +2765,6 @@ namespace server
                     }
                     break;
                 }
-                case NetMsg_Teleport:
-                {
-                    int pcn = getint(p),
-                        teleport = getint(p),
-                        teledest = getint(p);
-                    clientinfo *cp = getinfo(pcn);
-                    if(cp && pcn != sender && cp->ownernum != sender)
-                    {
-                        cp = nullptr;
-                    }
-                    if(cp && (!ci->local || demorecord || hasnonlocalclients()) && (cp->state.state==ClientState_Alive || cp->state.state==ClientState_Editing))
-                    {
-                        flushclientposition(*cp);
-                        sendf(-1, 0, "ri4x", NetMsg_Teleport, pcn, teleport, teledest, cp->ownernum);
-                    }
-                    break;
-                }
-                case NetMsg_Jumppad:
-                {
-                    int pcn = getint(p),
-                        jumppad = getint(p);
-                    clientinfo *cp = getinfo(pcn);
-                    if(cp && pcn != sender && cp->ownernum != sender)
-                    {
-                        cp = nullptr;
-                    }
-                    if(cp && (!ci->local || demorecord || hasnonlocalclients()) && (cp->state.state==ClientState_Alive || cp->state.state==ClientState_Editing))
-                    {
-                        cp->setpushed();
-                        flushclientposition(*cp);
-                        sendf(-1, 0, "ri3x", NetMsg_Jumppad, pcn, jumppad, cp->ownernum);
-                    }
-                    break;
-                }
                 case NetMsg_FromAI:
                 {
                     int qcn = getint(p);
@@ -3152,7 +3118,7 @@ namespace server
                     int n;
                     while((n = getint(p))>=0 && n<MAXENTS && !p.overread())
                     {
-                        server_entity se = { GamecodeEnt_NotUsed, 0, false };
+                        server_entity se = { 0, 0, false };
                         while(sents.length()<=n)
                         {
                             sents.add(se);
@@ -3190,7 +3156,7 @@ namespace server
                     bool canspawn = canspawnitem(type);
                     if(i<MAXENTS && (sents.inrange(i) || canspawnitem(type)))
                     {
-                        server_entity se = { GamecodeEnt_NotUsed, 0, false };
+                        server_entity se = { 0, 0, false };
                         while(sents.length()<=i)
                         {
                             sents.add(se);

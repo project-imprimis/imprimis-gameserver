@@ -14,19 +14,6 @@ constexpr float DMF = 16.0f;               // for world locations
 constexpr float DNF = 100.0f;              // for normalized vectors
 constexpr float DVELF = 1.0f;              // for playerspeed based velocity vectors
 
-enum
-{
-    EngineEnt_Empty=0,
-    EngineEnt_Light,
-    EngineEnt_Mapmodel,
-    EngineEnt_Playerstart,
-    EngineEnt_Particles,
-    EngineEnt_Sound,
-    EngineEnt_Spotlight,
-    EngineEnt_Decal,
-    EngineEnt_GameSpecific,
-};
-
 struct entity                                   // persistent map entity
 {
     vec o;                                      // position
@@ -45,24 +32,6 @@ enum
     ClientState_Lagged,
     ClientState_Editing,
     ClientState_Spectator,
-};
-
-//these are called "GamecodeEnt" to avoid name collision (as opposed to gameents or engine static ents)
-enum                            // static entity types
-{
-    GamecodeEnt_NotUsed              = EngineEnt_Empty,        // entity slot not in use in map
-    GamecodeEnt_Light                = EngineEnt_Light,        // lightsource, attr1 = radius, attr2 = red, attr3 = green, attr4 = blue, attr5 = flags
-    GamecodeEnt_Mapmodel             = EngineEnt_Mapmodel,     // attr1 = index, attr2 = yaw, attr3 = pitch, attr4 = roll, attr5 = scale
-    GamecodeEnt_Playerstart,                                   // attr1 = angle, attr2 = team
-    GamecodeEnt_Particles            = EngineEnt_Particles,    // attr1 = index, attrs2-5 vary on particle index
-    GamecodeEnt_MapSound             = EngineEnt_Sound,        // attr1 = index, attr2 = sound
-    GamecodeEnt_Spotlight            = EngineEnt_Spotlight,    // attr1 = angle
-    GamecodeEnt_Decal                = EngineEnt_Decal,        // attr1 = index, attr2 = yaw, attr3 = pitch, attr4 = roll, attr5 = scale
-    GamecodeEnt_Teleport,                                      // attr1 = channel, attr2 = model, attr3 = tag
-    GamecodeEnt_Teledest,                                      // attr1 = yaw, attr2 = channel
-    GamecodeEnt_Jumppad,                                       // attr1 = zpush, attr2 = ypush, attr3 = xpush
-    GamecodeEnt_Flag,                                          // attr1 = yaw, attr2 = team
-    GamecodeEnt_MaxEntTypes,                                   // used for looping through full enum
 };
 
 enum
@@ -196,13 +165,11 @@ enum
     NetMsg_ItemSpawn,
     NetMsg_ItemPickup,
     NetMsg_ItemAcceptance,
-    NetMsg_Teleport,
-    NetMsg_Jumppad,
 
     NetMsg_Ping,
-    NetMsg_Pong, //30
+    NetMsg_Pong,
     NetMsg_ClientPing,
-    NetMsg_TimeUp,
+    NetMsg_TimeUp, //30
     NetMsg_ForceIntermission,
     NetMsg_ServerMsg,
     NetMsg_ItemList,
@@ -211,9 +178,9 @@ enum
     NetMsg_EditMode,
     NetMsg_EditEnt,
     NetMsg_EditFace,
-    NetMsg_EditTex, //40
+    NetMsg_EditTex,
     NetMsg_EditMat,
-    NetMsg_EditFlip,
+    NetMsg_EditFlip, //40
     NetMsg_Copy,
     NetMsg_Paste,
     NetMsg_Rotate,
@@ -222,9 +189,9 @@ enum
     NetMsg_AddCube,
     NetMsg_CalcLight,
     NetMsg_Remip,
-    NetMsg_EditVSlot, //50
+    NetMsg_EditVSlot,
     NetMsg_Undo,
-    NetMsg_Redo,
+    NetMsg_Redo, //50
     NetMsg_Newmap,
     NetMsg_GetMap,
     NetMsg_SendMap,
@@ -233,10 +200,10 @@ enum
     //master
     NetMsg_MasterMode,
     NetMsg_Kick,
-    NetMsg_ClearBans, //60
+    NetMsg_ClearBans,
     NetMsg_CurrentMaster,
     NetMsg_Spectator,
-    NetMsg_SetMasterMaster,
+    NetMsg_SetMasterMaster, //60
     NetMsg_SetTeam,
     //demo
     NetMsg_ListDemos,
@@ -244,19 +211,11 @@ enum
     NetMsg_GetDemo,
     NetMsg_SendDemo,
     NetMsg_DemoPlayback,
-    NetMsg_RecordDemo, //70
+    NetMsg_RecordDemo,
     NetMsg_StopDemo,
-    NetMsg_ClearDemos,
-    //flag
-    NetMsg_TakeFlag,
-    NetMsg_ReturnFlag,
-    NetMsg_ResetFlag,
-    NetMsg_TryDropFlag,
-    NetMsg_DropFlag,
-    NetMsg_ScoreFlag,
-    NetMsg_InitFlags,
+    NetMsg_ClearDemos, //70
     //misc
-    NetMsg_SayTeam, //80
+    NetMsg_SayTeam,
     NetMsg_Client,
     NetMsg_AuthTry,
     NetMsg_AuthKick,
@@ -265,8 +224,8 @@ enum
     NetMsg_ReqAuth,
     NetMsg_PauseGame,
     NetMsg_GameSpeed,
-    NetMsg_AddBot,
-    NetMsg_DelBot, //90
+    NetMsg_AddBot, //80
+    NetMsg_DelBot,
     NetMsg_InitAI,
     NetMsg_FromAI,
     NetMsg_BotLimit,
@@ -275,13 +234,13 @@ enum
     NetMsg_CheckMaps,
     NetMsg_SwitchName,
     NetMsg_SwitchModel,
-    NetMsg_SwitchColor,
-    NetMsg_SwitchTeam, //100
+    NetMsg_SwitchColor, //90
+    NetMsg_SwitchTeam,
     NetMsg_ServerCommand,
     NetMsg_DemoPacket,
     NetMsg_GetScore,
 
-    NetMsg_NumMsgs //104
+    NetMsg_NumMsgs //95
 };
 
 static const int msgsizes[] =               // size inclusive message token, 0 for variable or not-checked sizes
@@ -362,14 +321,6 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     NetMsg_StopDemo, 1,
     NetMsg_ClearDemos, 2,
 
-    NetMsg_TakeFlag, 3,
-    NetMsg_ReturnFlag, 4,
-    NetMsg_ResetFlag, 3,
-    NetMsg_TryDropFlag, 1,
-    NetMsg_DropFlag, 7,
-    NetMsg_ScoreFlag, 9,
-    NetMsg_InitFlags, 0,
-
     NetMsg_SayTeam, 0,
     NetMsg_Client, 0,
     NetMsg_AuthTry, 0,
@@ -430,15 +381,15 @@ constexpr int EXP_SELFDAMDIV = 2;
 constexpr float EXP_SELFPUSH   = 2.5f;
 constexpr float EXP_DISTSCALE  = 0.5f;
 // this defines weapon properties
-//                                   8            9       14     15    17      19
-static const struct attackinfo { int attackdelay, damage, range, rays, exprad, use; } attacks[Attack_NumAttacks] =
+//                                   8            9       14     15    17
+static const struct attackinfo { int attackdelay, damage, range, rays, exprad; } attacks[Attack_NumAttacks] =
 
-//    8     9   14   15  17 19
+//    8     9   14   15  17
 {
-    {  250,  5, 2048, 1,  0, 0 },
-    { 3000, 15, 1024, 1, 50, 0 },
-    {  500,  0,  160, 1, 20, 0 },
-    {   80,  2,  512, 1,  0, 0 },
+    {  250,  5, 2048, 1,  0},
+    { 3000, 15, 1024, 1, 50},
+    {  500,  0,  160, 1, 20},
+    {   80,  2,  512, 1,  0},
 };
 
 enum

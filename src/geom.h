@@ -13,7 +13,7 @@ struct vec
         float v[3];
     };
 
-    vec() : x(0), y(0), z(0) {}
+    vec() : x(0.f), y(0.f), z(0.f) {}
     explicit vec(int a) : x(a), y(a), z(a) {}
     explicit vec(float a) : x(a), y(a), z(a) {}
     vec(float a, float b, float c) : x(a), y(b), z(c) {}
@@ -39,7 +39,7 @@ struct vec
     vec &abs() { x = fabs(x); y = fabs(y); z = fabs(z); return *this; }
     vec &recip()             { x = 1/x; y = 1/y; z = 1/z; return *this; } //used twice
     float magnitude2() const { return sqrtf(dot2(*this)); }
-    float magnitude() const  { return sqrtf(squaredlen()); }
+    float magnitude() const  { return sqrtf(std::fabs(squaredlen())); }
     vec &normalize()         { div(magnitude()); return *this; }
     vec &safenormalize()     { float m = magnitude(); if(m) div(m); return *this; }
     bool isnormalized() const { float m = squaredlen(); return (m>0.99f && m<1.01f); }
