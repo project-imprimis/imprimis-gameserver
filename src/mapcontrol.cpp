@@ -69,7 +69,7 @@ void calcscores()
         {
             fieldsize = 1;
         }
-        if(delta2.magnitude() > fieldsize || delta1.magnitude() > fieldsize)
+        if((delta2.magnitude() > fieldsize || delta1.magnitude() > fieldsize) || ci->state.state != ClientState_Alive)
         {
             ci->state.score += 0; //out of battlefield, award no points
         }
