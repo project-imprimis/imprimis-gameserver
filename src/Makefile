@@ -5,11 +5,14 @@ INCLUDES= -Ienet/include -Ishared
 
 all: imprimis_gameserver
 
-imprimis_gameserver : command.o server.o cserver.o mapcontrol.o stream.o tools.o
-		g++ $(CXXFLAGS) $(INCLUDES) -o imprimis_gameserver command.o server.o cserver.o mapcontrol.o stream.o tools.o -Lenet -lenet -lz
+imprimis_gameserver : command.o demo.o server.o cserver.o mapcontrol.o stream.o tools.o
+		g++ $(CXXFLAGS) $(INCLUDES) -o imprimis_gameserver command.o server.o cserver.o mapcontrol.o stream.o tools.o demo.o -Lenet -lenet -lz
 
 command.o :
 		g++ $(CXXFLAGS) $(INCLUDES) -c command.cpp
+
+demo.o :
+		g++ $(CXXFLAGS) $(INCLUDES) -c demo.cpp
 
 server.o :
 		g++ $(CXXFLAGS) $(INCLUDES) -c server.cpp
@@ -30,4 +33,4 @@ tools.o :
 		g++ $(CXXFLAGS) $(INCLUDES) -c tools.cpp
 
 clean:
-		rm -f command.o server.o worldio.o cserver.o crypto.o mapcontrol.o stream.o tools.o imprimis_gameserver
+		rm -f command.o server.o demo.o worldio.o cserver.o crypto.o mapcontrol.o stream.o tools.o imprimis_gameserver

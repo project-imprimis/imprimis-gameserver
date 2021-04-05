@@ -20,19 +20,13 @@
 #include "igame.h"
 
 #include "game.h"
+#include "cserver.h"
 
 //location for the spawns
 vec spawn1 = vec(0,0,0),
     spawn2 = vec(0,0,0);
 
 constexpr int maxgamescore = 500; //score margin at which to end the game
-
-namespace server
-{
-    extern vector<clientinfo *> clients;
-    extern int gamemillis;
-    extern teaminfo teaminfos[MAXTEAMS];
-}
 
 bool mapcontrolintermission()
 {
