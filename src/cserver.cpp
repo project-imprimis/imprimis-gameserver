@@ -869,14 +869,6 @@ namespace server
         return sec*1000;
     }
 
-    bool delayspawn(int type)
-    {
-        switch(type)
-        {
-            default:
-                return false;
-        }
-    }
 
     bool pickup(int i, int sender)         // server side item pickup, acknowledge first client that gets it
     {
@@ -3774,7 +3766,7 @@ namespace server
                         sents[n].type = getint(p);
                         if(canspawnitem(sents[n].type))
                         {
-                            if(!modecheck(gamemode, Mode_LocalOnly) && delayspawn(sents[n].type))
+                            if(!modecheck(gamemode, Mode_LocalOnly))
                             {
                                 sents[n].spawntime = spawntime(sents[n].type);
                             }
