@@ -38,8 +38,12 @@ namespace game
     void parseoptions(vector<const char *> &args)
     {
         for(int i = 0; i < args.length(); i++)
+        {
             if(!server::serveroption(args[i]))
+            {
                 conoutf(Console_Error, "unknown command-line option: %s", args[i]);
+            }
+        }
     }
 }
 
@@ -1469,7 +1473,10 @@ namespace server
         for(int i = 0; i < worldstates.length(); i++)
         {
             worldstate &ws = worldstates[i];
-            if(!ws.contains(packet->data)) continue;
+            if(!ws.contains(packet->data))
+            {
+                continue;
+            }
             ws.uses--;
             if(ws.uses <= 0)
             {
@@ -1482,7 +1489,10 @@ namespace server
 
     void flushclientposition(clientinfo &ci)
     {
-        if(ci.position.empty() || (!hasnonlocalclients() && !demorecord)) return;
+        if(ci.position.empty() || (!hasnonlocalclients() && !demorecord))
+        {
+            return;
+        }
         packetbuf p(ci.position.length(), 0);
         p.put(ci.position.getbuf(), ci.position.length());
         ci.position.setsize(0);
@@ -1913,7 +1923,10 @@ namespace server
             putint(p, -1);
             welcomeinitclient(p, ci ? ci->clientnum : -1);
         }
-        if(smode) smode->initclient(ci, p, true);
+        if(smode)
+        {
+            smode->initclient(ci, p, true);
+        }
         return 1;
     }
 
@@ -1984,7 +1997,10 @@ namespace server
             autoteam();
         }
 
-        else smode = nullptr;
+        else
+        {
+            smode = nullptr;
+        }
 
         if(!modecheck(gamemode, Mode_Untimed) && smapname[0])
         {
@@ -4625,7 +4641,6 @@ enum
             DEF_FORMAT_STRING(msg, "bot team balancing is now %s", botbalance ? "enabled" : "disabled");
             sendservmsg(msg);
         }
-
 
         void changemap()
         {
