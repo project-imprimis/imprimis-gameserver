@@ -404,107 +404,6 @@ namespace server
         }
     }
 
-    struct maprotation
-    {
-        static int exclude;
-        int modes;
-        string map;
-
-        int calcmodemask() const
-        {
-            return modes&(1<<NUMGAMEMODES) ? modes & ~exclude : modes;
-        }
-        bool hasmode(int mode, int offset = STARTGAMEMODE) const
-        {
-            return (calcmodemask() & (1 << (mode-offset))) != 0;
-        }
-
-        int findmode(int mode) const
-        {
-            if(!hasmode(mode))
-            {
-                for(int i = 0; i < NUMGAMEMODES; ++i)
-                {
-                    if(hasmode(i, 0))
-                    {
-                        return i+STARTGAMEMODE;
-                    }
-                }
-            }
-            return mode;
-        }
-
-        bool match(int reqmode, const char *reqmap) const
-        {
-            return hasmode(reqmode) && (!map[0] || !reqmap[0] || !strcmp(map, reqmap));
-        }
-
-        bool includes(const maprotation &rot) const
-        {
-            return rot.modes == modes ? rot.map[0] && !map[0] : (rot.modes & modes) == rot.modes;
-        }
-    };
-    int maprotation::exclude = 0;
-    vector<maprotation> maprotations;
-    int curmaprotation = 0;
-
-    VAR(lockmaprotation, 0, 0, 2);
-
-    void nextmaprotation()
-    {
-        curmaprotation++;
-        if(maprotations.inrange(curmaprotation) && maprotations[curmaprotation].modes)
-        {
-            return;
-        }
-        do
-        {
-            curmaprotation--;
-        } while(maprotations.inrange(curmaprotation) && maprotations[curmaprotation].modes);
-        curmaprotation++;
-    }
-
-    int findmaprotation(int mode, const char *map)
-    {
-        for(int i = std::max(curmaprotation, 0); i < maprotations.length(); i++)
-        {
-            maprotation &rot = maprotations[i];
-            if(!rot.modes)
-            {
-                break;
-            }
-            if(rot.match(mode, map))
-            {
-                return i;
-            }
-        }
-        int start;
-        for(start = std::max(curmaprotation, 0) - 1; start >= 0; start--) if(!maprotations[start].modes) break;
-        start++;
-        for(int i = start; i < curmaprotation; i++)
-        {
-            maprotation &rot = maprotations[i];
-            if(!rot.modes)
-            {
-                break;
-            }
-            if(rot.match(mode, map))
-            {
-                return i;
-            }
-        }
-        int best = -1;
-        for(int i = 0; i < maprotations.length(); i++)
-        {
-            maprotation &rot = maprotations[i];
-            if(rot.match(mode, map) && (best < 0 || maprotations[best].includes(rot)))
-            {
-                best = i;
-            }
-        }
-        return best;
-    }
-
     bool searchmodename(const char *haystack, const char *needle)
     {
         if(!needle[0])
@@ -2038,27 +1937,10 @@ namespace server
         }
     }
 
-    void rotatemap(bool next)
+    void rotatemap()
     {
-        if(!maprotations.inrange(curmaprotation))
-        {
-            changemap("", 0);
-            return;
-        }
-        if(next)
-        {
-            curmaprotation = findmaprotation(gamemode, smapname);
-            if(curmaprotation >= 0)
-            {
-                nextmaprotation();
-            }
-            else
-            {
-                curmaprotation = smapname[0] ? std::max(findmaprotation(gamemode, ""), 0) : 0;
-            }
-        }
-        maprotation &rot = maprotations[curmaprotation];
-        changemap(rot.map, rot.findmode(gamemode));
+        changemap("", 0);
+        return;
     }
 
     void checkintermission()
@@ -2642,7 +2524,7 @@ namespace server
         }
         if(!hasmap(ci))
         {
-            rotatemap(true);
+            rotatemap();
         }
     }
 
@@ -2877,7 +2759,7 @@ namespace server
         }
         if(!hasmap(ci))
         {
-            rotatemap(false);
+            rotatemap();
         }
 
         shouldstep = true;
