@@ -3118,7 +3118,9 @@ namespace server
                 }
                 case NetMsg_Spawn:
                 {
-                    int ls = getint(p), gunselect = getint(p);
+                    int ls = getint(p),
+                        gunselect = getint(p),
+                        combatclass = getint(p);
                     if(!cq || //if no client actually present
                        (cq->state.state!=ClientState_Alive && //if player isn't alive, dead, or editing
                         cq->state.state!=ClientState_Dead &&
@@ -3131,6 +3133,7 @@ namespace server
                     cq->state.lastspawn = gamemillis;
                     cq->state.state = ClientState_Alive;
                     cq->state.gunselect = gunselect;
+                    cq->state.combatclass = combatclass;
                     cq->exceeded = 0;
                     if(smode)
                     {
@@ -3140,6 +3143,7 @@ namespace server
                     QUEUE_BUF({
                         putint(cm->messages, NetMsg_Spawn);
                         sendstate(cq->state, cm->messages);
+                        putint(cm->messages, combatclass);
                     });
                     break;
                 }

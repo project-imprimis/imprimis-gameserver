@@ -118,6 +118,7 @@ struct gamestate
 {
     int health, maxhealth;
     int gunselect, gunwait;
+    int combatclass;
     int ammo[Gun_NumGuns];
     int aitype, skill;
 

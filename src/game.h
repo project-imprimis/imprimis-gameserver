@@ -170,7 +170,7 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     NetMsg_ExplodeFX, 4,
     NetMsg_TrySpawn, 1,
     NetMsg_SpawnState, 8,
-    NetMsg_Spawn, 3,
+    NetMsg_Spawn, 4,
     NetMsg_ForceDeath, 2,
     NetMsg_GunSelect, 2,
     NetMsg_MapChange, 0,
