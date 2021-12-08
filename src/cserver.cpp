@@ -404,48 +404,6 @@ namespace server
         }
     }
 
-    bool searchmodename(const char *haystack, const char *needle)
-    {
-        if(!needle[0])
-        {
-            return true;
-        }
-        do
-        {
-            if(needle[0] != '.')
-            {
-                haystack = strchr(haystack, needle[0]);
-                if(!haystack)
-                {
-                    break;
-                }
-                haystack++;
-            }
-            const char *h = haystack,
-                       *n = needle+1;
-            for(; *h && *n; h++)
-            {
-                if(*h == *n)
-                {
-                    n++;
-                }
-                else if(*h != ' ')
-                {
-                    break;
-                }
-            }
-            if(!*n)
-            {
-                return true;
-            }
-            if(*n == '.')
-            {
-                return !*h;
-            }
-        } while(needle[0] != '.');
-        return false;
-    }
-
     VAR(restrictpausegame, 0, 1, 1);
     VAR(restrictgamespeed, 0, 1, 1);
 
@@ -940,11 +898,6 @@ namespace server
         }
     }
 
-    void forcepaused(bool paused)
-    {
-        pausegame(paused);
-    }
-
     bool ispaused() { return gamepaused; }
 
     void changegamespeed(int val, clientinfo *ci = nullptr)
@@ -956,11 +909,6 @@ namespace server
         }
         gamespeed = val;
         sendf(-1, 1, "riii", NetMsg_GameSpeed, gamespeed, ci ? ci->clientnum : -1);
-    }
-
-    void forcegamespeed(int speed)
-    {
-        changegamespeed(speed);
     }
 
     int scaletime(int t)
@@ -1384,18 +1332,6 @@ namespace server
             }
             break;
         }
-    }
-
-    void flushclientposition(clientinfo &ci)
-    {
-        if(ci.position.empty() || (!hasnonlocalclients() && !demorecord))
-        {
-            return;
-        }
-        packetbuf p(ci.position.length(), 0);
-        p.put(ci.position.getbuf(), ci.position.length());
-        ci.position.setsize(0);
-        sendpacket(-1, 0, p.finalize(), ci.ownernum);
     }
 
     static void sendpositions(worldstate &ws, ucharbuf &wsbuf)
@@ -2127,10 +2063,6 @@ namespace server
         {
             return;
         }
-        if(attacks[atk].range && from.dist(to) > attacks[atk].range + 1)
-        {
-            return;
-        }
         gs.lastshot = millis;
         gs.gunwait = attacks[atk].attackdelay;
         //send info about projectile if valid
@@ -2155,7 +2087,7 @@ namespace server
                 {
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
-                    if(!target || target->state.state!=ClientState_Alive || h.lifesequence!=target->state.lifesequence || h.rays<1 || h.dist > attacks[atk].range + 1)
+                    if(!target || target->state.state!=ClientState_Alive || h.lifesequence!=target->state.lifesequence || h.rays<1 )
                     {
                         continue;
                     }

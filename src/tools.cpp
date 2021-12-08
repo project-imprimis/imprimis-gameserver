@@ -82,8 +82,6 @@ static inline void putuint_(T &p, int n)
     }
 }
 void putuint(ucharbuf &p, int n) { putuint_(p, n); }
-void putuint(packetbuf &p, int n) { putuint_(p, n); }
-void putuint(vector<uchar> &p, int n) { putuint_(p, n); }
 
 int getuint(ucharbuf &p)
 {
@@ -103,9 +101,7 @@ static inline void putfloat_(T &p, float f)
 {
     p.put((uchar *)&f, sizeof(float));
 }
-void putfloat(ucharbuf &p, float f) { putfloat_(p, f); }
 void putfloat(packetbuf &p, float f) { putfloat_(p, f); }
-void putfloat(vector<uchar> &p, float f) { putfloat_(p, f); }
 
 float getfloat(ucharbuf &p)
 {

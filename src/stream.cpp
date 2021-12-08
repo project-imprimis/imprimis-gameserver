@@ -1020,15 +1020,6 @@ stream *opengzfile(const char *filename, const char *mode, stream *file, int lev
     return gz;
 }
 
-stream *openutf8file(const char *filename, const char *mode, stream *file)
-{
-    stream *source = file ? file : openfile(filename, mode);
-    if(!source) return nullptr;
-    utf8stream *utf8 = new utf8stream;
-    if(!utf8->open(source, mode, !file)) { if(!file) delete source; delete utf8; return nullptr; }
-    return utf8;
-}
-
 char *loadfile(const char *fn, size_t *size, bool utf8)
 {
     stream *f = openfile(fn, "rb");

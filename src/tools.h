@@ -794,31 +794,6 @@ struct hashset : hashbase<hashset<T>, T, T, T>
     }
 };
 
-template<class T>
-struct hashnameset : hashbase<hashnameset<T>, T, const char *, T>
-{
-    typedef hashbase<hashnameset<T>, T, const char *, T> basetype;
-
-    hashnameset(int size = basetype::DEFAULTSIZE) : basetype(size) {}
-
-    template<class U>
-    static inline const char *getkey(const U &elem) { return elem.name; }
-
-    template<class U>
-    static inline const char *getkey(U *elem) { return elem->name; }
-
-    static inline T &getdata(T &elem) { return elem; }
-
-    template<class K>
-    static inline void setkey(T &elem, const K &key) {}
-
-    template<class V>
-    T &add(const V &elem)
-    {
-        return basetype::access(getkey(elem), elem);
-    }
-};
-
 template<class K, class T>
 struct hashtableentry
 {
@@ -954,13 +929,10 @@ extern bool createdir(const char *path);
 extern size_t fixpackagedir(char *dir);
 extern const char *sethomedir(const char *dir);
 extern const char *findfile(const char *filename, const char *mode);
-extern bool findzipfile(const char *filename);
 extern stream *openrawfile(const char *filename, const char *mode);
-extern stream *openzipfile(const char *filename, const char *mode);
 extern stream *openfile(const char *filename, const char *mode);
 extern stream *opentempfile(const char *filename, const char *mode);
 extern stream *opengzfile(const char *filename, const char *mode, stream *file = nullptr, int level = Z_BEST_COMPRESSION);
-extern stream *openutf8file(const char *filename, const char *mode, stream *file = nullptr);
 extern char *loadfile(const char *fn, size_t *size, bool utf8 = true);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 
@@ -969,12 +941,8 @@ extern void putint(packetbuf &p, int n);
 extern void putint(vector<uchar> &p, int n);
 extern int getint(ucharbuf &p);
 extern void putuint(ucharbuf &p, int n);
-extern void putuint(packetbuf &p, int n);
-extern void putuint(vector<uchar> &p, int n);
 extern int getuint(ucharbuf &p);
-extern void putfloat(ucharbuf &p, float f);
 extern void putfloat(packetbuf &p, float f);
-extern void putfloat(vector<uchar> &p, float f);
 extern float getfloat(ucharbuf &p);
 extern void sendstring(const char *t, ucharbuf &p);
 extern void sendstring(const char *t, packetbuf &p);

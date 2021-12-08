@@ -295,8 +295,6 @@ namespace server
     extern void startintermission();
     extern void stopdemo();
     extern void forcemap(const char *map, int mode);
-    extern void forcepaused(bool paused);
-    extern void forcegamespeed(int speed);
     extern int msgsizelookup(int msg);
     extern bool serveroption(const char *arg);
 }
