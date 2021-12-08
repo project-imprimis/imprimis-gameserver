@@ -38,26 +38,6 @@ extern bool execfile(const char *cfgfile);
 
 // console
 
-enum
-{
-    Console_Info  = 1<<0,
-    Console_Warn  = 1<<1,
-    Console_Error = 1<<2,
-    Console_Debug = 1<<3,
-    Console_Init  = 1<<4,
-    Console_Echo  = 1<<5
-};
-
-extern void conoutf(const char *s, ...) PRINTFARGS(1, 2);
-extern void conoutf(int type, const char *s, ...) PRINTFARGS(2, 3);
-extern void conoutfv(int type, const char *fmt, va_list args);
-
-extern FILE *getlogfile();
-extern void setlogfile(const char *fname);
-extern void closelogfile();
-extern void logoutfv(const char *fmt, va_list args);
-extern void logoutf(const char *fmt, ...) PRINTFARGS(1, 2);
-
 // main
 extern void fatal(const char *s, ...) PRINTFARGS(1, 2);
 

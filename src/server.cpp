@@ -26,106 +26,6 @@
 #include "game.h"
 #include "mapcontrol.h"
 
-constexpr int LOGSTRLEN = 512;
-
-static FILE *logfile = nullptr;
-
-void closelogfile()
-{
-    if(logfile)
-    {
-        fclose(logfile);
-        logfile = nullptr;
-    }
-}
-
-FILE *getlogfile()
-{
-    return logfile ? logfile : stdout;
-}
-
-void setlogfile(const char *fname)
-{
-    closelogfile();
-    if(fname && fname[0])
-    {
-        fname = findfile(fname, "w");
-        if(fname)
-        {
-            logfile = fopen(fname, "w");
-        }
-    }
-    FILE *f = getlogfile();
-    if(f) setvbuf(f, nullptr, _IOLBF, BUFSIZ);
-}
-
-void logoutf(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    logoutfv(fmt, args);
-    va_end(args);
-}
-
-
-static void writelog(FILE *file, const char *buf)
-{
-    static uchar ubuf[512];
-    size_t len = strlen(buf), carry = 0;
-    while(carry < len)
-    {
-        size_t numu = encodeutf8(ubuf, sizeof(ubuf)-1, &(reinterpret_cast<const uchar*>(buf))[carry], len - carry, &carry);
-        if(carry >= len)
-        {
-            ubuf[numu++] = '\n';
-        }
-        fwrite(ubuf, 1, numu, file);
-    }
-}
-
-static void writelogv(FILE *file, const char *fmt, va_list args)
-{
-    static char buf[LOGSTRLEN];
-    vformatstring(buf, fmt, args, sizeof(buf));
-    writelog(file, buf);
-}
-
-
-void fatal(const char *fmt, ...)
-{
-    void cleanupserver();
-    cleanupserver();
-    DEFV_FORMAT_STRING(msg,fmt,fmt);
-    if(logfile)
-    {
-        logoutf("%s", msg);
-    }
-    fprintf(stderr, "server error: %s\n", msg);
-    closelogfile();
-    exit(EXIT_FAILURE);
-}
-
-void conoutfv(int type, const char *fmt, va_list args)
-{
-    logoutfv(fmt, args);
-}
-
-void conoutf(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    conoutfv(Console_Info, fmt, args);
-    va_end(args);
-}
-
-void conoutf(int type, const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    conoutfv(type, fmt, args);
-    va_end(args);
-}
-
 constexpr int DEFAULTCLIENTS = 8;
 
 enum
@@ -243,6 +143,14 @@ void cleanupserver()
         enet_socket_destroy(lansock);
     }
     lansock = ENET_SOCKET_NULL;
+}
+
+void fatal(const char *fmt, ...)
+{
+    cleanupserver();
+    DEFV_FORMAT_STRING(msg,fmt,fmt);
+    fprintf(stderr, "server error: %s\n", msg);
+    exit(EXIT_FAILURE);
 }
 
 VARF(maxclients, 0, DEFAULTCLIENTS, MAXCLIENTS,
@@ -506,7 +414,7 @@ void disconnect_client(int n, int reason)
     {
         formatstring(s, "client (%s) disconnected", clients[n]->hostname);
     }
-    logoutf("%s", s);
+    printf("%s\n", s);
     server::sendservmsg(s);
 }
 
@@ -582,7 +490,7 @@ ENetSocket connectmaster(bool wait)
     }
     if(masteraddress.host == ENET_HOST_ANY)
     {
-        logoutf("looking up %s...", mastername);
+        printf("looking up %s...\n", mastername);
         masteraddress.port = masterport;
         if(!resolverwait(mastername, &masteraddress))
         {
@@ -592,7 +500,7 @@ ENetSocket connectmaster(bool wait)
     ENetSocket sock = enet_socket_create(ENET_SOCKET_TYPE_STREAM);
     if(sock == ENET_SOCKET_NULL)
     {
-        logoutf("could not open master server socket");
+        printf("could not open master server socket\n");
         return ENET_SOCKET_NULL;
     }
     if(wait || serveraddress.host == ENET_HOST_ANY || !enet_socket_bind(sock, &serveraddress))
@@ -611,7 +519,7 @@ ENetSocket connectmaster(bool wait)
         }
     }
     enet_socket_destroy(sock);
-    logoutf("could not connect to master server");
+    printf("could not connect to master server\n");
 
     return ENET_SOCKET_NULL;
 }
@@ -664,11 +572,11 @@ void processmasterinput()
         }
         if(matchstring(input, cmdlen, "failreg"))
         {
-            conoutf(Console_Error, "master server registration failed: %s", args);
+            printf("master server registration failed: %s\n", args);
         }
         else if(matchstring(input, cmdlen, "succreg"))
         {
-            conoutf("master server registration succeeded");
+            printf("master server registration succeeded\n");
         }
         end++;
         masterinpos = end - masterin.getbuf();
@@ -687,7 +595,7 @@ void flushmasteroutput()
 {
     if(masterconnecting && totalmillis - masterconnecting >= 60000)
     {
-        logoutf("could not connect to master server");
+        printf("could not connect to master server\n");
         disconnectmaster();
     }
     if(masterout.empty() || !masterconnected)
@@ -796,7 +704,7 @@ void checkserversockets()        // reply all server info requests
                 int error = 0;
                 if(enet_socket_get_option(mastersock, ENET_SOCKOPT_ERROR, &error) < 0 || error)
                 {
-                    logoutf("could not connect to master server");
+                    printf("could not connect to master server\n");
                     disconnectmaster();
                 }
                 else
@@ -904,7 +812,7 @@ void serverslice(uint timeout)   // main server update, called from below in ded
         laststatus = totalmillis;
         if(nonlocalclients || serverhost->totalSentData || serverhost->totalReceivedData)
         {
-            logoutf("status: %d remote clients, %.1f send, %.1f rec (K/sec)", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
+            printf("status: %d remote clients, %.1f send, %.1f rec (K/sec)\n", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
         }
         serverhost->totalSentData = serverhost->totalReceivedData = 0;
     }
@@ -930,7 +838,7 @@ void serverslice(uint timeout)   // main server update, called from below in ded
                 c.peer->data = &c;
                 string hn;
                 copystring(c.hostname, (enet_address_get_host_ip(&c.peer->address, hn, sizeof(hn))==0) ? hn : "unknown");
-                logoutf("client connected (%s)", c.hostname);
+                printf("client connected (%s)\n", c.hostname);
                 int reason = server::clientconnect(c.num, c.peer->address.host);
                 if(reason)
                 {
@@ -958,7 +866,7 @@ void serverslice(uint timeout)   // main server update, called from below in ded
                 {
                     break;
                 }
-                logoutf("disconnected client (%s)", c->hostname);
+                printf("disconnected client (%s)\n", c->hostname);
                 server::clientdisconnect(c->num);
                 delclient(c);
                 break;
@@ -983,18 +891,9 @@ void flushserver(bool force)
     }
 }
 
-void logoutfv(const char *fmt, va_list args)
-{
-    FILE *f = getlogfile();
-    if(f)
-    {
-        writelogv(f, fmt, args);
-    }
-}
-
 void rundedicatedserver()
 {
-    logoutf("dedicated server started, waiting for clients...");
+    printf("dedicated server started, waiting for clients...\n");
     for(;;)
     {
         serverslice(5);
@@ -1014,7 +913,7 @@ bool setuplistenserver()
     {
         if(enet_address_set_host(&address, serverip)<0)
         {
-            conoutf(Console_Warn, "WARNING: server ip not resolved");
+            printf("WARNING: server ip not resolved\n");
         }
         else
         {
@@ -1037,7 +936,7 @@ bool setuplistenserver()
     }
     if(lansock == ENET_SOCKET_NULL)
     {
-        conoutf(Console_Warn, "WARNING: could not create LAN server info socket");
+        printf("WARNING: could not create LAN server info socket\n");
     }
     else
     {
@@ -1067,11 +966,7 @@ bool serveroption(char *opt)
     {
         case 'u':
         {
-            logoutf("Using home directory: %s", opt); sethomedir(opt+2); return true;
-        }
-        case 'g':
-        {
-            logoutf("Setting log file: %s", opt); setlogfile(opt+2); return true;
+            printf("Using home directory: %s\n", opt); sethomedir(opt+2); return true;
         }
         default:
         {
@@ -1084,7 +979,6 @@ vector<const char *> gameargs;
 
 int main(int argc, char **argv)
 {
-    setlogfile(nullptr);
     if(enet_initialize()<0)
     {
         fatal("Unable to initialise network module");

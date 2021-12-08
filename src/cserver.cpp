@@ -41,7 +41,7 @@ namespace game
         {
             if(!server::serveroption(args[i]))
             {
-                conoutf(Console_Error, "unknown command-line option: %s", args[i]);
+                printf("unknown command-line option: %s\n", args[i]);
             }
         }
     }
@@ -3184,7 +3184,7 @@ namespace server
                     QUEUE_STR(text);
                     if(cq)
                     {
-                        logoutf("%s: %s", colorname(cq), text);
+                        printf("%s: %s\n", colorname(cq), text);
                     }
                     break;
                 }
@@ -3207,7 +3207,7 @@ namespace server
                     }
                     if(cq)
                     {
-                        logoutf("%s <%s>: %s", colorname(cq), teamnames[cq->team], text);
+                        printf("%s <%s>: %s\n", colorname(cq), teamnames[cq->team], text);
                     }
                     break;
                 }
