@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <algorithm>
+#include <vector>
 
 #include <enet/enet.h>
 #include <zlib.h>
@@ -102,12 +103,6 @@ namespace server
         void process(clientinfo *ci);
     };
 
-    struct pickupevent : gameevent
-    {
-        int ent;
-
-        void process(clientinfo *ci);
-    };
 
     //servstate
     bool servstate::isalive(int gamemillis)
@@ -532,7 +527,6 @@ namespace server
     }
 
     uint mcrc = 0;
-    vector<entity> ments;
     vector<server_entity> sents;
     vector<savedscore> scores;
 
@@ -596,7 +590,6 @@ namespace server
     void resetitems()
     {
         mcrc = 0;
-        ments.setsize(0);
         sents.setsize(0);
         //cps.reset();
     }
@@ -689,7 +682,7 @@ namespace server
         virtual void intermission() {}
         virtual bool hidefrags() { return false; }
         virtual int getteamscore(int team) { return 0; }
-        virtual void getteamscores(vector<teamscore> &scores) {}
+        virtual void getteamscores(std::vector<teamscore> &scores) {}
         virtual bool extinfoteam(int team, ucharbuf &p) { return false; }
     };
 
@@ -2104,16 +2097,6 @@ namespace server
         }
     }
 
-    void pickupevent::process(clientinfo *ci)
-    {
-        servstate &gs = ci->state;
-        if(!modecheck(gamemode, Mode_LocalOnly) && !gs.isalive(gamemillis))
-        {
-            return;
-        }
-        pickup(ent, ci->clientnum);
-    }
-
     bool gameevent::flush(clientinfo *ci, int fmillis)
     {
         process(ci);
@@ -2315,9 +2298,9 @@ namespace server
         crcinfo() {}
         crcinfo(int crc, int matches) : crc(crc), matches(matches) {}
 
-        static bool compare(const crcinfo &x, const crcinfo &y)
+        bool operator<(const crcinfo &y)
         {
-            return x.matches > y.matches;
+            return matches < y.matches;
         }
     };
 
@@ -2329,13 +2312,13 @@ namespace server
         {
             return;
         }
-        vector<crcinfo> crcs;
+        std::vector<crcinfo> crcs;
         int total = 0,
             unsent = 0,
             invalid = 0;
         if(mcrc)
         {
-            crcs.add(crcinfo(mcrc, clients.length() + 1));
+            crcs.push_back(crcinfo(mcrc, clients.length() + 1));
         }
         for(int i = 0; i < clients.length(); i++)
         {
@@ -2359,7 +2342,7 @@ namespace server
             else
             {
                 crcinfo *match = nullptr;
-                for(int j = 0; j < crcs.length(); j++)
+                for(int j = 0; j < crcs.size(); j++)
                 {
                     if(crcs[j].crc == ci->mapcrc)
                     {
@@ -2369,7 +2352,7 @@ namespace server
                 }
                 if(!match)
                 {
-                    crcs.add(crcinfo(ci->mapcrc, 1));
+                    crcs.push_back(crcinfo(ci->mapcrc, 1));
                 }
                 else
                 {
@@ -2381,7 +2364,8 @@ namespace server
         {
             return;
         }
-        crcs.sort(crcinfo::compare);
+
+        std::sort(crcs.begin(), crcs.end());
         string msg;
         for(int i = 0; i < clients.length(); i++)
         {
@@ -2397,9 +2381,9 @@ namespace server
                 ci->warned = true;
             }
         }
-        if(crcs.length() >= 2)
+        if(crcs.size() >= 2)
         {
-            for(int i = 0; i < crcs.length(); i++)
+            for(int i = 0; i < crcs.size(); i++)
             {
                 crcinfo &info = crcs[i];
                 if(i || info.matches <= crcs[i+1].matches)
@@ -3166,13 +3150,6 @@ namespace server
                 case NetMsg_ItemPickup:
                 {
                     int n = getint(p);
-                    if(!cq)
-                    {
-                        break;
-                    }
-                    pickupevent *pickup = new pickupevent;
-                    pickup->ent = n;
-                    cq->addevent(pickup);
                     break;
                 }
                 case NetMsg_Text:
@@ -3942,7 +3919,7 @@ enum
             return;
         }
 
-        vector<teamscore> scores;
+        std::vector<teamscore> scores;
         if(smode && smode->hidefrags())
         {
             smode->getteamscores(scores);
@@ -3950,20 +3927,20 @@ enum
         for(int i = 0; i < clients.length(); i++)
         {
             clientinfo *ci = clients[i];
-            if(ci->state.state!=ClientState_Spectator && VALID_TEAM(ci->team) && scores.htfind(ci->team) < 0)
+            if(ci->state.state!=ClientState_Spectator && VALID_TEAM(ci->team) && std::find(scores.begin(), scores.end(), teamscore(ci->team, 0)) == scores.end())
             {
                 if(smode && smode->hidefrags())
                 {
-                    scores.add(teamscore(ci->team, 0));
+                    scores.emplace_back(teamscore(ci->team, 0));
                 }
                 else
                 {
                     teaminfo &t = teaminfos[ci->team-1];
-                    scores.add(teamscore(ci->team, t.frags));
+                    scores.emplace_back(teamscore(ci->team, t.frags));
                 }
             }
         }
-        for(int i = 0; i < scores.length(); i++)
+        for(uint i = 0; i < scores.size(); i++)
         {
             extinfoteamscore(p, scores[i].team, scores[i].score);
         }
@@ -4082,7 +4059,7 @@ enum
         VARN(serverbotlimit, botlimit, 0, 16, MAXBOTS);
         VAR(serverbotbalance, 0, 1, 1);
 
-        void calcteams(vector<teamscore> &teams)
+        void calcteams(std::vector<teamscore> &teams)
         {
             for(int i = 0; i < clients.length(); i++)
             {
@@ -4092,7 +4069,7 @@ enum
                     continue;
                 }
                 teamscore *t = nullptr;
-                for(int j = 0; j < teams.length(); j++)
+                for(int j = 0; j < teams.size(); j++)
                 {
                     if(teams[j].team == ci->team)
                     {
@@ -4106,25 +4083,22 @@ enum
                 }
                 else
                 {
-                    teams.add(teamscore(ci->team, 1));
+                    teams.emplace_back(teamscore(ci->team, 1));
                 }
             }
-            teams.sort(teamscore::compare);
-            if(teams.length() < MAXTEAMS)
+            std::sort(teams.begin(), teams.end());
+            if(teams.size() < MAXTEAMS)
             {
-                for(int i = 0; i < MAXTEAMS; ++i)
+                for(int i = teams.size(); i < MAXTEAMS; ++i)
                 {
-                    if(teams.htfind(1+i) < 0)
-                    {
-                        teams.add(teamscore(1+i, 0));
-                    }
+                    teams.emplace_back(teamscore(1+i, 0));
                 }
             }
         }
 
         void balanceteams()
         {
-            vector<teamscore> teams;
+            std::vector<teamscore> teams;
             calcteams(teams);
             vector<clientinfo *> reassign;
             for(int i = 0; i < bots.length(); i++)
@@ -4134,9 +4108,9 @@ enum
                     reassign.add(bots[i]);
                 }
             }
-            while(reassign.length() && teams.length() && teams[0].score > teams.last().score + 1)
+            while(reassign.length() && teams.size() && teams[0].score > teams.back().score + 1)
             {
-                teamscore &t = teams.last();
+                teamscore &t = teams.back();
                 clientinfo *bot = nullptr;
                 for(int i = 0; i < reassign.length(); i++)
                 {
@@ -4145,7 +4119,7 @@ enum
                         bot = reassign.removeunordered(i);
                         teams[0].score--;
                         t.score++;
-                        for(int j = teams.length() - 2; j >= 0; j--) //note reverse iteration
+                        for(int j = teams.size() - 2; j >= 0; j--) //note reverse iteration
                         {
                             if(teams[j].score >= teams[j+1].score)
                             {
@@ -4167,16 +4141,16 @@ enum
                 }
                 else
                 {
-                    teams.remove(0, 1);
+                    teams.erase(teams.begin());
                 }
             }
         }
 
         int chooseteam()
         {
-            vector<teamscore> teams;
+            std::vector<teamscore> teams;
             calcteams(teams);
-            return teams.length() ? teams.last().team : 0;
+            return teams.size() ? teams.back().team : 0;
         }
 
         //this fxn could be entirely in the return statement but is seperated for clarity

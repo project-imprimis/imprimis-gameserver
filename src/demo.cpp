@@ -157,7 +157,7 @@ namespace server
         string msg;
         msg[0] = '\0';
         DEF_FORMAT_STRING(file, "%s.dmo", smapname);
-        demoplayback = opengzfile(file, "rb");
+        demoplayback = openfile(file, "rb");
         if(!demoplayback) formatstring(msg, "could not read demo \"%s\"", file);
         else if(demoplayback->read(&hdr, sizeof(demoheader))!=sizeof(demoheader) || memcmp(hdr.magic, DEMO_MAGIC, sizeof(hdr.magic)))
             formatstring(msg, "\"%s\" is not a demo file", file);
@@ -325,13 +325,7 @@ namespace server
             return;
         }
 
-        demotmp = opentempfile("demorecord", "w+b");
-        if(!demotmp)
-        {
-            return;
-        }
-
-        stream *f = opengzfile(nullptr, "wb", demotmp);
+        stream *f = openfile("demorecord", "wb");
         if(!f)
         {
             DELETEP(demotmp);

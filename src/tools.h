@@ -287,111 +287,6 @@ struct packetbuf : ucharbuf
 template<class T>
 inline float heapscore(const T &n) { return n; }
 
-struct sortless
-{
-    template<class T>
-    bool operator()(const T &x, const T &y) const { return x < y; }
-
-    bool operator()(char *x, char *y) const { return strcmp(x, y) < 0; }
-    bool operator()(const char *x, const char *y) const { return strcmp(x, y) < 0; }
-};
-
-struct sortnameless
-{
-    template<class T>
-    bool operator()(const T &x, const T &y) const { return sortless()(x.name, y.name); }
-
-    template<class T>
-    bool operator()(T *x, T *y) const { return sortless()(x->name, y->name); }
-
-    template<class T>
-    bool operator()(const T *x, const T *y) const { return sortless()(x->name, y->name); }
-};
-
-template<class T, class F>
-inline void insertionsort(T *start, T *end, F fun)
-{
-    for(T *i = start+1; i < end; i++)
-    {
-        if(fun(*i, i[-1]))
-        {
-            T tmp = *i;
-            *i = i[-1];
-            T *j = i-1;
-            for(; j > start && fun(tmp, j[-1]); --j)
-                *j = j[-1];
-            *j = tmp;
-        }
-    }
-
-}
-
-template<class T, class F>
-inline void insertionsort(T *buf, int n, F fun)
-{
-    insertionsort(buf, buf+n, fun);
-}
-
-template<class T>
-inline void insertionsort(T *buf, int n)
-{
-    insertionsort(buf, buf+n, sortless());
-}
-
-template<class T, class F>
-inline void quicksort(T *start, T *end, F fun)
-{
-    while(end-start > 10)
-    {
-        T *mid = &start[(end-start)/2], *i = start+1, *j = end-2, pivot;
-        if(fun(*start, *mid)) /* start < mid */
-        {
-            if(fun(end[-1], *start)) { pivot = *start; *start = end[-1]; end[-1] = *mid; } /* end < start < mid */
-            else if(fun(end[-1], *mid)) { pivot = end[-1]; end[-1] = *mid; } /* start <= end < mid */
-            else { pivot = *mid; } /* start < mid <= end */
-        }
-        else if(fun(*start, end[-1])) { pivot = *start; *start = *mid; } /*mid <= start < end */
-        else if(fun(*mid, end[-1])) { pivot = end[-1]; end[-1] = *start; *start = *mid; } /* mid < end <= start */
-        else { pivot = *mid; std::swap(*start, end[-1]); }  /* end <= mid <= start */
-        *mid = end[-2];
-        do
-        {
-            while(fun(*i, pivot)) if(++i >= j) goto partitioned;
-            while(fun(pivot, *--j)) if(i >= j) goto partitioned;
-            std::swap(*i, *j);
-        }
-        while(++i < j);
-    partitioned:
-        end[-2] = *i;
-        *i = pivot;
-
-        if(i-start < end-(i+1))
-        {
-            quicksort(start, i, fun);
-            start = i+1;
-        }
-        else
-        {
-            quicksort(i+1, end, fun);
-            end = i;
-        }
-    }
-
-    insertionsort(start, end, fun);
-}
-
-template<class T, class F>
-inline void quicksort(T *buf, int n, F fun)
-{
-    quicksort(buf, buf+n, fun);
-}
-
-template<class T>
-inline void quicksort(T *buf, int n)
-{
-    quicksort(buf, buf+n, sortless());
-}
-
 template<class T> struct isclass
 {
     template<class C>
@@ -469,8 +364,6 @@ struct vector
     T &operator[](int i) { return buf[i]; }
     const T &operator[](int i) const { return buf[i]; }
 
-    T *disown() { T *r = buf; buf = nullptr; alen = ulen = 0; return r; }
-
     void shrink(int i) { if(isclass<T>::no) ulen = i; else while(ulen>i) drop(); }
     void setsize(int i) { ulen = i; }
 
@@ -480,15 +373,6 @@ struct vector
     T *getbuf() { return buf; }
     const T *getbuf() const { return buf; }
     bool inbuf(const T *e) const { return e >= buf && e < &buf[ulen]; }
-
-    template<class F>
-    void sort(F fun, int i = 0, int n = -1)
-    {
-        quicksort(&buf[i], n < 0 ? ulen-i : n, fun);
-    }
-
-    void sort() { sort(sortless()); }
-    void sortname() { sort(sortnameless()); }
 
     void growbuf(int sz)
     {
@@ -609,19 +493,6 @@ struct vector
             buf[i+j] = e[j];
         }
         return &buf[i];
-    }
-
-    template<class K>
-    int htfind(const K &key)
-    {
-        for(int i = 0; i < int(ulen); ++i)
-        {
-            if(htcmp(key, buf[i]))
-            {
-                return i;
-            }
-        }
-        return -1;
     }
 };
 
@@ -903,26 +774,11 @@ extern const uchar cubectype[256];
 inline int iscubeprint(uchar c) { return cubectype[c]&CT_PRINT; }
 inline int iscubespace(uchar c) { return cubectype[c]&CT_SPACE; }
 inline int iscubealnum(uchar c) { return cubectype[c]&(CT_ALPHA|CT_DIGIT); }
-inline int cube2uni(uchar c)
-{
-    extern const int cube2unichars[256];
-    return cube2unichars[c];
-}
-inline uchar uni2cube(int c)
-{
-    extern const int uni2cubeoffsets[8];
-    extern const uchar uni2cubechars[];
-    return uint(c) <= 0x7FF ? uni2cubechars[uni2cubeoffsets[c>>8] + (c&0xFF)] : 0;
-}
-
-extern size_t decodeutf8(uchar *dst, size_t dstlen, const uchar *src, size_t srclen, size_t *carry = nullptr);
-extern size_t encodeutf8(uchar *dstbuf, size_t dstlen, const uchar *srcbuf, size_t srclen, size_t *carry = nullptr);
 
 extern string homedir;
 
 extern char *makerelpath(const char *dir, const char *file, const char *prefix = nullptr, const char *cmd = nullptr);
 extern char *path(char *s);
-extern char *path(const char *s, bool copy);
 extern const char *parentdir(const char *directory);
 extern bool fileexists(const char *path, const char *mode);
 extern bool createdir(const char *path);
@@ -932,8 +788,7 @@ extern const char *findfile(const char *filename, const char *mode);
 extern stream *openrawfile(const char *filename, const char *mode);
 extern stream *openfile(const char *filename, const char *mode);
 extern stream *opentempfile(const char *filename, const char *mode);
-extern stream *opengzfile(const char *filename, const char *mode, stream *file = nullptr, int level = Z_BEST_COMPRESSION);
-extern char *loadfile(const char *fn, size_t *size, bool utf8 = true);
+extern char *loadfile(const char *fn, size_t *size);
 extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 
 extern void putint(ucharbuf &p, int n);

@@ -204,11 +204,16 @@ struct teamscore
     teamscore() {}
     teamscore(int team, int n) : team(team), score(n) {}
 
-    static bool compare(const teamscore &x, const teamscore &y)
+    bool operator==(const teamscore &y) const
     {
-        if(x.score > y.score) return true;
-        if(x.score < y.score) return false;
-        return x.team < y.team;
+        return team == y.team;
+    }
+
+    bool operator<(const teamscore &y) const
+    {
+        if(score > y.score) return true;
+        if(score < y.score) return false;
+        return team < y.team;
     }
 };
 inline bool htcmp(int team, const teamscore &t) { return team == t.team; }
