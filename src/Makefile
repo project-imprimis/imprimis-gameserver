@@ -6,7 +6,7 @@ INCLUDES= -Ienet/include -Ishared
 all: imprimis_gameserver
 
 imprimis_gameserver : command.o demo.o server.o cserver.o mapcontrol.o stream.o tools.o
-		g++ $(CXXFLAGS) $(INCLUDES) -o imprimis_gameserver command.o server.o cserver.o mapcontrol.o stream.o tools.o demo.o -Lenet -lenet -lz
+		g++ $(CXXFLAGS) $(INCLUDES) -o imprimis_gameserver command.o server.o cserver.o mapcontrol.o stream.o tools.o demo.o -Lenet -lenet -lz -lncurses
 
 command.o :
 		g++ $(CXXFLAGS) $(INCLUDES) -c command.cpp

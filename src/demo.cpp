@@ -16,6 +16,9 @@
 #include <algorithm>
 
 #include <enet/enet.h>
+#ifndef WIN32
+    #include <ncurses.h>
+#endif
 #include <zlib.h>
 
 #include "tools.h"

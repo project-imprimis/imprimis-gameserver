@@ -10,6 +10,9 @@
 #include <algorithm>
 
 #include <enet/enet.h>
+#ifndef WIN32
+    #include <ncurses.h>
+#endif
 #include <zlib.h>
 
 #include "tools.h"
@@ -41,7 +44,7 @@ namespace game
         {
             if(!server::serveroption(args[i]))
             {
-                printf("unknown command-line option: %s\n", args[i]);
+                wprintw(leftpane, "unknown command-line option: %s\n", args[i]);
             }
         }
     }
@@ -51,6 +54,28 @@ extern ENetAddress masteraddress;
 
 namespace server
 {
+    void printclientnamelist()
+    {
+        wclear(rightpane);
+        wprintw(rightpane, "%s on %s\n\n", modeprettyname(gamemode), smapname);
+        for(int i = 0; i < clients.length(); i++)
+        {
+            //print out bot owner info
+            if(clients[i]->ownernum >=0 && clients[i]->ownernum != clients[i]->clientnum)
+            {
+                wprintw(rightpane, "(%d)", clients[i]->ownernum);
+            }
+            wprintw(rightpane, "%d %s %d K %d D  loc: %f %f %f\n",
+                    clients[i]->clientnum,
+                    clients[i]->name,
+                    clients[i]->state.frags,
+                    clients[i]->state.deaths,
+                    clients[i]->state.o.x,
+                    clients[i]->state.o.y,
+                    clients[i]->state.o.z);
+        }
+    }
+
     struct server_entity            // server side version of "entity" type
     {
         int type;
@@ -3184,7 +3209,7 @@ namespace server
                     QUEUE_STR(text);
                     if(cq)
                     {
-                        printf("%s: %s\n", colorname(cq), text);
+                        wprintw(leftpane,"%s: %s\n", colorname(cq), text);
                     }
                     break;
                 }
@@ -3207,7 +3232,7 @@ namespace server
                     }
                     if(cq)
                     {
-                        printf("%s <%s>: %s\n", colorname(cq), teamnames[cq->team], text);
+                        wprintw(leftpane,"%s <%s>: %s\n", colorname(cq), teamnames[cq->team], text);
                     }
                     break;
                 }

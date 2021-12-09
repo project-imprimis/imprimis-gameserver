@@ -12,12 +12,15 @@
 #include <algorithm>
 
 #include <enet/enet.h>
+#ifndef WIN32
+    #include <ncurses.h>
+#endif
 #include <zlib.h>
 
 #include "tools.h"
 #include "geom.h"
 #include "command.h"
-
+#include "game.h"
 #include "iengine.h"
 
 char *exchangestr(char *o, const char *n)
@@ -119,7 +122,7 @@ char *lookup(char *n)                           // find value of ident reference
             return exchangestr(n, *id->storage.s);
         }
     }
-    printf("unknown alias lookup: %s\n", n+1);
+    wprintw(leftpane,"unknown alias lookup: %s\n", n+1);
     return n;
 }
 
@@ -256,7 +259,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
             {
                 if(!isdigit(*c) && ((*c!='+' && *c!='-' && *c!='.') || !isdigit(c[1])))
                 {
-                    printf("unknown command: %s\n", c);
+                    wprintw(leftpane,"unknown command: %s\n", c);
                 }
                 setretval(newstring(c));
             }
@@ -304,8 +307,8 @@ char *executeret(const char *p)               // all evaluation happens here, re
                 }
 
                 case Id_Var:                        // game defined variables
-                    if(numargs <= 1) printf("%s = %d\n", c, *id->storage.i);      // var with no value just prints its current value
-                    else if(id->minval>id->maxval) printf("variable %s is read-only\n", id->name);
+                    if(numargs <= 1) wprintw(leftpane,"%s = %d\n", c, *id->storage.i);      // var with no value just prints its current value
+                    else if(id->minval>id->maxval) wprintw(leftpane,"variable %s is read-only\n", id->name);
                     else
                     {
                         #define OVERRIDEVAR(saveval, resetval) \
@@ -313,7 +316,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                             { \
                                 if(id->flags&IDF_PERSIST) \
                                 { \
-                                    printf("cannot override persistent variable %s\n", id->name); \
+                                    wprintw(leftpane,"cannot override persistent variable %s\n", id->name); \
                                     break; \
                                 } \
                                 if(id->override==NO_OVERRIDE) { saveval; id->override = OVERRIDDEN; } \
@@ -324,7 +327,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                         if(i1<id->minval || i1>id->maxval)
                         {
                             i1 = i1<id->minval ? id->minval : id->maxval;                // clamp to valid range
-                            printf("valid range for %s is %d..%d\n", id->name, id->minval, id->maxval);
+                            wprintw(leftpane,"valid range for %s is %d..%d\n", id->name, id->minval, id->maxval);
                         }
                         *id->storage.i = i1;
                         id->changed();                                             // call trigger function if available
@@ -334,7 +337,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
                 case Id_StringVar:
                     if(numargs <= 1)
                     {
-                        printf(strchr(*id->storage.s, '"') ? "%s = [%s]\n" : "%s = \"%s\"\n", c, *id->storage.s);
+                        wprintw(leftpane,strchr(*id->storage.s, '"') ? "%s = [%s]\n" : "%s = \"%s\"\n", c, *id->storage.s);
                     }
                     else
                     {
@@ -380,7 +383,7 @@ void exec(const char *cfgfile)
 {
     if(!execfile(cfgfile))
     {
-        printf("could not read \"%s\"\n", cfgfile);
+        wprintw(leftpane,"could not read \"%s\"\n", cfgfile);
     }
 }
 
@@ -405,6 +408,6 @@ COMMAND(exec, "s");
 
 void echocmd(char *s)
 {
-    printf("\f1%s\n", s);
+    wprintw(leftpane,"\f1%s\n", s);
 }
 COMMANDN(echo, echocmd, "s");

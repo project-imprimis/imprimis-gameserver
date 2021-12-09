@@ -14,6 +14,9 @@ constexpr float DMF = 16.0f;               // for world locations
 constexpr float DNF = 100.0f;              // for normalized vectors
 constexpr float DVELF = 1.0f;              // for playerspeed based velocity vectors
 
+extern WINDOW* leftpane;
+extern WINDOW* rightpane;
+
 #define MODE_VALID(mode)          ((mode) >= STARTGAMEMODE && (mode) < STARTGAMEMODE + NUMGAMEMODES)
 
 enum {
@@ -297,6 +300,7 @@ namespace server
     extern void forcemap(const char *map, int mode);
     extern int msgsizelookup(int msg);
     extern bool serveroption(const char *arg);
+    extern void printclientnamelist();
 }
 
 #endif

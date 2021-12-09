@@ -80,3 +80,7 @@ extern bool haslocalclients();
 extern void sendserverinforeply(ucharbuf &p);
 extern bool requestmaster(const char *req);
 extern bool requestmasterf(const char *fmt, ...) PRINTFARGS(1, 2);
+extern void printclientnamelist();
+#ifdef WIN32
+    extern void wprintw(void * ptr, const char * format);
+#endif

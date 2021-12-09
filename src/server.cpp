@@ -14,7 +14,9 @@
 #include <queue>
 
 #include <enet/enet.h>
-
+#ifndef WIN32
+    #include <ncurses.h>
+#endif
 #include <zlib.h>
 
 #include "tools.h"
@@ -27,6 +29,21 @@
 #include "mapcontrol.h"
 
 constexpr int DEFAULTCLIENTS = 8;
+
+#ifdef WIN32
+    void * leftpane = nullptr;
+    void * rightpane = nullptr;
+    void wprintw(void *ptr, const char * format, ...)
+    {
+        va_list args;
+        va_start(args,format);
+        vprintf(format, args);
+        va_end(args);
+    }
+#else
+    WINDOW *leftpane;
+    WINDOW *rightpane;
+#endif
 
 enum
 {
@@ -490,7 +507,7 @@ ENetSocket connectmaster(bool wait)
     }
     if(masteraddress.host == ENET_HOST_ANY)
     {
-        printf("looking up %s...\n", mastername);
+        wprintw(leftpane, "looking up %s...\n", mastername);
         masteraddress.port = masterport;
         if(!resolverwait(mastername, &masteraddress))
         {
@@ -500,7 +517,7 @@ ENetSocket connectmaster(bool wait)
     ENetSocket sock = enet_socket_create(ENET_SOCKET_TYPE_STREAM);
     if(sock == ENET_SOCKET_NULL)
     {
-        printf("could not open master server socket\n");
+        wprintw(leftpane,"could not open master server socket\n");
         return ENET_SOCKET_NULL;
     }
     if(wait || serveraddress.host == ENET_HOST_ANY || !enet_socket_bind(sock, &serveraddress))
@@ -519,7 +536,7 @@ ENetSocket connectmaster(bool wait)
         }
     }
     enet_socket_destroy(sock);
-    printf("could not connect to master server\n");
+    wprintw(leftpane,"could not connect to master server\n");
 
     return ENET_SOCKET_NULL;
 }
@@ -572,11 +589,11 @@ void processmasterinput()
         }
         if(matchstring(input, cmdlen, "failreg"))
         {
-            printf("master server registration failed: %s\n", args);
+            wprintw(leftpane,"master server registration failed: %s\n", args);
         }
         else if(matchstring(input, cmdlen, "succreg"))
         {
-            printf("master server registration succeeded\n");
+            wprintw(leftpane,"master server registration succeeded\n");
         }
         end++;
         masterinpos = end - masterin.getbuf();
@@ -595,7 +612,7 @@ void flushmasteroutput()
 {
     if(masterconnecting && totalmillis - masterconnecting >= 60000)
     {
-        printf("could not connect to master server\n");
+        wprintw(leftpane,"could not connect to master server\n");
         disconnectmaster();
     }
     if(masterout.empty() || !masterconnected)
@@ -704,7 +721,7 @@ void checkserversockets()        // reply all server info requests
                 int error = 0;
                 if(enet_socket_get_option(mastersock, ENET_SOCKOPT_ERROR, &error) < 0 || error)
                 {
-                    printf("could not connect to master server\n");
+                    wprintw(leftpane,"could not connect to master server\n");
                     disconnectmaster();
                 }
                 else
@@ -799,6 +816,10 @@ void serverslice(uint timeout)   // main server update, called from below in ded
         lastcheckscore = totalmillis;
         updatescores(); //see game/mapcontrol.cpp for updating player scores
         sendscore(); //sends tallies of scores out to players
+
+        server::printclientnamelist();
+        wrefresh(leftpane);
+        wrefresh(rightpane);
     }
 
     flushmasteroutput();
@@ -812,7 +833,7 @@ void serverslice(uint timeout)   // main server update, called from below in ded
         laststatus = totalmillis;
         if(nonlocalclients || serverhost->totalSentData || serverhost->totalReceivedData)
         {
-            printf("status: %d remote clients, %.1f send, %.1f rec (K/sec)\n", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
+            wprintw(leftpane,"status: %d remote clients, %.1f send, %.1f rec (K/sec)\n", nonlocalclients, serverhost->totalSentData/60.0f/1024, serverhost->totalReceivedData/60.0f/1024);
         }
         serverhost->totalSentData = serverhost->totalReceivedData = 0;
     }
@@ -838,7 +859,7 @@ void serverslice(uint timeout)   // main server update, called from below in ded
                 c.peer->data = &c;
                 string hn;
                 copystring(c.hostname, (enet_address_get_host_ip(&c.peer->address, hn, sizeof(hn))==0) ? hn : "unknown");
-                printf("client connected (%s)\n", c.hostname);
+                wprintw(leftpane,"client connected (%s)\n", c.hostname);
                 int reason = server::clientconnect(c.num, c.peer->address.host);
                 if(reason)
                 {
@@ -866,7 +887,7 @@ void serverslice(uint timeout)   // main server update, called from below in ded
                 {
                     break;
                 }
-                printf("disconnected client (%s)\n", c->hostname);
+                wprintw(leftpane,"disconnected client (%s)\n", c->hostname);
                 server::clientdisconnect(c->num);
                 delclient(c);
                 break;
@@ -893,7 +914,7 @@ void flushserver(bool force)
 
 void rundedicatedserver()
 {
-    printf("dedicated server started, waiting for clients...\n");
+    wprintw(leftpane,"dedicated server started, waiting for clients...\n");
     for(;;)
     {
         serverslice(5);
@@ -913,7 +934,7 @@ bool setuplistenserver()
     {
         if(enet_address_set_host(&address, serverip)<0)
         {
-            printf("WARNING: server ip not resolved\n");
+            wprintw(leftpane,"WARNING: server ip not resolved\n");
         }
         else
         {
@@ -936,7 +957,7 @@ bool setuplistenserver()
     }
     if(lansock == ENET_SOCKET_NULL)
     {
-        printf("WARNING: could not create LAN server info socket\n");
+        wprintw(leftpane,"WARNING: could not create LAN server info socket\n");
     }
     else
     {
@@ -966,7 +987,7 @@ bool serveroption(char *opt)
     {
         case 'u':
         {
-            printf("Using home directory: %s\n", opt); sethomedir(opt+2); return true;
+            wprintw(leftpane,"Using home directory: %s\n", opt); sethomedir(opt+2); return true;
         }
         default:
         {
@@ -985,6 +1006,12 @@ int main(int argc, char **argv)
     }
     atexit(enet_deinitialize);
     enet_time_set(0);
+
+    initscr();
+    cbreak();
+    leftpane = newwin(LINES, COLS/2, 0, 0);
+    rightpane = newwin(LINES, COLS/2, 0, COLS/2);
+
     for(int i = 1; i<argc; i++)
     {
         if(argv[i][0]!='-' || !serveroption(argv[i]))
