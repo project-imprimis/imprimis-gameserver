@@ -1,12 +1,4 @@
 
-struct entity                                   // persistent map entity
-{
-    vec o;                                      // position
-    short attr1, attr2, attr3, attr4, attr5;    // attributes
-    uchar type;                                 // type is one of the above
-    uchar reserved;
-};
-
 constexpr int MAXENTS = 10000;
 
 enum
@@ -40,7 +32,6 @@ enum
 // this defines weapon properties
 //                                   8            9       14     15    17
 static const struct attackinfo { int attackdelay, damage, range, rays, exprad; } attacks[Attack_NumAttacks] =
-
 //    8     9   14   15  17
 {
     {  300,  5, 1200, 1,  0},
@@ -216,7 +207,6 @@ struct teamscore
         return team < y.team;
     }
 };
-inline bool htcmp(int team, const teamscore &t) { return team == t.team; }
 
 struct teaminfo
 {

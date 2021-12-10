@@ -88,15 +88,6 @@ struct vec
     }
 };
 
-inline uint hthash(const vec &k)
-{
-    union { uint i; float f; } x, y, z;
-    x.f = k.x; y.f = k.y; z.f = k.z;
-    uint v = x.i^y.i^z.i;
-    return v + (v>>12);
-}
-
-
 struct ivec
 {
     union
@@ -145,12 +136,3 @@ struct ivec
 
 inline vec::vec(const ivec &v) : x(v.x), y(v.y), z(v.z) {}
 
-inline bool htcmp(const ivec &x, const ivec &y)
-{
-    return x == y;
-}
-
-inline uint hthash(const ivec &k)
-{
-    return k.x^k.y^k.z;
-}
