@@ -36,9 +36,9 @@
 
 namespace game
 {
-    void parseoptions(vector<const char *> &args)
+    void parseoptions(std::vector<const char *> &args)
     {
-        for(int i = 0; i < args.length(); i++)
+        for(uint i = 0; i < args.size(); i++)
         {
             if(!server::serveroption(args[i]))
             {
@@ -83,7 +83,7 @@ namespace server
     {
         int id, atk;
         vec from, to;
-        vector<hitinfo> hits;
+        std::vector<hitinfo> hits;
 
         void process(clientinfo *ci);
     };
@@ -91,7 +91,7 @@ namespace server
     struct explodeevent : timedevent
     {
         int id, atk;
-        vector<hitinfo> hits;
+        std::vector<hitinfo> hits;
 
         bool keepable() const { return true; }
 
@@ -188,13 +188,13 @@ namespace server
 
     void clientinfo::addevent(gameevent *e)
     {
-        if(state.state==ClientState_Spectator || events.length()>100)
+        if(state.state==ClientState_Spectator || events.size()>100)
         {
             delete e;
         }
         else
         {
-            events.add(e);
+            events.push_back(e);
         }
     }
 
@@ -248,7 +248,7 @@ namespace server
     void clientinfo::mapchange()
     {
         state.reset();
-        events.deletecontents();
+        events.clear();
         overflow = 0;
         timesync = false;
         lastevent = 0;
@@ -263,7 +263,7 @@ namespace server
     void clientinfo::reassign()
     {
         state.reassign();
-        events.deletecontents();
+        events.clear();
         timesync = false;
         lastevent = 0;
     }
@@ -290,8 +290,8 @@ namespace server
         privilege = Priv_None;
         connected = local = false;
         connectauth = 0;
-        position.setsize(0);
-        messages.setsize(0);
+        position.clear();
+        messages.clear();
         ping = 0;
         aireinit = 0;
         needclipboard = 0;
@@ -356,32 +356,32 @@ namespace server
         mastermask = MM_PRIVSERV;
     stream *mapdata = nullptr;
 
-    vector<uint> allowedips;
-    vector<ban> bannedips;
+    std::vector<uint> allowedips;
+    std::vector<ban> bannedips;
 
     void addban(uint ip, int expire)
     {
-        allowedips.removeobj(ip);
+        allowedips.erase(std::find(allowedips.begin(), allowedips.end(), ip));
         ban b;
         b.time = totalmillis;
         b.expire = totalmillis + expire;
         b.ip = ip;
-        for(int i = 0; i < bannedips.length(); i++)
+        for(uint i = 0; i < bannedips.size(); i++)
         {
             if(bannedips[i].expire - b.expire > 0)
             {
-                bannedips.insert(i, b);
+                bannedips.insert(bannedips.begin() + i, b);
                 return;
             }
         }
-        bannedips.add(b);
+        bannedips.push_back(b);
     }
 
-    vector<clientinfo *> connects, clients, bots;
+    std::vector<clientinfo *> connects, clients, bots;
 
     void kickclients(uint ip, clientinfo *actor = nullptr, int priv = Priv_None)
     {
-        for(int i = clients.length(); --i >=0;) //note reverse iteration
+        for(int i = clients.size(); --i >=0;) //note reverse iteration
         {
             clientinfo &c = *clients[i];
             if(c.state.aitype != AI_None || c.privilege >= Priv_Admin || c.local)
@@ -432,21 +432,22 @@ namespace server
     {
         int limit, ban;
     };
-    vector<teamkillkick> teamkillkicks;
+    std::vector<teamkillkick> teamkillkicks;
 
     void teamkillkickreset()
     {
-        teamkillkicks.setsize(0);
+        teamkillkicks.clear();
     }
 
     void addteamkillkick(char *modestr, int *limit, int *ban)
     {
-        vector<char *> modes;
+        std::vector<char *> modes;
         explodelist(modestr, modes);
-        teamkillkick &kick = teamkillkicks.add();
+        teamkillkick kick;
         kick.limit = *limit;
         kick.ban = *ban > 0 ? *ban*60000 : (*ban < 0 ? 0 : 30*60000);
-        modes.deletearrays();
+        teamkillkicks.push_back(kick);
+        modes.clear();
     }
 
     COMMAND(teamkillkickreset, "");
@@ -457,7 +458,7 @@ namespace server
         uint ip;
         int teamkills;
     };
-    vector<teamkillinfo> teamkills;
+    std::vector<teamkillinfo> teamkills;
     bool shouldcheckteamkills = false;
 
     void addteamkill(clientinfo *actor, clientinfo *victim, int n)
@@ -468,7 +469,7 @@ namespace server
         }
         shouldcheckteamkills = true;
         uint ip = getclientip(actor->clientnum);
-        for(int i = 0; i < teamkills.length(); i++)
+        for(uint i = 0; i < teamkills.size(); i++)
         {
             if(teamkills[i].ip == ip)
             {
@@ -476,21 +477,22 @@ namespace server
                 return;
             }
         }
-        teamkillinfo &tk = teamkills.add();
+        teamkillinfo tk;
         tk.ip = ip;
         tk.teamkills = n;
+        teamkills.push_back(tk);
     }
 
     void checkteamkills() //players who do too many teamkills may get kicked from the server
     {
         teamkillkick *kick = nullptr;
-        for(int i = 0; i < teamkillkicks.length(); i++)
+        for(uint i = 0; i < teamkillkicks.size(); i++)
         {
             kick = &teamkillkicks[i];
         }
         if(kick)
         {
-            for(int i = teamkills.length(); --i >=0;) //note reverse iteration
+            for(uint i = teamkills.size(); --i >=0;) //note reverse iteration
             {
                 teamkillinfo &tk = teamkills[i];
                 if(tk.teamkills >= kick->limit)
@@ -500,7 +502,7 @@ namespace server
                         addban(tk.ip, kick->ban);
                     }
                     kickclients(tk.ip);
-                    teamkills.removeunordered(i);
+                    teamkills.erase(teamkills.begin() + i);
                 }
             }
         }
@@ -513,7 +515,10 @@ namespace server
     }
     void deleteclientinfo(void *ci)
     {
-        delete (clientinfo *)ci; //cast before deleting
+        if(ci != nullptr)
+        {
+            delete (clientinfo *)ci; //cast before deleting
+        }
     }
 
     clientinfo *getinfo(int n)
@@ -523,12 +528,12 @@ namespace server
             return (clientinfo *)getclientinfo(n);
         }
         n -= MAXCLIENTS;
-        return bots.inrange(n) ? bots[n] : nullptr;
+        return (bots.size() > n) ? bots[n] : nullptr;
     }
 
     uint mcrc = 0;
-    vector<server_entity> sents;
-    vector<savedscore> scores;
+    std::vector<server_entity> sents;
+    std::vector<savedscore> scores;
 
     int msgsizelookup(int msg)
     {
@@ -590,7 +595,7 @@ namespace server
     void resetitems()
     {
         mcrc = 0;
-        sents.setsize(0);
+        sents.clear();
         //cps.reset();
     }
 
@@ -609,10 +614,10 @@ namespace server
     int numclients(int exclude = -1, bool nospec = true, bool noai = true, bool priv = false)
     {
         int n = 0;
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
-            if(ci->clientnum!=exclude && (!nospec || ci->state.state!=ClientState_Spectator || (priv && (ci->privilege || ci->local))) && (!noai || ci->state.aitype == AI_None))
+            if(ci != nullptr && ci->clientnum!=exclude && (!nospec || ci->state.state!=ClientState_Spectator || (priv && (ci->privilege || ci->local))) && (!noai || ci->state.aitype == AI_None))
             {
                 n++;
             }
@@ -626,7 +631,7 @@ namespace server
         {
             name = ci->name;
         }
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             if(clients[i]!=ci && !strcmp(name, clients[i]->name))
             {
@@ -704,25 +709,6 @@ namespace server
         return sec*1000;
     }
 
-
-    bool pickup(int i, int sender)         // server side item pickup, acknowledge first client that gets it
-    {
-        if((!modecheck(gamemode, Mode_Untimed) && gamemillis>=gamelimit) || !sents.inrange(i) || !sents[i].spawned)
-        {
-            return false;
-        }
-        clientinfo *ci = getinfo(sender);
-        if(!ci || (!ci->local && !ci->state.canpickup(sents[i].type)))
-        {
-            return false;
-        }
-        sents[i].spawned = false;
-        sents[i].spawntime = spawntime(sents[i].type);
-        sendf(-1, 1, "ri3", NetMsg_ItemAcceptance, i, sender);
-        ci->state.pickup(sents[i].type);
-        return true;
-    }
-
     teaminfo teaminfos[MAXTEAMS];
 
     void clearteaminfo()
@@ -737,7 +723,7 @@ namespace server
     {
         clientinfo *best = nullptr;
         bestrank = -1;
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->state.timeplayed<0)
@@ -756,9 +742,9 @@ namespace server
 
     void autoteam()
     {
-        vector<clientinfo *> team[MAXTEAMS];
+        std::vector<clientinfo *> team[MAXTEAMS];
         float teamrank[MAXTEAMS] = {0};
-        for(int round = 0, remaining = clients.length(); remaining>=0; round++)
+        for(int round = 0, remaining = clients.size(); remaining>=0; round++)
         {
             int first = round&1, second = (round+1)&1, selected = 0;
             while(teamrank[first] <= teamrank[second])
@@ -778,7 +764,7 @@ namespace server
                     break;
                 }
                 ci->state.timeplayed = -1;
-                team[first].add(ci);
+                team[first].push_back(ci);
                 if(rank>0)
                 {
                     teamrank[first] += rank;
@@ -797,7 +783,7 @@ namespace server
         }
         for(int i = 0; i < MAXTEAMS; ++i)
         {
-            for(int j = 0; j < team[i].length(); j++)
+            for(uint j = 0; j < team[i].size(); j++)
             {
                 clientinfo *ci = team[i][j];
                 if(ci->team == 1+i)
@@ -821,7 +807,7 @@ namespace server
     int chooseworstteam(clientinfo *exclude = nullptr)
     {
         teamrank teamranks[MAXTEAMS];
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci==exclude || ci->state.aitype!=AI_None || ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
@@ -878,7 +864,7 @@ namespace server
             return;
         }
         int admins = 0;
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(clients[i]->privilege >= (restrictpausegame ? Priv_Admin : Priv_Master) || clients[i]->local)
             {
@@ -993,7 +979,7 @@ namespace server
                     sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "Spectators may not claim master.");
                     return false;
                 }
-                for(int i = 0; i < clients.length(); i++)
+                for(uint i = 0; i < clients.size(); i++)
                 {
                     if(ci!=clients[i] && clients[i]->privilege)
                     {
@@ -1028,7 +1014,7 @@ namespace server
             revokemaster(ci);
         }
         bool hasmaster = false;
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(clients[i]->local || clients[i]->privilege >= Priv_Master)
             {
@@ -1038,7 +1024,7 @@ namespace server
         if(!hasmaster)
         {
             mastermode = MasterMode_Open;
-            allowedips.shrink(0);
+            allowedips.clear();
         }
         string msg;
         if(val && authname)
@@ -1061,7 +1047,7 @@ namespace server
         sendstring(msg, p);
         putint(p, NetMsg_CurrentMaster);
         putint(p, mastermode);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(clients[i]->privilege >= Priv_Master)
             {
@@ -1139,7 +1125,7 @@ namespace server
         }
         if(!insert)
         {
-            for(int i = 0; i < clients.length(); i++)
+            for(uint i = 0; i < clients.size(); i++)
             {
                 clientinfo *oi = clients[i];
                 if(oi->clientnum != ci->clientnum && getclientip(oi->clientnum) == ip && !strcmp(oi->name, ci->name))
@@ -1152,7 +1138,7 @@ namespace server
                 }
             }
         }
-        for(int i = 0; i < scores.length(); i++)
+        for(uint i = 0; i < scores.size(); i++)
         {
             savedscore &sc = scores[i];
             if(sc.ip == ip && !strcmp(sc.name, ci->name))
@@ -1164,10 +1150,11 @@ namespace server
         {
             return 0;
         }
-        savedscore &sc = scores.add();
+        savedscore sc;
         sc.ip = ip;
         copystring(sc.name, ci->name);
-        return &sc;
+        scores.push_back(sc);
+        return &scores.back();
     }
 
     void savescore(clientinfo *ci)
@@ -1305,12 +1292,12 @@ namespace server
             return p >= data && p < &data[len];
         }
     };
-    vector<worldstate> worldstates;
+    std::vector<worldstate> worldstates;
     bool reliablemessages = false;
 
     void cleanworldstate(ENetPacket *packet)
     {
-        for(int i = 0; i < worldstates.length(); i++)
+        for(uint i = 0; i < worldstates.size(); i++)
         {
             worldstate &ws = worldstates[i];
             if(!ws.contains(packet->data))
@@ -1321,7 +1308,7 @@ namespace server
             if(ws.uses <= 0)
             {
                 ws.cleanup();
-                worldstates.removeunordered(i);
+                worldstates.erase(worldstates.begin() + i); //order does not matter
             }
             break;
         }
@@ -1336,7 +1323,7 @@ namespace server
         int wslen = wsbuf.length();
         recordpacket(0, wsbuf.buf, wslen);
         wsbuf.put(wsbuf.buf, wslen);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo &ci = *clients[i];
             if(ci.state.aitype != AI_None)
@@ -1375,13 +1362,13 @@ namespace server
         {
             return;
         }
-        if(wsbuf.length() + bi.position.length() > mtu)
+        if(wsbuf.length() + bi.position.size() > mtu)
         {
             sendpositions(ws, wsbuf);
         }
         int offset = wsbuf.length();
-        wsbuf.put(bi.position.getbuf(), bi.position.length());
-        bi.position.setsize(0);
+        wsbuf.put(bi.position.data(), bi.position.size());
+        bi.position.clear();
         int len = wsbuf.length() - offset;
         if(ci.wsdata < wsbuf.buf)
         {
@@ -1403,7 +1390,7 @@ namespace server
         int wslen = wsbuf.length();
         recordpacket(1, wsbuf.buf, wslen);
         wsbuf.put(wsbuf.buf, wslen);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo &ci = *clients[i];
             if(ci.state.aitype != AI_None)
@@ -1442,16 +1429,16 @@ namespace server
         {
             return;
         }
-        if(wsbuf.length() + 10 + bi.messages.length() > mtu)
+        if(wsbuf.length() + 10 + bi.messages.size() > mtu)
         {
             sendmessages(ws, wsbuf);
         }
         int offset = wsbuf.length();
         putint(wsbuf, NetMsg_Client);
         putint(wsbuf, bi.clientnum);
-        putuint(wsbuf, bi.messages.length());
-        wsbuf.put(bi.messages.getbuf(), bi.messages.length());
-        bi.messages.setsize(0);
+        putuint(wsbuf, bi.messages.size());
+        wsbuf.put(bi.messages.data(), bi.messages.size());
+        bi.messages.clear();
         int len = wsbuf.length() - offset;
         if(ci.wsdata < wsbuf.buf)
         {
@@ -1467,15 +1454,18 @@ namespace server
     bool buildworldstate()
     {
         int wsmax = 0;
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
-            clientinfo &ci = *clients[i];
-            ci.overflow = 0;
-            ci.wsdata = nullptr;
-            wsmax += ci.position.length();
-            if(ci.messages.length())
+            if(clients[i] != nullptr)
             {
-                wsmax += 10 + ci.messages.length();
+                printf("pointer at i: %d\n", clients.at(i));
+                clients.at(i)->overflow = 0;
+                clients.at(i)->wsdata = nullptr;
+                wsmax += clients[i]->position.size();
+                if(clients[i]->messages.size())
+                {
+                    wsmax += 10 + clients[i]->messages.size();
+                }
             }
         }
         if(wsmax <= 0)
@@ -1483,7 +1473,7 @@ namespace server
             reliablemessages = false;
             return false;
         }
-        worldstate &ws = worldstates.add();
+        worldstate ws;
         ws.setup(2*wsmax);
         int mtu = getservermtu() - 100;
         if(mtu <= 0)
@@ -1491,7 +1481,7 @@ namespace server
             mtu = ws.len;
         }
         ucharbuf wsbuf(ws.data, ws.len);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo &ci = *clients[i];
             if(ci.state.aitype != AI_None)
@@ -1499,13 +1489,13 @@ namespace server
                 continue;
             }
             addposition(ws, wsbuf, mtu, ci, ci);
-            for(int j = 0; j < ci.bots.length(); j++)
+            for(uint j = 0; j < ci.bots.size(); j++)
             {
                 addposition(ws, wsbuf, mtu, *ci.bots[j], ci);
             }
         }
         sendpositions(ws, wsbuf);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo &ci = *clients[i];
             if(ci.state.aitype != AI_None)
@@ -1513,11 +1503,12 @@ namespace server
                 continue;
             }
             addmessages(ws, wsbuf, mtu, ci, ci);
-            for(int j = 0; j < ci.bots.length(); j++)
+            for(uint j = 0; j < ci.bots.size(); j++)
             {
                 addmessages(ws, wsbuf, mtu, *ci.bots[j], ci);
             }
         }
+        worldstates.push_back(ws);
         sendmessages(ws, wsbuf);
         reliablemessages = false;
         if(ws.uses)
@@ -1525,7 +1516,7 @@ namespace server
             return true;
         }
         ws.cleanup();
-        worldstates.drop();
+        worldstates.pop_back();
         return false;
     }
 
@@ -1609,7 +1600,7 @@ namespace server
 
     void welcomeinitclient(packetbuf &p, int exclude = -1)
     {
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(!ci->connected || ci->clientnum == exclude)
@@ -1623,7 +1614,7 @@ namespace server
 
     bool hasmap(clientinfo *ci)
     {
-        return ((clients.length() > 0 || ci->local)) ||
+        return ((clients.size() > 0 || ci->local)) ||
                (smapname[0] && (modecheck(gamemode, Mode_Untimed) || gamemillis < gamelimit || (ci->state.state==ClientState_Spectator && !ci->privilege && !ci->local) || numclients(ci->clientnum, true, true, true)));
     }
 
@@ -1642,7 +1633,7 @@ namespace server
         if(!notgotitems)
         {
             putint(p, NetMsg_ItemList);
-            for(int i = 0; i < sents.length(); i++)
+            for(uint i = 0; i < sents.size(); i++)
             {
                 if(sents[i].spawned)
                 {
@@ -1659,7 +1650,7 @@ namespace server
             putint(p, mastermode);
             hasmaster = true;
         }
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(clients[i]->privilege >= Priv_Master)
             {
@@ -1731,10 +1722,10 @@ namespace server
             putint(p, 1);
             sendf(-1, 1, "ri3x", NetMsg_Spectator, ci->clientnum, 1, ci->clientnum);
         }
-        if(!ci || clients.length()>1)
+        if(!ci || clients.size()>1)
         {
             putint(p, NetMsg_Resume);
-            for(int i = 0; i < clients.length(); i++)
+            for(uint i = 0; i < clients.size(); i++)
             {
                 clientinfo *oi = clients[i];
                 if(ci && oi->clientnum==ci->clientnum)
@@ -1795,6 +1786,7 @@ namespace server
         {
             smode->cleanup();
         }
+        printf("bots vector size is %d\n", bots.size());
         aiman::clearai();
 
         gamemode = mode;
@@ -1803,10 +1795,10 @@ namespace server
         interm = 0;
         nextexceeded = 0;
         copystring(smapname, s);
-        scores.shrink(0);
+        scores.clear();
         shouldcheckteamkills = false;
-        teamkills.shrink(0);
-        for(int i = 0; i < clients.length(); i++)
+        teamkills.clear();
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
@@ -1834,7 +1826,7 @@ namespace server
         {
             sendf(-1, 1, "ri2", NetMsg_TimeUp, gamemillis < gamelimit && !interm ? std::max((gamelimit - gamemillis)/1000, 1) : 0);
         }
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             ci->mapchange();
@@ -1849,7 +1841,7 @@ namespace server
 
         if(modecheck(gamemode, Mode_Demo))
         {
-            if(clients.length())
+            if(clients.size())
             {
                 setupdemoplayback();
             }
@@ -1921,7 +1913,7 @@ namespace server
                 int friends = 0, enemies = 0; // note: friends also includes the fragger
                 if(modecheck(gamemode, Mode_Team))
                 {
-                    for(int i = 0; i < clients.length(); i++)
+                    for(uint i = 0; i < clients.size(); i++)
                     {
                         if(clients[i]->team != actor->team)
                         {
@@ -1936,7 +1928,7 @@ namespace server
                 else
                 {
                     friends = 1;
-                    enemies = clients.length()-1;
+                    enemies = clients.size()-1;
                 }
                 actor->state.effectiveness += fragvalue*friends/float(std::max(enemies, 1));
             }
@@ -1946,7 +1938,7 @@ namespace server
                 t->frags += fragvalue;
             }
             sendf(-1, 1, "ri5", NetMsg_Died, target->clientnum, actor->clientnum, actor->state.frags, t ? t->frags : 0);
-            target->position.setsize(0);
+            target->position.clear();
             if(smode)
             {
                 smode->died(target, actor);
@@ -1980,7 +1972,7 @@ namespace server
             t->frags += fragvalue;
         }
         sendf(-1, 1, "ri5", NetMsg_Died, ci->clientnum, ci->clientnum, gs.frags, t ? t->frags : 0);
-        ci->position.setsize(0);
+        ci->position.clear();
         if(smode)
         {
             smode->died(ci, nullptr);
@@ -2011,7 +2003,7 @@ namespace server
                 return;
         }
         sendf(-1, 1, "ri4x", NetMsg_ExplodeFX, ci->clientnum, atk, id, ci->ownernum);
-        for(int i = 0; i < hits.length(); i++)
+        for(uint i = 0; i < hits.size(); i++)
         {
             hitinfo &h = hits[i];
             clientinfo *target = getinfo(h.target);
@@ -2076,7 +2068,7 @@ namespace server
             {
                 int totalrays = 0,
                     maxrays = attacks[atk].rays;
-                for(int i = 0; i < hits.length(); i++)
+                for(uint i = 0; i < hits.size(); i++)
                 {
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
@@ -2117,59 +2109,29 @@ namespace server
         return true;
     }
 
-    void clearevent(clientinfo *ci)
-    {
-        delete ci->events.remove(0);
-    }
-
-    void flushevents(clientinfo *ci, int millis)
-    {
-        while(ci->events.length())
-        {
-            gameevent *ev = ci->events[0];
-            if(ev->flush(ci, millis))
-            {
-                clearevent(ci);
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    void processevents()
-    {
-        for(int i = 0; i < clients.length(); i++)
-        {
-            clientinfo *ci = clients[i];
-            flushevents(ci, gamemillis);
-        }
-    }
-
     void cleartimedevents(clientinfo *ci)
     {
-        int keep = 0;
-        for(int i = 0; i < ci->events.length(); i++)
+        uint keep = 0;
+        for(uint i = 0; i < ci->events.size(); i++)
         {
             if(ci->events[i]->keepable())
             {
                 if(keep < i)
                 {
-                    for(int j = keep; j < i; j++)
+                    for(uint j = keep; j < i; j++)
                     {
                         delete ci->events[j];
                     }
-                    ci->events.remove(keep, i - keep);
+                    ci->events.erase(ci->events.begin() + keep,ci->events.begin() + i - keep);
                     i = keep;
                 }
                 keep = i+1;
                 continue;
             }
         }
-        while(ci->events.length() > keep)
+        while(ci->events.size() > keep)
         {
-            delete ci->events.pop();
+            ci->events.pop_back();
         }
         ci->timesync = false;
     }
@@ -2189,10 +2151,9 @@ namespace server
             }
             else if(!modecheck(gamemode, Mode_Untimed) || gamemillis < gamelimit)
             {
-                processevents(); //foreach client flushevents (handle events & clear?)
                 if(curtime)
                 {
-                    for(int i = 0; i < sents.length(); i++)
+                    for(uint i = 0; i < sents.size(); i++)
                     {
                         if(sents[i].spawntime) // spawn entities when timer reached
                         {
@@ -2217,8 +2178,8 @@ namespace server
         ////////// This section is run regardless of whether there are people are online //////////
         //         (though the loop over `connects` will always be empty with nobody on)
 
-        while(bannedips.length() && bannedips[0].expire-totalmillis <= 0) bannedips.remove(0); //clear expired ip bans if there are any
-        for(int i = 0; i < connects.length(); i++)
+        while(bannedips.size() && bannedips[0].expire-totalmillis <= 0) bannedips.erase(bannedips.begin()); //clear expired ip bans if there are any
+        for(uint i = 0; i < connects.size(); i++)
         {
             if(totalmillis-connects[i]->connectmillis>15000)
             {
@@ -2229,7 +2190,7 @@ namespace server
         if(nextexceeded && gamemillis > nextexceeded && (modecheck(gamemode, Mode_Untimed) || gamemillis < gamelimit))
         {
             nextexceeded = 0;
-            for(int i = clients.length(); --i >=0;) //note reverse iteration
+            for(uint i = clients.size(); --i >=0;) //note reverse iteration
             {
                 clientinfo &c = *clients[i];
                 if(c.state.aitype != AI_None)
@@ -2269,7 +2230,7 @@ namespace server
         }
 
         //check if there are people online for next iteration of loop
-        shouldstep = clients.length() > 0; //don't step if there's nobody online
+        shouldstep = clients.size() > 0; //don't step if there's nobody online
     }
 
     void forcespectator(clientinfo *ci)
@@ -2318,9 +2279,9 @@ namespace server
             invalid = 0;
         if(mcrc)
         {
-            crcs.push_back(crcinfo(mcrc, clients.length() + 1));
+            crcs.push_back(crcinfo(mcrc, clients.size() + 1));
         }
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->state.state==ClientState_Spectator || ci->state.aitype != AI_None)
@@ -2367,7 +2328,7 @@ namespace server
 
         std::sort(crcs.begin(), crcs.end());
         string msg;
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->state.state==ClientState_Spectator || ci->state.aitype != AI_None || ci->clientmap[0] || ci->mapcrc >= 0 || (req < 0 && ci->warned))
@@ -2388,7 +2349,7 @@ namespace server
                 crcinfo &info = crcs[i];
                 if(i || info.matches <= crcs[i+1].matches)
                 {
-                    for(int j = 0; j < clients.length(); j++)
+                    for(uint j = 0; j < clients.size(); j++)
                     {
                         clientinfo *ci = clients[j];
                         if(ci->state.state==ClientState_Spectator || ci->state.aitype != AI_None || !ci->clientmap[0] || ci->mapcrc != info.crc || (req < 0 && ci->warned))
@@ -2407,7 +2368,7 @@ namespace server
         }
         if(req < 0 && modifiedmapspectator && (mcrc || modifiedmapspectator > 1))
         {
-            for(int i = 0; i < clients.length(); i++)
+            for(uint i = 0; i < clients.size(); i++)
             {
                 clientinfo *ci = clients[i];
                 if(!ci->local && ci->warned && ci->state.state != ClientState_Spectator)
@@ -2451,7 +2412,7 @@ namespace server
 
     void noclients()
     {
-        bannedips.shrink(0);
+        bannedips.clear();
         aiman::clearai();
     }
 
@@ -2462,7 +2423,7 @@ namespace server
         ci->connectmillis = totalmillis;
         ci->sessionid = (randomint(0x1000000)*((totalmillis%10000)+1))&0xFFFFFF;
 
-        connects.add(ci);
+        connects.push_back(ci);
         if(modecheck(gamemode, Mode_LocalOnly))
         {
             return Discon_Local;
@@ -2487,7 +2448,10 @@ namespace server
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
             savescore(ci);
             sendf(-1, 1, "ri2", NetMsg_ClientDiscon, n);
-            clients.removeobj(ci);
+            if(std::find(clients.begin(), clients.end(), ci) != clients.end())
+            {
+                clients.erase(std::find(clients.begin(), clients.end(), ci));
+            }
             aiman::removeai(ci);
             if(!numclients(-1, false, true))
             {
@@ -2500,7 +2464,7 @@ namespace server
         }
         else
         {
-            connects.removeobj(ci);
+            connects.erase(std::find(connects.begin(), connects.end(), ci));
         }
     }
 
@@ -2513,16 +2477,16 @@ namespace server
 
     struct banlist
     {
-        vector<ipmask> bans;
+        std::vector<ipmask> bans;
 
         void clear()
         {
-            bans.shrink(0);
+            bans.clear();
         }
 
         bool check(uint ip)
         {
-            for(int i = 0; i < bans.length(); i++)
+            for(uint i = 0; i < bans.size(); i++)
             {
                 if(bans[i].check(ip))
                 {
@@ -2536,7 +2500,7 @@ namespace server
         {
             ipmask ban;
             ban.parse(ipname);
-            bans.add(ban);
+            bans.push_back(ban);
 
             verifybans();
         }
@@ -2544,7 +2508,7 @@ namespace server
 
     bool checkbans(uint ip)
     {
-        for(int i = 0; i < bannedips.length(); i++)
+        for(uint i = 0; i < bannedips.size(); i++)
         {
             if(bannedips[i].ip==ip)
             {
@@ -2556,7 +2520,7 @@ namespace server
 
     void verifybans()
     {
-        for(int i = clients.length(); --i >=0;) //note reverse iteration
+        for(uint i = clients.size(); --i >=0;) //note reverse iteration
         {
             clientinfo *ci = clients[i];
             if(ci->state.aitype != AI_None || ci->local || ci->privilege >= Priv_Admin)
@@ -2603,7 +2567,7 @@ namespace server
         {
             return Discon_IPBan;
         }
-        if(mastermode>=MasterMode_Private && allowedips.find(ip)<0)
+        if(mastermode>=MasterMode_Private && std::find(allowedips.begin(), allowedips.end(), ip) == allowedips.end())
         {
             return Discon_Private;
         }
@@ -2652,7 +2616,7 @@ namespace server
             return;
         }
         bool flushed = false;
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo &e = *clients[i];
             if(e.clientnum != ci->clientnum && e.needclipboard - ci->lastclipboard >= 0)
@@ -2680,8 +2644,8 @@ namespace server
 
         shouldstep = true;
 
-        connects.removeobj(ci);
-        clients.add(ci);
+        connects.erase(std::find(connects.begin(), connects.end(), ci));
+        clients.push_back(ci);
 
         ci->connectauth = 0;
         ci->connected = true;
@@ -2810,7 +2774,7 @@ namespace server
             { \
                 while(curmsg<p.length()) \
                 { \
-                    cm->messages.add(p.buf[curmsg++]); \
+                    cm->messages.push_back(p.buf[curmsg++]); \
                 } \
             } \
         }
@@ -2885,10 +2849,10 @@ namespace server
                         {
                             if(!ci->local && !modecheck(gamemode, Mode_Edit) && std::max(vel.magnitude2(), (float)fabs(vel.z)) >= 180)
                                 cp->setexceeded();
-                            cp->position.setsize(0);
+                            cp->position.clear();
                             while(curmsg<p.length())
                             {
-                                cp->position.add(p.buf[curmsg++]);
+                                cp->position.push_back(p.buf[curmsg++]);
                             }
                         }
                         if(smode && cp->state.state==ClientState_Alive)
@@ -2943,7 +2907,7 @@ namespace server
                     {
                         ci->state.editstate = ci->state.state;
                         ci->state.state = ClientState_Editing;
-                        ci->events.setsize(0);
+                        ci->events.clear();
                         ci->state.projs.reset();
                     }
                     else
@@ -3013,7 +2977,6 @@ namespace server
                     }
                     if(cq->state.deadflush)
                     {
-                        flushevents(cq, cq->state.deadflush);
                         cq->state.respawn();
                     }
                     cleartimedevents(cq);
@@ -3092,7 +3055,7 @@ namespace server
                         {
                             break;
                         }
-                        hitinfo &hit = shot->hits.add();
+                        hitinfo hit;
                         hit.target = getint(p);
                         hit.lifesequence = getint(p);
                         hit.dist = getint(p)/DMF;
@@ -3101,6 +3064,7 @@ namespace server
                         {
                             hit.dir[k] = getint(p)/DNF;
                         }
+                        shot->hits.push_back(hit);
                     }
                     if(cq)
                     {
@@ -3127,7 +3091,7 @@ namespace server
                         {
                             break;
                         }
-                        hitinfo &hit = exp->hits.add();
+                        hitinfo hit;
                         hit.target = getint(p);
                         hit.lifesequence = getint(p);
                         hit.dist = getint(p)/DMF;
@@ -3136,6 +3100,7 @@ namespace server
                         {
                             hit.dir[k] = getint(p)/DNF;
                         }
+                        exp->hits.push_back(hit);
                     }
                     if(cq)
                     {
@@ -3173,7 +3138,7 @@ namespace server
                         break;
                     }
                     filtertext(text, text, true, true);
-                    for(int i = 0; i < clients.length(); i++)
+                    for(uint i = 0; i < clients.size(); i++)
                     {
                         clientinfo *t = clients[i];
                         if(t==cq || t->state.state==ClientState_Spectator || t->state.aitype != AI_None || cq->team != t->team)
@@ -3253,9 +3218,9 @@ namespace server
                     while((n = getint(p))>=0 && n<MAXENTS && !p.overread())
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.length()<=n)
+                        while(sents.size()<=n)
                         {
-                            sents.add(se);
+                            sents.push_back(se);
                         }
                         sents[n].type = getint(p);
                         if(canspawnitem(sents[n].type))
@@ -3291,12 +3256,12 @@ namespace server
                     }
                     QUEUE_MSG;
                     bool canspawn = canspawnitem(type);
-                    if(i<MAXENTS && (sents.inrange(i) || canspawnitem(type)))
+                    if(i<MAXENTS && (sents.size() > i) || canspawnitem(type))
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.length()<=i)
+                        while(sents.size() <= i)
                         {
-                            sents.add(se);
+                            sents.push_back(se);
                         }
                         sents[i].type = type;
                         if(canspawn ? !sents[i].spawned : (sents[i].spawned || sents[i].spawntime))
@@ -3345,7 +3310,7 @@ namespace server
                     if(ci)
                     {
                         ci->ping = ping;
-                        for(int i = 0; i < ci->bots.length(); i++)
+                        for(uint i = 0; i < ci->bots.size(); i++)
                         {
                             ci->bots[i]->ping = ping;
                         }
@@ -3361,12 +3326,12 @@ namespace server
                         if((ci->privilege>=Priv_Admin || ci->local) || (mastermask&(1<<mm)))
                         {
                             mastermode = mm;
-                            allowedips.shrink(0);
+                            allowedips.clear();
                             if(mm>=MasterMode_Private)
                             {
-                                for(int i = 0; i < clients.length(); i++)
+                                for(uint i = 0; i < clients.size(); i++)
                                 {
-                                    allowedips.add(getclientip(clients[i]->clientnum));
+                                    allowedips.push_back(getclientip(clients[i]->clientnum));
                                 }
                             }
                             sendf(-1, 1, "rii", NetMsg_MasterMode, mastermode);
@@ -3383,7 +3348,7 @@ namespace server
                 {
                     if(ci->privilege || ci->local)
                     {
-                        bannedips.shrink(0);
+                        bannedips.clear();
                         sendservmsg("cleared all bans");
                     }
                     break;
@@ -3924,7 +3889,7 @@ enum
         {
             smode->getteamscores(scores);
         }
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->state.state!=ClientState_Spectator && VALID_TEAM(ci->team) && std::find(scores.begin(), scores.end(), teamscore(ci->team, 0)) == scores.end())
@@ -3965,7 +3930,7 @@ enum
                 clientinfo *ci = nullptr;
                 if(cn >= 0)
                 {
-                    for(int i = 0; i < clients.length(); i++)
+                    for(uint i = 0; i < clients.size(); i++)
                     {
                         if(clients[i]->clientnum == cn)
                         {
@@ -3989,7 +3954,7 @@ enum
                 }
                 else
                 {
-                    for(int i = 0; i < clients.length(); i++)
+                    for(uint i = 0; i < clients.size(); i++)
                     {
                         putint(q, clients[i]->clientnum);
                     }
@@ -4001,7 +3966,7 @@ enum
                 }
                 else
                 {
-                    for(int i = 0; i < clients.length(); i++)
+                    for(uint i = 0; i < clients.size(); i++)
                     {
                         extinfoplayer(p, clients[i]);
                     }
@@ -4061,29 +4026,32 @@ enum
 
         void calcteams(std::vector<teamscore> &teams)
         {
-            for(int i = 0; i < clients.length(); i++)
+            for(uint i = 0; i < clients.size(); i++)
             {
                 clientinfo *ci = clients[i];
-                if(ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
+                if(ci != nullptr)
                 {
-                    continue;
-                }
-                teamscore *t = nullptr;
-                for(int j = 0; j < teams.size(); j++)
-                {
-                    if(teams[j].team == ci->team)
+                    if(ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
                     {
-                        t = &teams[j];
-                        break;
+                        continue;
                     }
-                }
-                if(t)
-                {
-                    t->score++;
-                }
-                else
-                {
-                    teams.emplace_back(teamscore(ci->team, 1));
+                    teamscore *t = nullptr;
+                    for(int j = 0; j < teams.size(); j++)
+                    {
+                        if(teams[j].team == ci->team)
+                        {
+                            t = &teams[j];
+                            break;
+                        }
+                    }
+                    if(t)
+                    {
+                        t->score++;
+                    }
+                    else
+                    {
+                        teams.emplace_back(teamscore(ci->team, 1));
+                    }
                 }
             }
             std::sort(teams.begin(), teams.end());
@@ -4100,23 +4068,24 @@ enum
         {
             std::vector<teamscore> teams;
             calcteams(teams);
-            vector<clientinfo *> reassign;
-            for(int i = 0; i < bots.length(); i++)
+            std::vector<clientinfo *> reassign;
+            for(uint i = 0; i < bots.size(); i++)
             {
                 if(bots[i])
                 {
-                    reassign.add(bots[i]);
+                    reassign.push_back(bots[i]);
                 }
             }
-            while(reassign.length() && teams.size() && teams[0].score > teams.back().score + 1)
+            while(reassign.size() && teams.size() && teams[0].score > teams.back().score + 1)
             {
                 teamscore &t = teams.back();
                 clientinfo *bot = nullptr;
-                for(int i = 0; i < reassign.length(); i++)
+                for(uint i = 0; i < reassign.size(); i++)
                 {
                     if(reassign[i] && reassign[i]->team != teams[0].team)
                     {
-                        bot = reassign.removeunordered(i);
+                        bot = reassign.at(i);
+                        reassign.erase(reassign.begin() + i); //order does not matter
                         teams[0].score--;
                         t.score++;
                         for(int j = teams.size() - 2; j >= 0; j--) //note reverse iteration
@@ -4156,11 +4125,14 @@ enum
         //this fxn could be entirely in the return statement but is seperated for clarity
         static inline bool validaiclient(clientinfo *ci)
         {
-            if(ci->clientnum >= 0 && ci->state.aitype == AI_None)
+            if(ci != nullptr)
             {
-                if(ci->state.state!=ClientState_Spectator || ci->local || (ci->privilege && !ci->warned))
+                if(ci->clientnum >= 0 && ci->state.aitype == AI_None)
                 {
-                    return true;
+                    if(ci->state.state!=ClientState_Spectator || ci->local || (ci->privilege && !ci->warned))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -4169,14 +4141,14 @@ enum
         clientinfo *findaiclient(clientinfo *exclude = nullptr)
         {
             clientinfo *least = nullptr;
-            for(int i = 0; i < clients.length(); i++)
+            for(uint i = 0; i < clients.size(); i++)
             {
                 clientinfo *ci = clients[i];
                 if(!validaiclient(ci) || ci==exclude)
                 {
                     continue;
                 }
-                if(!least || ci->bots.length() < least->bots.length())
+                if(!least || ci->bots.size() < least->bots.size())
                 {
                     least = ci;
                 }
@@ -4189,7 +4161,7 @@ enum
             int numai = 0,
                 cn = -1,
                 maxai = limit >= 0 ? std::min(limit, MAXBOTS) : MAXBOTS;
-            for(int i = 0; i < bots.length(); i++)
+            for(uint i = 0; i < bots.size(); i++)
             {
                 clientinfo *ci = bots[i];
                 if(!ci || ci->ownernum < 0)
@@ -4206,7 +4178,7 @@ enum
             {
                 return false;
             }
-            if(bots.inrange(cn))
+            if(bots.size() > cn)
             {
                 clientinfo *ci = bots[cn];
                 if(ci)
@@ -4216,7 +4188,7 @@ enum
                     ci->ownernum = owner ? owner->clientnum : -1;
                     if(owner)
                     {
-                        owner->bots.add(ci);
+                        owner->bots.push_back(ci);
                     }
                     ci->aireinit = 2;
                     dorefresh = true;
@@ -4225,8 +4197,8 @@ enum
             }
             else
             {
-                cn = bots.length();
-                bots.add(nullptr);
+                cn = bots.size();
+                bots.push_back(nullptr);
             }
             int team = modecheck(gamemode, Mode_Team) ? chooseteam() : 0;
             if(!bots[cn])
@@ -4240,10 +4212,10 @@ enum
             ci->ownernum = owner ? owner->clientnum : -1;
             if(owner)
             {
-                owner->bots.add(ci);
+                owner->bots.push_back(ci);
             }
             ci->state.skill = skill <= 0 ? randomint(25) + 51 : clamp(skill, 1, 101);
-            clients.add(ci);
+            clients.push_back(ci);
             ci->state.lasttimeplayed = lastmillis;
             copystring(ci->name, "bot", MAXNAMELEN+1);
             ci->state.state = ClientState_Dead;
@@ -4258,8 +4230,12 @@ enum
 
         void deleteai(clientinfo *ci)
         {
+            if(ci == nullptr)
+            {
+                return;
+            }
             int cn = ci->clientnum - MAXCLIENTS;
-            if(!bots.inrange(cn))
+            if(!(bots.size() > cn))
             {
                 return;
             }
@@ -4271,16 +4247,21 @@ enum
             clientinfo *owner = (clientinfo *)getclientinfo(ci->ownernum);
             if(owner)
             {
-                owner->bots.removeobj(ci);
+                if(std::find(bots.begin(), bots.end(), ci) != bots.end())
+                {
+                    owner->bots.erase(std::find(bots.begin(), bots.end(), ci));
+                }
             }
-            clients.removeobj(ci);
-            DELETEP(bots[cn]);
+            if(std::find(clients.begin(), clients.end(), ci) != clients.end())
+            {
+                clients.erase(std::find(clients.begin(), clients.end(), ci));
+            }
             dorefresh = true;
         }
 
         bool deleteai()
         {
-            for(int i = bots.length(); --i >=0;) //note reverse iteration
+            for(uint i = bots.size(); --i >=0;) //note reverse iteration
             {
                 if(bots[i] && bots[i]->ownernum >= 0)
                 {
@@ -4293,6 +4274,7 @@ enum
 
         void reinitai(clientinfo *ci)
         {
+            printf("pointer reinitai is at %d\n", ci);
             if(ci->ownernum < 0)
             {
                 deleteai(ci);
@@ -4324,9 +4306,9 @@ enum
                 smode->leavegame(ci, true);
             }
             clientinfo *prevowner = (clientinfo *)getclientinfo(ci->ownernum);
-            if(prevowner)
+            if(prevowner && std::find(bots.begin(), bots.end(), ci) != bots.end())
             {
-                prevowner->bots.removeobj(ci);
+                prevowner->bots.erase(std::find(bots.begin(), bots.end(), ci));
             }
             if(!owner)
             {
@@ -4337,7 +4319,7 @@ enum
             {
                 ci->aireinit = 2;
                 ci->ownernum = owner->clientnum;
-                owner->bots.add(ci);
+                owner->bots.push_back(ci);
             }
             dorefresh = true;
         }
@@ -4345,9 +4327,9 @@ enum
         void removeai(clientinfo *ci)
         { // either schedules a removal, or someone else to assign to
 
-            for(int i = ci->bots.length(); --i >=0;) //note reverse iteration
+            for(int i = ci->bots.size(); --i >=0;) //note reverse iteration
             {
-                shiftai(ci->bots[i], findaiclient(ci));
+                shiftai(ci->bots.at(i), findaiclient(ci));
             }
         }
 
@@ -4357,22 +4339,28 @@ enum
             {
                 balanceteams();
             }
-            for(int i = bots.length(); --i >=0;) //note reverse iteration
+            if(bots.size() > 0)
             {
-                if(bots[i])
+                for(int i = bots.size(); --i >=0;) //note reverse iteration
                 {
-                    reinitai(bots[i]);
+                    if(bots.at(i))
+                    {
+                        reinitai(bots.at(i));
+                    }
                 }
             }
         }
 
         void clearai()
         { // clear and remove all ai immediately
-            for(int i = bots.length(); --i >=0;) //note reverse iteration
+            if(bots.size() > 0)
             {
-                if(bots[i])
+                for(int i = bots.size(); --i >=0;) //note reverse iteration
                 {
-                    deleteai(bots[i]);
+                    if(bots.at(i))
+                    {
+                        deleteai(bots.at(i));
+                    }
                 }
             }
         }
@@ -4437,7 +4425,7 @@ enum
         void changemap()
         {
             dorefresh = true;
-            for(int i = 0; i < clients.length(); i++)
+            for(uint i = 0; i < clients.size(); i++)
             {
                 if(clients[i]->local || clients[i]->privilege)
                 {

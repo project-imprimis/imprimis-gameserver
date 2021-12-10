@@ -284,20 +284,6 @@ struct packetbuf : ucharbuf
     }
 };
 
-template<class T>
-inline float heapscore(const T &n) { return n; }
-
-template<class T> struct isclass
-{
-    template<class C>
-    static char test(void (C::*)(void));
-
-    template<class C>
-    static int test(...);
-
-    enum { yes = sizeof(test<T>(0)) == 1 ? 1 : 0, no = yes^1 };
-};
-
 inline uint hthash(const char *key)
 {
     uint h = 5381;
@@ -309,192 +295,6 @@ inline bool htcmp(const char *x, const char *y)
 {
     return !strcmp(x, y);
 }
-
-template <class T>
-struct vector
-{
-    static const int MINSIZE = 8;
-
-    T *buf;
-    int alen, ulen;
-
-    vector() : buf(nullptr), alen(0), ulen(0)
-    {
-    }
-
-    vector(const vector &v) : buf(nullptr), alen(0), ulen(0)
-    {
-        *this = v;
-    }
-
-    ~vector() { shrink(0); if(buf) delete[] (uchar *)buf; }
-
-    vector<T> &operator=(const vector<T> &v)
-    {
-        shrink(0);
-        if(v.length() > alen) growbuf(v.length());
-        for(int i = 0; i < v.length(); i++) add(v[i]);
-        return *this;
-    }
-
-    T &add(const T &x)
-    {
-        if(ulen==alen) growbuf(ulen+1);
-        new (&buf[ulen]) T(x);
-        return buf[ulen++];
-    }
-
-    T &add()
-    {
-        if(ulen==alen) growbuf(ulen+1);
-        new (&buf[ulen]) T;
-        return buf[ulen++];
-    }
-
-    bool inrange(size_t i) const { return i<size_t(ulen); }
-    bool inrange(int i) const { return i>=0 && i<ulen; }
-
-    T &pop() { return buf[--ulen]; }
-    T &last() { return buf[ulen-1]; }
-    void drop() { ulen--; buf[ulen].~T(); }
-    bool empty() const { return ulen==0; }
-
-    int capacity() const { return alen; }
-    int length() const { return ulen; }
-    T &operator[](int i) { return buf[i]; }
-    const T &operator[](int i) const { return buf[i]; }
-
-    void shrink(int i) { if(isclass<T>::no) ulen = i; else while(ulen>i) drop(); }
-    void setsize(int i) { ulen = i; }
-
-    void deletecontents(int n = 0) { while(ulen > n) delete pop(); }
-    void deletearrays(int n = 0) { while(ulen > n) delete[] pop(); }
-
-    T *getbuf() { return buf; }
-    const T *getbuf() const { return buf; }
-    bool inbuf(const T *e) const { return e >= buf && e < &buf[ulen]; }
-
-    void growbuf(int sz)
-    {
-        int olen = alen;
-        if(alen <= 0) alen = std::max(MINSIZE, sz);
-        else while(alen < sz) alen += alen/2;
-        if(alen <= olen) return;
-        uchar *newbuf = new uchar[alen*sizeof(T)];
-        if(olen > 0)
-        {
-            if(ulen > 0) memcpy(newbuf, (void *)buf, ulen*sizeof(T));
-            delete[] (uchar *)buf;
-        }
-        buf = (T *)newbuf;
-    }
-
-    databuf<T> reserve(int sz)
-    {
-        if(alen-ulen < sz) growbuf(ulen+sz);
-        return databuf<T>(&buf[ulen], sz);
-    }
-
-    void advance(int sz)
-    {
-        ulen += sz;
-    }
-
-    void addbuf(const databuf<T> &p)
-    {
-        advance(p.length());
-    }
-
-    void put(const T &v) { add(v); }
-
-    void put(const T *v, int n)
-    {
-        databuf<T> buf = reserve(n);
-        buf.put(v, n);
-        addbuf(buf);
-    }
-
-    void remove(int i, int n)
-    {
-        for(int p = i+n; p<ulen; p++) buf[p-n] = buf[p];
-        ulen -= n;
-    }
-
-    T remove(int i)
-    {
-        T e = buf[i];
-        for(int p = i+1; p<ulen; p++) buf[p-1] = buf[p];
-        ulen--;
-        return e;
-    }
-
-    T removeunordered(int i)
-    {
-        T e = buf[i];
-        ulen--;
-        if(ulen>0) buf[i] = buf[ulen];
-        return e;
-    }
-
-    template<class U>
-    int find(const U &o)
-    {
-        for(int i = 0; i < ulen; ++i)
-        {
-            if(buf[i]==o)
-            {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    void removeobj(const T &o)
-    {
-        for(int i = 0; i < int(ulen); ++i)
-        {
-            if(buf[i] == o)
-            {
-                int dst = i;
-                for(int j = i+1; j < ulen; j++)
-                {
-                    if(!(buf[j] == o))
-                    {
-                        buf[dst++] = buf[j];
-                    }
-                }
-                setsize(dst);
-                break;
-            }
-        }
-    }
-
-    T &insert(int i, const T &e)
-    {
-        add(T());
-        for(int p = ulen-1; p>i; p--) buf[p] = buf[p-1];
-        buf[i] = e;
-        return buf[i];
-    }
-
-    T *insert(int i, const T *e, int n)
-    {
-        if(alen-ulen < n) growbuf(ulen+n);
-        for(int j = 0; j < n; ++j)
-        {
-            add(T());
-        }
-        for(int p = ulen-1; p>=i+n; p--)
-        {
-            buf[p] = buf[p-n];
-        }
-        for(int j = 0; j < n; ++j)
-        {
-            buf[i+j] = e[j];
-        }
-        return &buf[i];
-    }
-};
 
 template<class H, class E, class K, class T>
 struct hashbase
@@ -789,11 +589,10 @@ extern stream *openrawfile(const char *filename, const char *mode);
 extern stream *openfile(const char *filename, const char *mode);
 extern stream *opentempfile(const char *filename, const char *mode);
 extern char *loadfile(const char *fn, size_t *size);
-extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 
 extern void putint(ucharbuf &p, int n);
 extern void putint(packetbuf &p, int n);
-extern void putint(vector<uchar> &p, int n);
+extern void putint(std::vector<uchar> &p, int n);
 extern int getint(ucharbuf &p);
 extern void putuint(ucharbuf &p, int n);
 extern int getuint(ucharbuf &p);
@@ -801,7 +600,7 @@ extern void putfloat(packetbuf &p, float f);
 extern float getfloat(ucharbuf &p);
 extern void sendstring(const char *t, ucharbuf &p);
 extern void sendstring(const char *t, packetbuf &p);
-extern void sendstring(const char *t, vector<uchar> &p);
+extern void sendstring(const char *t, std::vector<uchar> &p);
 extern void getstring(char *t, ucharbuf &p, size_t len);
 
 template<size_t N>

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <algorithm>
+#include <vector>
 
 #include <enet/enet.h>
 

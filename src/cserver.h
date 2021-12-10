@@ -295,11 +295,11 @@ namespace server
         bool connected, local, timesync;
         int gameoffset, lastevent, pushed, exceeded;
         servstate state;
-        vector<gameevent *> events;
-        vector<uchar> position, messages;
+        std::vector<gameevent *> events;
+        std::vector<uchar> position, messages;
         uchar *wsdata;
         int wslen;
-        vector<clientinfo *> bots;
+        std::vector<clientinfo *> bots;
         int ping, aireinit;
         string clientmap;
         int mapcrc;
@@ -314,7 +314,16 @@ namespace server
         char *authkickreason;
 
         clientinfo() : getdemo(nullptr), getmap(nullptr), clipboard(nullptr), authchallenge(nullptr), authkickreason(nullptr) { reset(); }
-        ~clientinfo() { events.deletecontents(); cleanclipboard();}
+        ~clientinfo()
+        {
+            for(gameevent * i : events)
+            {
+                delete i;
+                i = nullptr;
+            }
+            events.clear();
+            cleanclipboard();
+        }
 
         enum
         {
@@ -349,7 +358,7 @@ namespace server
     extern void sendwelcome(clientinfo *ci);
     extern int welcomepacket(packetbuf &p, clientinfo *ci);
 
-    extern vector<clientinfo *> clients;
+    extern std::vector<clientinfo *> clients;
     extern int gamemillis;
     extern string smapname;
     extern teaminfo teaminfos[MAXTEAMS];

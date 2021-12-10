@@ -2,7 +2,7 @@
 
 namespace game
 {
-    extern void parseoptions(vector<const char *> &args);
+    extern void parseoptions(std::vector<const char *> &args);
 }
 
 namespace server
