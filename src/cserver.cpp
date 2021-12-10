@@ -186,6 +186,17 @@ namespace server
 
 // clientinfo implementation
 
+    clientinfo::~clientinfo()
+    {
+        for(gameevent * i : events)
+        {
+            delete i;
+            i = nullptr;
+        }
+        events.clear();
+        cleanclipboard();
+    }
+
     void clientinfo::addevent(gameevent *e)
     {
         if(state.state==ClientState_Spectator || events.size()>100)
@@ -528,7 +539,7 @@ namespace server
             return (clientinfo *)getclientinfo(n);
         }
         n -= MAXCLIENTS;
-        return (bots.size() > n) ? bots[n] : nullptr;
+        return (static_cast<int>(bots.size()) > n) ? bots[n] : nullptr;
     }
 
     uint mcrc = 0;
@@ -614,12 +625,16 @@ namespace server
     int numclients(int exclude = -1, bool nospec = true, bool noai = true, bool priv = false)
     {
         int n = 0;
-        for(int i = 0; i < clients.size(); i++)
+
+        for(uint i = 0; i < clients.size(); i++)
         {
-            clientinfo *ci = clients[i];
-            if(ci != nullptr && ci->clientnum!=exclude && (!nospec || ci->state.state!=ClientState_Spectator || (priv && (ci->privilege || ci->local))) && (!noai || ci->state.aitype == AI_None))
+            if(clients[i] != nullptr)
             {
-                n++;
+                clientinfo *ci = clients[i];
+                if(ci != nullptr && ci->clientnum!=exclude && (!nospec || ci->state.state!=ClientState_Spectator || (priv && (ci->privilege || ci->local))) && (!noai || ci->state.aitype == AI_None))
+                {
+                    n++;
+                }
             }
         }
         return n;
@@ -631,7 +646,7 @@ namespace server
         {
             name = ci->name;
         }
-        for(int i = 0; i < clients.size(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(clients[i]!=ci && !strcmp(name, clients[i]->name))
             {
@@ -807,7 +822,7 @@ namespace server
     int chooseworstteam(clientinfo *exclude = nullptr)
     {
         teamrank teamranks[MAXTEAMS];
-        for(int i = 0; i < clients.size(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci==exclude || ci->state.aitype!=AI_None || ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
@@ -1362,7 +1377,7 @@ namespace server
         {
             return;
         }
-        if(wsbuf.length() + bi.position.size() > mtu)
+        if(wsbuf.length() + static_cast<int>(bi.position.size()) > mtu)
         {
             sendpositions(ws, wsbuf);
         }
@@ -1429,7 +1444,7 @@ namespace server
         {
             return;
         }
-        if(wsbuf.length() + 10 + bi.messages.size() > mtu)
+        if(wsbuf.length() + 10 + static_cast<int>(bi.messages.size()) > mtu)
         {
             sendmessages(ws, wsbuf);
         }
@@ -1458,7 +1473,6 @@ namespace server
         {
             if(clients[i] != nullptr)
             {
-                printf("pointer at i: %d\n", clients.at(i));
                 clients.at(i)->overflow = 0;
                 clients.at(i)->wsdata = nullptr;
                 wsmax += clients[i]->position.size();
@@ -1786,7 +1800,6 @@ namespace server
         {
             smode->cleanup();
         }
-        printf("bots vector size is %d\n", bots.size());
         aiman::clearai();
 
         gamemode = mode;
@@ -2013,7 +2026,7 @@ namespace server
             }
 
             bool dup = false;
-            for(int j = 0; j < i; ++j)
+            for(uint j = 0; j < i; ++j)
             {
                 if(hits[j].target==h.target)
                 {
@@ -2109,6 +2122,12 @@ namespace server
         return true;
     }
 
+    void clearevent(clientinfo *ci)
+    {
+        delete ci->events.back();
+        ci->events.pop_back();
+    }
+
     void cleartimedevents(clientinfo *ci)
     {
         uint keep = 0;
@@ -2134,6 +2153,31 @@ namespace server
             ci->events.pop_back();
         }
         ci->timesync = false;
+    }
+
+    void flushevents(clientinfo *ci, int millis)
+    {
+        while(ci->events.size())
+        {
+            gameevent *ev = ci->events[0];
+            if(ev->flush(ci, millis))
+            {
+                clearevent(ci);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    void processevents()
+    {
+        for(uint i = 0; i < clients.size(); i++)
+        {
+            clientinfo *ci = clients[i];
+            flushevents(ci, gamemillis);
+        }
     }
 
     void serverupdate() //called from engine/server.src
@@ -2214,6 +2258,7 @@ namespace server
 
         if(shouldstep && !gamepaused) //while unpaused & players ingame, check if match should be over
         {
+            processevents();
             if(!modecheck(gamemode, Mode_Untimed) && smapname[0] && gamemillis-curtime>0)
             {
                 checkintermission();
@@ -2281,7 +2326,7 @@ namespace server
         {
             crcs.push_back(crcinfo(mcrc, clients.size() + 1));
         }
-        for(int i = 0; i < clients.size(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->state.state==ClientState_Spectator || ci->state.aitype != AI_None)
@@ -2303,7 +2348,7 @@ namespace server
             else
             {
                 crcinfo *match = nullptr;
-                for(int j = 0; j < crcs.size(); j++)
+                for(uint j = 0; j < crcs.size(); j++)
                 {
                     if(crcs[j].crc == ci->mapcrc)
                     {
@@ -2344,7 +2389,7 @@ namespace server
         }
         if(crcs.size() >= 2)
         {
-            for(int i = 0; i < crcs.size(); i++)
+            for(uint i = 0; i < crcs.size(); i++)
             {
                 crcinfo &info = crcs[i];
                 if(i || info.matches <= crcs[i+1].matches)
@@ -3114,7 +3159,7 @@ namespace server
                 }
                 case NetMsg_ItemPickup:
                 {
-                    int n = getint(p);
+                    getint(p);
                     break;
                 }
                 case NetMsg_Text:
@@ -3218,7 +3263,7 @@ namespace server
                     while((n = getint(p))>=0 && n<MAXENTS && !p.overread())
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.size()<=n)
+                        while(static_cast<int>(sents.size()) <= n)
                         {
                             sents.push_back(se);
                         }
@@ -3256,10 +3301,10 @@ namespace server
                     }
                     QUEUE_MSG;
                     bool canspawn = canspawnitem(type);
-                    if(i<MAXENTS && (sents.size() > i) || canspawnitem(type))
+                    if(i<MAXENTS && ((static_cast<int>(sents.size()) > i) || canspawnitem(type)))
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.size() <= i)
+                        while(static_cast<int>(sents.size()) <= i)
                         {
                             sents.push_back(se);
                         }
@@ -4029,29 +4074,26 @@ enum
             for(uint i = 0; i < clients.size(); i++)
             {
                 clientinfo *ci = clients[i];
-                if(ci != nullptr)
+                if(ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
                 {
-                    if(ci->state.state==ClientState_Spectator || !VALID_TEAM(ci->team))
+                    continue;
+                }
+                teamscore *t = nullptr;
+                for(uint j = 0; j < teams.size(); j++)
+                {
+                    if(teams[j].team == ci->team)
                     {
-                        continue;
+                        t = &teams[j];
+                        break;
                     }
-                    teamscore *t = nullptr;
-                    for(int j = 0; j < teams.size(); j++)
-                    {
-                        if(teams[j].team == ci->team)
-                        {
-                            t = &teams[j];
-                            break;
-                        }
-                    }
-                    if(t)
-                    {
-                        t->score++;
-                    }
-                    else
-                    {
-                        teams.emplace_back(teamscore(ci->team, 1));
-                    }
+                }
+                if(t)
+                {
+                    t->score++;
+                }
+                else
+                {
+                    teams.emplace_back(teamscore(ci->team, 1));
                 }
             }
             std::sort(teams.begin(), teams.end());
@@ -4125,14 +4167,11 @@ enum
         //this fxn could be entirely in the return statement but is seperated for clarity
         static inline bool validaiclient(clientinfo *ci)
         {
-            if(ci != nullptr)
+            if(ci->clientnum >= 0 && ci->state.aitype == AI_None)
             {
-                if(ci->clientnum >= 0 && ci->state.aitype == AI_None)
+                if(ci->state.state!=ClientState_Spectator || ci->local || (ci->privilege && !ci->warned))
                 {
-                    if(ci->state.state!=ClientState_Spectator || ci->local || (ci->privilege && !ci->warned))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
             return false;
@@ -4158,9 +4197,9 @@ enum
 
         bool addai(int skill, int limit)
         {
-            int numai = 0,
-                cn = -1,
-                maxai = limit >= 0 ? std::min(limit, MAXBOTS) : MAXBOTS;
+            uint numai = 0,
+                 cn = -1,
+                 maxai = limit >= 0 ? std::min(limit, MAXBOTS) : MAXBOTS;
             for(uint i = 0; i < bots.size(); i++)
             {
                 clientinfo *ci = bots[i];
@@ -4230,11 +4269,7 @@ enum
 
         void deleteai(clientinfo *ci)
         {
-            if(ci == nullptr)
-            {
-                return;
-            }
-            int cn = ci->clientnum - MAXCLIENTS;
+            uint cn = ci->clientnum - MAXCLIENTS;
             if(!(bots.size() > cn))
             {
                 return;
@@ -4247,9 +4282,9 @@ enum
             clientinfo *owner = (clientinfo *)getclientinfo(ci->ownernum);
             if(owner)
             {
-                if(std::find(bots.begin(), bots.end(), ci) != bots.end())
+                if(std::find(owner->bots.begin(), owner->bots.end(), ci) != owner->bots.end())
                 {
-                    owner->bots.erase(std::find(bots.begin(), bots.end(), ci));
+                    owner->bots.erase(std::find(owner->bots.begin(), owner->bots.end(), ci));
                 }
             }
             if(std::find(clients.begin(), clients.end(), ci) != clients.end())
@@ -4261,11 +4296,11 @@ enum
 
         bool deleteai()
         {
-            for(uint i = bots.size(); --i >=0;) //note reverse iteration
+            for(auto i = std::crbegin(bots); i != std::crend(bots); i++)
             {
-                if(bots[i] && bots[i]->ownernum >= 0)
+                if(*i && (*i)->ownernum >= 0)
                 {
-                    deleteai(bots[i]);
+                    deleteai(*i);
                     return true;
                 }
             }
@@ -4274,7 +4309,6 @@ enum
 
         void reinitai(clientinfo *ci)
         {
-            printf("pointer reinitai is at %d\n", ci);
             if(ci->ownernum < 0)
             {
                 deleteai(ci);
@@ -4306,9 +4340,9 @@ enum
                 smode->leavegame(ci, true);
             }
             clientinfo *prevowner = (clientinfo *)getclientinfo(ci->ownernum);
-            if(prevowner && std::find(bots.begin(), bots.end(), ci) != bots.end())
+            if(prevowner && std::find(prevowner->bots.begin(), prevowner->bots.end(), ci) != bots.end())
             {
-                prevowner->bots.erase(std::find(bots.begin(), bots.end(), ci));
+                prevowner->bots.erase(std::find(prevowner->bots.begin(), prevowner->bots.end(), ci));
             }
             if(!owner)
             {

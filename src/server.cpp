@@ -178,12 +178,12 @@ int getservermtu()
 
 void *getclientinfo(int i)
 {
-    return !(clients.size() > i) || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
+    return !(clients.size() > static_cast<uint>(i)) || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
 }
 
 ENetPeer *getclientpeer(int i)
 {
-    return (clients.size() > i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
+    return (static_cast<int>(clients.size()) > i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
 }
 
 int getnumclients()
@@ -193,7 +193,7 @@ int getnumclients()
 
 uint getclientip(int n)
 {
-    return (clients.size() > n) && clients[n]->type==ServerClient_Remote ? clients[n]->peer->address.host : 0;
+    return (static_cast<int>(clients.size()) > n) && clients[n]->type==ServerClient_Remote ? clients[n]->peer->address.host : 0;
 }
 
 void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
@@ -203,7 +203,7 @@ void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
         server::recordpacket(chan, packet->data, packet->dataLength);
         for(uint i = 0; i < clients.size(); i++)
         {
-            if(i!=exclude && server::allowbroadcast(i))
+            if(i!=static_cast<uint>(exclude) && server::allowbroadcast(i))
             {
                 sendpacket(i, chan, packet);
             }
@@ -294,7 +294,7 @@ ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
     {
         return nullptr;
     }
-    else if(!(clients.size() > cn))
+    else if(!(static_cast<int>(clients.size()) > cn))
     {
         return nullptr;
     }
@@ -398,7 +398,7 @@ const char *disconnectreason(int reason)
 void disconnect_client(int n, int reason)
 {
     //don't drop local clients
-    if(!(clients.size() > n) || clients[n]->type!=ServerClient_Remote)
+    if(!(static_cast<int>(clients.size()) > n) || clients[n]->type!=ServerClient_Remote)
     {
         return;
     }
@@ -540,7 +540,7 @@ bool requestmaster(const char *req)
     {
         return false;
     }
-    for (int i = 0; i < strlen(req); ++i)
+    for(uint i = 0; i < strlen(req); ++i)
     {
         masterout.push_back(req[i]);
     }
@@ -555,7 +555,7 @@ bool requestmasterf(const char *fmt, ...)
 
 void processmasterinput()
 {
-    if(masterinpos >= masterin.size())
+    if(masterinpos >= static_cast<int>(masterin.size()))
     {
         return;
     }
@@ -589,7 +589,7 @@ void processmasterinput()
         end = reinterpret_cast<char*>(memchr(input, '\n', masterin.size() - masterinpos));
     }
 
-    if(masterinpos >= masterin.size())
+    if(masterinpos >= static_cast<int>(masterin.size()))
     {
         masterin.clear();
         masterinpos = 0;
@@ -614,7 +614,7 @@ void flushmasteroutput()
     if(sent >= 0)
     {
         masteroutpos += sent;
-        if(masteroutpos >= masterout.size())
+        if(masteroutpos >= static_cast<int>(masterout.size()))
         {
             masterout.clear();
             masteroutpos = 0;

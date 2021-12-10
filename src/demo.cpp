@@ -77,7 +77,7 @@ namespace server
             demos.clear();
             sendservmsg("cleared all demos");
         }
-        else if(demos.size() > (n-1))
+        else if(static_cast<int>(demos.size()) > (n-1))
         {
             delete[] demos[n-1].data;
             demos.erase(demos.begin() + n-1);
@@ -119,7 +119,7 @@ namespace server
         {
             num = demos.size();
         }
-        if(!(demos.size() > (num-1)))
+        if(!(static_cast<int>(demos.size()) > (num-1)))
         {
             return;
         }

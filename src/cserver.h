@@ -314,16 +314,7 @@ namespace server
         char *authkickreason;
 
         clientinfo() : getdemo(nullptr), getmap(nullptr), clipboard(nullptr), authchallenge(nullptr), authkickreason(nullptr) { reset(); }
-        ~clientinfo()
-        {
-            for(gameevent * i : events)
-            {
-                delete i;
-                i = nullptr;
-            }
-            events.clear();
-            cleanclipboard();
-        }
+        ~clientinfo();
 
         enum
         {
