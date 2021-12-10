@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <vector>
+#include <utility>
 
 #include <enet/enet.h>
 #include <zlib.h>
@@ -27,7 +28,7 @@ char *exchangestr(char *o, const char *n)
     return newstring(n);
 }
 
-typedef hashtable<const char *, ident> identtable;
+typedef std::vector<std::pair<const char *, ident>> identtable;
 
 identtable *idents = nullptr;        // contains ALL vars/commands
 
@@ -36,23 +37,55 @@ bool overrideidents = false,
 
 void clearoverrides()
 {
-    ENUMERATE(*idents, ident, i,
-        if(i.override!=NO_OVERRIDE)
+    for(std::pair<const char *, ident> i : *idents)
+    {
+        if(i.second.override!=NO_OVERRIDE)
         {
-            switch(i.type)
+            switch(i.second.type)
             {
                 case Id_Var:
-                    *i.storage.i = i.overrideval.i;
-                    i.changed();
+                    *i.second.storage.i = i.second.overrideval.i;
+                    i.second.changed();
                     break;
                 case Id_StringVar:
-                    delete[] *i.storage.s;
-                    *i.storage.s = i.overrideval.s;
-                    i.changed();
+                    delete[] *i.second.storage.s;
+                    *i.second.storage.s = i.second.overrideval.s;
+                    i.second.changed();
                     break;
             }
-            i.override = NO_OVERRIDE;
-        });
+            i.second.override = NO_OVERRIDE;
+        }
+    }
+}
+
+//attempts to find and overwrite entry with same name, else creates new entry
+void accessidenttable(const char * name, ident v)
+{
+    bool found = false;
+    for(uint i = 0; i < idents->size(); ++i)
+    {
+        if(strcmp(name, idents->at(i).first) == 0)
+        {
+            idents->at(i).second = v;
+            found = true;
+        }
+    }
+    if(!found)
+    {
+        idents->push_back(std::pair<const char *, ident>(name, v));
+    }
+}
+//attempts to find and return ident associated with name
+ident * accessidenttable(const char * name)
+{
+    for(uint i = 0; i < idents->size(); ++i)
+    {
+        if(strcmp(name, idents->at(i).first) == 0)
+        {
+            return &idents->at(i).second;
+        }
+    }
+    return nullptr;
 }
 
 void popident(ident &id)
@@ -69,7 +102,7 @@ int variable(const char *name, int min, int cur, int max, int *storage, void (*f
         idents = new identtable;
     }
     ident v(Id_Var, name, min, cur, max, storage, (void *)fun, flags);
-    idents->access(name, v);
+    accessidenttable(name, v);
     return cur;
 }
 
@@ -80,7 +113,7 @@ char *svariable(const char *name, const char *cur, char **storage, void (*fun)()
         idents = new identtable;
     }
     ident v(Id_StringVar, name, newstring(cur), storage, (void *)fun, flags);
-    idents->access(name, v);
+    accessidenttable(name, v);
     return v.val.s;
 }
 
@@ -99,13 +132,13 @@ bool addcommand(const char *name, void (*fun)(), const char *narg)
         idents = new identtable;
     }
     ident c(ID_COMMAND, name, narg, (void *)fun);
-    idents->access(name, c);
+    accessidenttable(name, c);
     return false;
 }
 
 char *lookup(char *n)                           // find value of ident referenced with $ in exp
 {
-    ident *id = idents->access(n+1);
+    ident *id = accessidenttable(n+1);
     if(id) switch(id->type)
     {
         case Id_Var:
@@ -250,7 +283,7 @@ char *executeret(const char *p)               // all evaluation happens here, re
         DELETEA(retval);
         if(!infix)
         {
-            ident *id = idents->access(c);
+            ident *id = accessidenttable(c);
             if(!id)
             {
                 if(!isdigit(*c) && ((*c!='+' && *c!='-' && *c!='.') || !isdigit(c[1])))

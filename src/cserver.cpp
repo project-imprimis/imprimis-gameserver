@@ -912,55 +912,6 @@ namespace server
 
     SVAR(serverauth, "");
 
-    struct userkey
-    {
-        char *name;
-        char *desc;
-
-        userkey() : name(nullptr), desc(nullptr) {}
-        userkey(char *name, char *desc) : name(name), desc(desc) {}
-    };
-
-    static inline uint hthash(const userkey &k) { return ::hthash(k.name); }
-    static inline bool htcmp(const userkey &x, const userkey &y) { return !strcmp(x.name, y.name) && !strcmp(x.desc, y.desc); }
-
-    struct userinfo : userkey
-    {
-        void *pubkey;
-        int privilege;
-
-        userinfo() : pubkey(nullptr), privilege(Priv_None) {}
-        ~userinfo() { delete[] name; delete[] desc;}
-    };
-    hashset<userinfo> users;
-
-    void adduser(char *name, char *desc, char *pubkey, char *priv)
-    {
-        userkey key(name, desc);
-        userinfo &u = users[key];
-        if(!u.name)
-        {
-            u.name = newstring(name);
-        }
-        if(!u.desc)
-        {
-            u.desc = newstring(desc);
-        }
-        switch(priv[0])
-        {
-            case 'a': case 'A': u.privilege = Priv_Admin; break;
-            case 'm': case 'M': default: u.privilege = Priv_Auth; break;
-            case 'n': case 'N': u.privilege = Priv_None; break;
-        }
-    }
-    COMMAND(adduser, "ssss");
-
-    void clearusers()
-    {
-        users.clear();
-    }
-    COMMAND(clearusers, "");
-
     void revokemaster(clientinfo *ci)
     {
         ci->privilege = Priv_None;
@@ -3627,18 +3578,6 @@ namespace server
                     getstring(text, p);
                     filtertext(text, text);
                     int authpriv = Priv_Auth;
-                    if(desc[0])
-                    {
-                        userinfo *u = users.access(userkey(name, desc));
-                        if(u)
-                        {
-                            authpriv = u->privilege;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
                     if(ci->local || ci->privilege >= authpriv)
                     {
                         trykick(ci, victim, text);

@@ -39,13 +39,11 @@ struct ident
     int minval;    // Id_Var
     int maxval;    // Id_Var
     int override;       // either NO_OVERRIDE, OVERRIDDEN, or value
+
+    void (__cdecl *fun)(); // Id_Var, ID_COMMAND, ID_CCOMMAND
     union
     {
-        void (__cdecl *fun)(); // Id_Var, ID_COMMAND, ID_CCOMMAND
-    };
-    union
-    {
-        const char *narg; // ID_COMMAND, ID_CCOMMAND
+        const char *narg = nullptr; // ID_COMMAND, ID_CCOMMAND
         identval val;     // Id_Var, Id_StringVar
     };
     union
@@ -60,14 +58,14 @@ struct ident
     // Id_Var
     ident(int t, const char *n, int m, int c, int x, int *s, void *f = nullptr, int flags = 0)
         : type(t), name(n), minval(m), maxval(x), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
-    { val.i = c; storage.i = s; }
+    { val.i = c; storage.i = s; overrideval.i = 0;}
     // Id_StringVar
     ident(int t, const char *n, char *c, char **s, void *f = nullptr, int flags = 0)
         : type(t), name(n), override(NO_OVERRIDE), fun((void (__cdecl *)())f), flags(flags)
-    { val.s = c; storage.s = s; }
+    { val.s = c; storage.s = s; minval = 0; maxval = 0; overrideval.s = nullptr;}
     // ID_COMMAND, ID_CCOMMAND
     ident(int t, const char *n, const char *narg, void *f = nullptr, void *s = nullptr, int flags = 0)
-        : type(t), name(n), fun((void (__cdecl *)(void))f), narg(narg), self(s), flags(flags) {}
+        : type(t), name(n), fun((void (__cdecl *)(void))f), narg(narg), self(s), flags(flags) {minval = 0; maxval = 0; storage.i = nullptr; override =NO_OVERRIDE;}
 
     virtual ~ident() {}
 
