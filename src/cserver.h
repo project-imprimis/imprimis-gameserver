@@ -323,6 +323,11 @@ namespace server
         void cleanclipboard(bool fullclean = true);
         void reset();
         int geteventmillis(int servmillis, int clientmillis);
+
+        bool operator==(const clientinfo& a)
+        {
+            return (clientnum == a.clientnum);
+        }
     };
 
     struct gameevent

@@ -4219,6 +4219,11 @@ enum
             }
             sendf(-1, 1, "ri2", NetMsg_ClientDiscon, ci->clientnum);
             clientinfo *owner = (clientinfo *)getclientinfo(ci->ownernum);
+
+            if(std::find(bots.begin(), bots.end(), ci) != bots.end())
+            {
+                bots.erase(std::find(bots.begin(), bots.end(), ci));
+            }
             if(owner)
             {
                 if(std::find(owner->bots.begin(), owner->bots.end(), ci) != owner->bots.end())
