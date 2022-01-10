@@ -44,7 +44,7 @@ static const struct attackinfo { int attackdelay, damage, range, rays, exprad; }
 //    8     9   14   15  17
 {
     {  300,  5, 1200, 1,  0},
-    {  700, 15, 1024, 1, 50},
+    {  700,  8, 1024, 1, 50},
     {  250,  0,  160, 1, 20},
     {   80,  2,  512, 1,  0},
 };
