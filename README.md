@@ -14,12 +14,27 @@ has similar functionality.
 
 ## Compilation Instructions
 
-The server can be compiled from the directory `/src` using the command `make`.
+1. Clone the repository.
+```bash
+git clone https://github.com/project-imprimis/imprimis-gameserver.git --recurse-submodules
+```
+2. Go to the `enet` library folder and compile `enet`.
+```bash 
+cd imprimis-gameserver/src/enet/ && make
+```
+3. Go to `src` folder and compile the gameserver.
+```bash 
+cd .. && make
+```
+4. Execute the gameserver.
+```bash 
+./imprimis_gameserver
+```
 
-The library `enet` needs to be compiled as well; this can be done so by entering
-`/src/enet` and running `make`. After compiling the `enet` library first, the
-server can be compiled afterwards, creating the executable `imprimis_gameserver`
-that can be run in the command line to create a game server.
+Note that the `enet` library has to be compiled first, and the gameserver
+afterwards. The gameserver executable `imprimis_gameserver` can be run in
+the command line to create a game server.
+
 
 ## Hardware Requirements
 
