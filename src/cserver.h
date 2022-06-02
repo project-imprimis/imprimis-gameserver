@@ -25,6 +25,7 @@ enum
     Gun_Pulse,
     Gun_Eng,
     Gun_Carbine,
+    Gun_Shotgun,
     Gun_NumGuns
 };
 
@@ -34,6 +35,7 @@ enum
     Attack_PulseShoot,
     Attack_EngShoot,
     Attack_CarbineShoot,
+    Attack_ShotgunShoot,
     Attack_NumAttacks
 };
 
@@ -46,6 +48,7 @@ static const struct attackinfo { int attackdelay, damage, range, rays, exprad; }
     {  300,  5, 1200, 1,  0},
     {  700,  8, 1024, 1, 50},
     {  250,  0,  160, 1, 20},
+    {  750,  1,  512, 13,  0},
     {   80,  2,  512, 1,  0},
 };
 
@@ -353,5 +356,5 @@ namespace server
     extern int gamemillis;
     extern string smapname;
     extern teaminfo teaminfos[MAXTEAMS];
-
+    extern void sendspawn(clientinfo *ci);
 }

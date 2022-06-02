@@ -112,7 +112,7 @@ namespace server
 
     bool servstate::waitexpired(int gamemillis)
     {
-        return gamemillis - lastshot >= gunwait;
+        return true;
     }
 
     void servstate::reset()
@@ -602,7 +602,7 @@ namespace server
     void changemap(const char *name, int mode);
     void serverinit()
     {
-        changemap("tdm1e", 1);
+        changemap("def1a", 1);
         resetitems();
     }
 
@@ -661,7 +661,17 @@ namespace server
         virtual void leavegame(clientinfo *ci, bool disconnecting = false) {}
 
         virtual void moved(clientinfo *ci, const vec &oldpos, bool oldclip, const vec &newpos, bool newclip) {}
-        virtual bool canspawn(clientinfo *ci, bool connecting = false) { return true; }
+        virtual bool canspawn(clientinfo *ci, bool connecting = false)
+        {
+            if(!modecheck(gamemode, Mode_Team))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         virtual void spawned(clientinfo *ci) {}
         virtual int fragvalue(clientinfo *victim, clientinfo *actor)
         {
@@ -1844,7 +1854,6 @@ namespace server
                 sendspawn(ci);
             }
         }
-        clearspawns();
         aiman::changemap();
 
         if(modecheck(gamemode, Mode_Demo))
@@ -1874,7 +1883,7 @@ namespace server
 
     void checkintermission()
     {
-        if(((gamemillis >= gamelimit) && !interm) || mapcontrolintermission())
+        if(/*((gamemillis >= gamelimit) && !interm)|| */mapcontrolintermission())
         {
             sendf(-1, 1, "ri2", NetMsg_TimeUp, 0);
             if(smode)
@@ -2264,7 +2273,7 @@ namespace server
                     enddemorecord(); //close demo if one is being recorded
                 }
                 interm = -1;
-                changemap("tdm1e", 1);
+                changemap("def1a", 1);
             }
         }
 
@@ -2990,7 +2999,7 @@ namespace server
                 }
                 case NetMsg_TrySpawn:
                 {
-                    if(!ci || !cq || cq->state.state!=ClientState_Dead || (smode && !smode->canspawn(cq)))
+                    if(!ci || !cq || cq->state.state!=ClientState_Dead || !modecheck(gamemode,Mode_Edit))
                     {
                         break;
                     }
