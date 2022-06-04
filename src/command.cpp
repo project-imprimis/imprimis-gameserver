@@ -33,32 +33,6 @@ identtable *idents = nullptr;        // contains ALL vars/commands
 bool overrideidents = false,
      persistidents = true;
 
-void clearoverrides()
-{
-    ENUMERATE(*idents, ident, i,
-        if(i.override!=NO_OVERRIDE)
-        {
-            switch(i.type)
-            {
-                case Id_Var:
-                    *i.storage.i = i.overrideval.i;
-                    i.changed();
-                    break;
-                case Id_StringVar:
-                    delete[] *i.storage.s;
-                    *i.storage.s = i.overrideval.s;
-                    i.changed();
-                    break;
-            }
-            i.override = NO_OVERRIDE;
-        });
-}
-
-void popident(ident &id)
-{
-    return;
-}
-
 // variables and commands are registered through globals, see cube.h
 
 int variable(const char *name, int min, int cur, int max, int *storage, void (*fun)(), int flags)
@@ -182,29 +156,6 @@ char *parseword(const char *&p, int arg, int &infix)                       // pa
         return lookup(s);               // substitute variables
     }
     return s;
-}
-
-char *conc(char **w, int n, bool space)
-{
-    int len = space ? std::max(n-1, 0) : 0;
-    for(int j = 0; j < n; j++)
-    {
-        len += (int)strlen(w[j]);
-    }
-    char *r = newstring("", len);
-    for(int i = 0; i < n; i++)
-    {
-        strcat(r, w[i]);  // make string-list out of all arguments
-        if(i==n-1)
-        {
-            break;
-        }
-        if(space)
-        {
-            strcat(r, " ");
-        }
-    }
-    return r;
 }
 
 VARN(numargs, _numargs, 0, 0, 25);

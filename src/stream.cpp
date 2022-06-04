@@ -61,31 +61,6 @@ extern const int uni2cubeoffsets[8] =
 
 string homedir = "";
 
-char *makerelpath(const char *dir, const char *file, const char *prefix, const char *cmd)
-{
-    static string tmp;
-    if(prefix) copystring(tmp, prefix);
-    else tmp[0] = '\0';
-    if(file[0]=='<')
-    {
-        const char *end = strrchr(file, '>');
-        if(end)
-        {
-            size_t len = strlen(tmp);
-            copystring(&tmp[len], file, std::min(sizeof(tmp)-len, size_t(end+2-file)));
-            file = end+1;
-        }
-    }
-    if(cmd) concatstring(tmp, cmd);
-    if(dir)
-    {
-        DEF_FORMAT_STRING(pname, "%s/%s", dir, file);
-        concatstring(tmp, pname);
-    }
-    else concatstring(tmp, file);
-    return tmp;
-}
-
 char *path(char *s)
 {
     for(char *curpart = s;;)
@@ -178,36 +153,6 @@ size_t fixpackagedir(char *dir)
         dir[len+1] = '\0';
     }
     return len;
-}
-
-bool subhomedir(char *dst, int len, const char *src)
-{
-    const char *sub = strstr(src, "$HOME");
-    if(!sub) sub = strchr(src, '~');
-    if(sub && sub-src < len)
-    {
-#ifdef WIN32
-        char home[MAX_PATH+1];
-        home[0] = '\0';
-        if(SHGetFolderPath(nullptr, CSIDL_PERSONAL, nullptr, 0, home) != S_OK || !home[0]) return false;
-#else
-        const char *home = getenv("HOME");
-        if(!home || !home[0]) return false;
-#endif
-        dst[sub-src] = '\0';
-        concatstring(dst, home, len);
-        concatstring(dst, sub+(*sub == '~' ? 1 : strlen("$HOME")), len);
-    }
-    return true;
-}
-
-const char *sethomedir(const char *dir)
-{
-    string pdir;
-    copystring(pdir, dir);
-    if(!subhomedir(pdir, sizeof(pdir), dir) || !fixpackagedir(pdir)) return nullptr;
-    copystring(homedir, pdir);
-    return homedir;
 }
 
 const char *findfile(const char *filename, const char *mode)

@@ -35,20 +35,6 @@
 //map crc checks
 //ai manager
 
-namespace game
-{
-    void parseoptions(vector<const char *> &args)
-    {
-        for(int i = 0; i < args.length(); i++)
-        {
-            if(!server::serveroption(args[i]))
-            {
-                printf("unknown command-line option: %s\n", args[i]);
-            }
-        }
-    }
-}
-
 extern ENetAddress masteraddress;
 
 namespace server
@@ -109,11 +95,6 @@ namespace server
     bool servstate::isalive(int gamemillis)
     {
         return state==ClientState_Alive || (state==ClientState_Dead && gamemillis - lastdeath <= DEATHMILLIS);
-    }
-
-    bool servstate::waitexpired(int gamemillis)
-    {
-        return true;
     }
 
     void servstate::reset()
@@ -302,7 +283,7 @@ namespace server
 
     int clientinfo::geteventmillis(int servmillis, int clientmillis)
     {
-        if(!timesync || (events.empty() && state.waitexpired(servmillis)))
+        if(!timesync || events.empty())
         {
             timesync = true;
             gameoffset = servmillis - clientmillis;
@@ -531,15 +512,6 @@ namespace server
         return msg >= 0 && msg < NetMsg_NumMsgs ? sizetable[msg] : -1;
     }
 
-    const char *modename(int n, const char *unknown)
-    {
-        if(MODE_VALID(n))
-        {
-            return gamemodes[n - STARTGAMEMODE].name;
-        }
-        return unknown;
-    }
-
     const char *modeprettyname(int n, const char *unknown)
     {
         if(MODE_VALID(n))
@@ -547,11 +519,6 @@ namespace server
             return gamemodes[n - STARTGAMEMODE].prettyname;
         }
         return unknown;
-    }
-
-    const char *mastermodename(int n, const char *unknown)
-    {
-        return (n>=MasterMode_Start && size_t(n-MasterMode_Start)<sizeof(mastermodenames)/sizeof(mastermodenames[0])) ? mastermodenames[n-MasterMode_Start] : unknown;
     }
 
     const char *privname(int type)
@@ -579,11 +546,6 @@ namespace server
         mcrc = 0;
         sents.setsize(0);
         //cps.reset();
-    }
-
-    bool serveroption(const char *arg)
-    {
-        return false;
     }
 
     void changemap(const char *name, int mode);
@@ -644,10 +606,6 @@ namespace server
     {
         virtual ~servermode() {}
 
-        virtual void entergame(clientinfo *ci) {}
-        virtual void leavegame(clientinfo *ci, bool disconnecting = false) {}
-
-        virtual void moved(clientinfo *ci, const vec &oldpos, bool oldclip, const vec &newpos, bool newclip) {}
         virtual bool canspawn(clientinfo *ci, bool connecting = false)
         {
             if(!modecheck(gamemode, Mode_Team))
@@ -659,7 +617,6 @@ namespace server
                 return false;
             }
         }
-        virtual void spawned(clientinfo *ci) {}
         virtual int fragvalue(clientinfo *victim, clientinfo *actor)
         {
             if(victim==actor || (modecheck(gamemode, Mode_Team) && (victim->team == actor->team)))
@@ -668,18 +625,9 @@ namespace server
             }
             return 1;
         }
-        virtual void died(clientinfo *victim, clientinfo *actor) {}
         virtual bool canchangeteam(clientinfo *ci, int oldteam, int newteam) { return true; }
-        virtual void changeteam(clientinfo *ci, int oldteam, int newteam) {}
-        virtual void initclient(clientinfo *ci, packetbuf &p, bool connecting) {}
-        virtual void update() {}
-        virtual void cleanup() {}
-        virtual void setup() {}
-        virtual void newmap() {}
-        virtual void intermission() {}
         virtual bool hidefrags() { return false; }
         virtual int getteamscore(int team) { return 0; }
-        virtual void getteamscores(std::vector<teamscore> &scores) {}
         virtual bool extinfoteam(int team, ucharbuf &p) { return false; }
     };
 
@@ -699,25 +647,6 @@ namespace server
         {
         }
         return sec*1000;
-    }
-
-
-    bool pickup(int i, int sender)         // server side item pickup, acknowledge first client that gets it
-    {
-        if((!modecheck(gamemode, Mode_Untimed) && gamemillis>=gamelimit) || !sents.inrange(i) || !sents[i].spawned)
-        {
-            return false;
-        }
-        clientinfo *ci = getinfo(sender);
-        if(!ci || (!ci->local && !ci->state.canpickup(sents[i].type)))
-        {
-            return false;
-        }
-        sents[i].spawned = false;
-        sents[i].spawntime = spawntime(sents[i].type);
-        sendf(-1, 1, "ri3", NetMsg_ItemAcceptance, i, sender);
-        ci->state.pickup(sents[i].type);
-        return true;
     }
 
     teaminfo teaminfos[MAXTEAMS];
@@ -1748,10 +1677,6 @@ namespace server
             putint(p, -1);
             welcomeinitclient(p, ci ? ci->clientnum : -1);
         }
-        if(smode)
-        {
-            smode->initclient(ci, p, true);
-        }
         return 1;
     }
 
@@ -1788,10 +1713,6 @@ namespace server
         stopdemo();
         pausegame(false);
         changegamespeed(100);
-        if(smode)
-        {
-            smode->cleanup();
-        }
         aiman::clearai();
 
         gamemode = mode;
@@ -1855,11 +1776,6 @@ namespace server
             demonextmatch = false;
             setupdemorecord();
         }
-
-        if(smode)
-        {
-            smode->setup();
-        }
     }
 
     void rotatemap()
@@ -1873,10 +1789,6 @@ namespace server
         if(/*((gamemillis >= gamelimit) && !interm)|| */mapcontrolintermission())
         {
             sendf(-1, 1, "ri2", NetMsg_TimeUp, 0);
-            if(smode)
-            {
-                smode->intermission();
-            }
             changegamespeed(100);
             interm = gamemillis + 10000;
         }
@@ -1943,10 +1855,6 @@ namespace server
             }
             sendf(-1, 1, "ri5", NetMsg_Died, target->clientnum, actor->clientnum, actor->state.frags, t ? t->frags : 0);
             target->position.setsize(0);
-            if(smode)
-            {
-                smode->died(target, actor);
-            }
             ts.state = ClientState_Dead;
             ts.lastdeath = gamemillis;
             if(actor!=target && modecheck(gamemode, Mode_Team) && actor->team == target->team)
@@ -1977,10 +1885,6 @@ namespace server
         }
         sendf(-1, 1, "ri5", NetMsg_Died, ci->clientnum, ci->clientnum, gs.frags, t ? t->frags : 0);
         ci->position.setsize(0);
-        if(smode)
-        {
-            smode->died(ci, nullptr);
-        }
         gs.state = ClientState_Dead;
         gs.lastdeath = gamemillis;
         gs.respawn();
@@ -2206,10 +2110,6 @@ namespace server
                     }
                 }
                 aiman::checkai();
-                if(smode)
-                {
-                    smode->update();
-                }
             }
         }
 
@@ -2276,10 +2176,6 @@ namespace server
         if(ci->state.state==ClientState_Alive)
         {
             suicide(ci);
-        }
-        if(smode)
-        {
-            smode->leavegame(ci);
         }
         ci->state.state = ClientState_Spectator;
         ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
@@ -2478,10 +2374,6 @@ namespace server
             if(ci->privilege)
             {
                 setmaster(ci, false);
-            }
-            if(smode)
-            {
-                smode->leavegame(ci, true);
             }
             ci->state.timeplayed += lastmillis - ci->state.lasttimeplayed;
             savescore(ci);
@@ -2890,10 +2782,6 @@ namespace server
                                 cp->position.add(p.buf[curmsg++]);
                             }
                         }
-                        if(smode && cp->state.state==ClientState_Alive)
-                        {
-                            smode->moved(cp, cp->state.o, cp->gameclip, pos, (flags&0x80)!=0);
-                        }
                         cp->state.o = pos;
                         cp->gameclip = (flags&0x80)!=0;
                     }
@@ -2926,17 +2814,6 @@ namespace server
                     if(val ? ci->state.state!=ClientState_Alive && ci->state.state!=ClientState_Dead : ci->state.state!=ClientState_Editing)
                     {
                         break;
-                    }
-                    if(smode)
-                    {
-                        if(val)
-                        {
-                            smode->leavegame(ci);
-                        }
-                        else
-                        {
-                            smode->entergame(ci);
-                        }
                     }
                     if(val)
                     {
@@ -3050,10 +2927,6 @@ namespace server
                     cq->state.gunselect = gunselect;
                     cq->state.combatclass = combatclass;
                     cq->exceeded = 0;
-                    if(smode)
-                    {
-                        smode->spawned(cq);
-                    }
                     clientinfo *cm = cq;
                     QUEUE_BUF({
                         putint(cm->messages, NetMsg_Spawn);
@@ -3539,10 +3412,6 @@ namespace server
                         smapname[0] = '\0';
                         resetitems();
                         notgotitems = false;
-                        if(smode)
-                        {
-                            smode->newmap();
-                        }
                     }
                     QUEUE_MSG;
                     break;
@@ -3920,10 +3789,6 @@ enum
         }
 
         std::vector<teamscore> scores;
-        if(smode && smode->hidefrags())
-        {
-            smode->getteamscores(scores);
-        }
         for(int i = 0; i < clients.length(); i++)
         {
             clientinfo *ci = clients[i];
@@ -4045,10 +3910,7 @@ enum
         sendstring(serverdesc, p);
         sendserverinforeply(p);
     }
-    int protocolversion()
-    {
-        return PROTOCOL_VERSION;
-    }
+
     // server-side ai manager
     // note that server does not handle actual bot logic,
     // which is offloaded to the clients with the best connection
@@ -4132,10 +3994,6 @@ enum
                 }
                 if(bot)
                 {
-                    if(smode && bot->state.state==ClientState_Alive)
-                    {
-                        smode->changeteam(bot, bot->team, t.team);
-                    }
                     bot->team = t.team;
                     sendf(-1, 1, "riiii", NetMsg_SetTeam, bot->clientnum, bot->team, 0);
                 }
@@ -4315,10 +4173,6 @@ enum
             {
                 return;
             }
-            if(ci->ownernum >= 0 && !ci->aireinit && smode)
-            {
-                smode->leavegame(ci, true);
-            }
             sendf(-1, 1, "ri2", NetMsg_ClientDiscon, ci->clientnum);
             clientinfo *owner = (clientinfo *)getclientinfo(ci->ownernum);
             if(owner)
@@ -4401,10 +4255,6 @@ enum
 
         void shiftai(clientinfo *ci, clientinfo *owner = nullptr)
         {
-            if(ci->ownernum >= 0 && !ci->aireinit && smode)
-            {
-                smode->leavegame(ci, true);
-            }
             clientinfo *prevowner = (clientinfo *)getclientinfo(ci->ownernum);
             if(prevowner)
             {
@@ -4473,14 +4323,6 @@ enum
             else
             {
                 clearai();
-            }
-        }
-
-        void reqadd(clientinfo *ci, int skill)
-        {
-            if(!addai(skill, !ci->local && ci->privilege < Priv_Admin ? botlimit : -1))
-            {
-                sendf(ci->clientnum, 1, "ris", NetMsg_ServerMsg, "failed to create or assign bot");
             }
         }
 

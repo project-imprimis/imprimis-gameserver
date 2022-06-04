@@ -127,15 +127,6 @@ struct gamestate
 
     gamestate() : maxhealth(1), aitype(AI_None), skill(0) {}
 
-    bool canpickup(int type)
-    {
-        return VALID_ITEM(type);
-    }
-
-    void pickup(int type)
-    {
-    }
-
     void respawn()
     {
         health = maxhealth;
@@ -289,7 +280,6 @@ namespace server
         servstate() : state(ClientState_Dead), editstate(ClientState_Dead), lifesequence(0) {}
 
         bool isalive(int gamemillis);
-        bool waitexpired(int gamemillis);
         void reset();
         void respawn();
         void reassign();
@@ -370,7 +360,6 @@ namespace server
         extern void removeai(clientinfo *ci);
         extern void clearai();
         extern void checkai();
-        extern void reqadd(clientinfo *ci, int skill);
         extern void reqdel(clientinfo *ci);
         extern void setbotlimit(clientinfo *ci, int limit);
         extern void setbotbalance(clientinfo *ci, bool balance);

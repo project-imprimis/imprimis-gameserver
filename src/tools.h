@@ -88,7 +88,6 @@ inline char *copystring(char *d, const char *s, size_t len)
 template<size_t N>
 inline char *copystring(char (&d)[N], const char *s) { return copystring(d, s, N); }
 
-inline char *concatstring(char *d, const char *s, size_t len) { size_t used = strlen(d); return used < len ? copystring(d+used, s, len-used) : d; }
 template<size_t N>
 inline char *concatstring(char (&d)[N], const char *s) { return concatstring(d, s, N); }
 
@@ -777,7 +776,6 @@ inline int iscubealnum(uchar c) { return cubectype[c]&(CT_ALPHA|CT_DIGIT); }
 
 extern string homedir;
 
-extern char *makerelpath(const char *dir, const char *file, const char *prefix = nullptr, const char *cmd = nullptr);
 extern char *path(char *s);
 extern const char *parentdir(const char *directory);
 extern bool fileexists(const char *path, const char *mode);

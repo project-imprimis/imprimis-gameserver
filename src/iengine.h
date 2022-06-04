@@ -70,13 +70,11 @@ extern ENetPacket *sendfile(int cn, int chan, stream *file, const char *format =
 extern void sendpacket(int cn, int chan, ENetPacket *packet, int exclude = -1);
 extern void flushserver(bool force);
 extern int getservermtu();
-extern int getnumclients();
 extern uint getclientip(int n);
 extern const char *disconnectreason(int reason);
 extern void disconnect_client(int n, int reason);
 extern void kicknonlocalclients(int reason = Discon_None);
 extern bool hasnonlocalclients();
-extern bool haslocalclients();
 extern void sendserverinforeply(ucharbuf &p);
 extern bool requestmaster(const char *req);
 extern bool requestmasterf(const char *fmt, ...) PRINTFARGS(1, 2);

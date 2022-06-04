@@ -1,10 +1,5 @@
 // the interface the engine uses to run the gameplay module
 
-namespace game
-{
-    extern void parseoptions(vector<const char *> &args);
-}
-
 namespace server
 {
     extern void *newclientinfo();
@@ -21,7 +16,6 @@ namespace server
     extern bool sendpackets(bool force = false);
     extern void serverinforeply(ucharbuf &req, ucharbuf &p);
     extern void serverupdate();
-    extern int protocolversion();
     extern int laninfoport();
     extern int serverport();
     extern const char *defaultmaster();

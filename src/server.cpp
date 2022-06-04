@@ -58,10 +58,6 @@ bool hasnonlocalclients()
 {
     return nonlocalclients!=0;
 }
-bool haslocalclients()
-{
-    return localclients!=0;
-}
 
 client &addclient(int type)
 {
@@ -183,11 +179,6 @@ void *getclientinfo(int i)
 ENetPeer *getclientpeer(int i)
 {
     return clients.inrange(i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
-}
-
-int getnumclients()
-{
-    return clients.length();
 }
 
 uint getclientip(int n)
@@ -960,23 +951,6 @@ void initserver(bool listen)
     }
 }
 
-bool serveroption(char *opt)
-{
-    switch(opt[1])
-    {
-        case 'u':
-        {
-            printf("Using home directory: %s\n", opt); sethomedir(opt+2); return true;
-        }
-        default:
-        {
-            return false;
-        }
-    }
-}
-
-vector<const char *> gameargs;
-
 int main(int argc, char **argv)
 {
     if(enet_initialize()<0)
@@ -985,14 +959,7 @@ int main(int argc, char **argv)
     }
     atexit(enet_deinitialize);
     enet_time_set(0);
-    for(int i = 1; i<argc; i++)
-    {
-        if(argv[i][0]!='-' || !serveroption(argv[i]))
-        {
-            gameargs.add(argv[i]);
-        }
-    }
-    game::parseoptions(gameargs);
+
     initserver(true);
     return EXIT_SUCCESS;
 }
