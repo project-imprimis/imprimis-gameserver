@@ -21,6 +21,7 @@
 #include "igame.h"
 
 #include "game.h"
+#include "botbalance.h"
 #include "cserver.h"
 #include "demo.h"
 #include "mapcontrol.h"
@@ -319,20 +320,6 @@ namespace server
         int time, expire;
         uint ip;
     };
-
-    namespace aiman
-    {
-        extern void removeai(clientinfo *ci);
-        extern void clearai();
-        extern void checkai();
-        extern void reqadd(clientinfo *ci, int skill);
-        extern void reqdel(clientinfo *ci);
-        extern void setbotlimit(clientinfo *ci, int limit);
-        extern void setbotbalance(clientinfo *ci, bool balance);
-        extern void changemap();
-        extern void addclient(clientinfo *ci);
-        extern void changeteam(clientinfo *ci);
-    }
 
     #define MM_MODE 0xF
     #define MM_AUTOAPPROVE 0x1000
@@ -2183,6 +2170,8 @@ namespace server
         ci->timesync = false;
     }
 
+    VAR(numbots, 0, 8, 16);
+
     void serverupdate() //called from engine/server.src
     {
 
@@ -2198,6 +2187,7 @@ namespace server
             }
             else if(!modecheck(gamemode, Mode_Untimed) || gamemillis < gamelimit)
             {
+                balancebots(numbots);
                 processevents(); //foreach client flushevents (handle events & clear?)
                 if(curtime)
                 {
@@ -3584,7 +3574,8 @@ namespace server
                 }
                 case NetMsg_AddBot:
                 {
-                    aiman::reqadd(ci, getint(p));
+                    numbots++;
+                    getint(p); //throw away
                     break;
                 }
                 case NetMsg_DelBot:
@@ -4155,8 +4146,60 @@ enum
             }
         }
 
+        int teamsize(int team)
+        {
+            int team1 = 0,
+                team2 = 0,
+                none = 0;
+
+            for(int i = 0; i < clients.length(); ++i)
+            {
+                if(clients[i]->team == Team_None)
+                {
+                    none++;
+                }
+                else if(clients[i]->team == Team_Azul)
+                {
+                    team1++;
+                }
+                else if(clients[i]->team == Team_Rojo)
+                {
+                    team2++;
+                }
+            }
+
+            if(team == Team_None)
+            {
+                return none;
+            }
+            else if(team == Team_Azul)
+            {
+                return team1;
+            }
+            else if(team == Team_Rojo)
+            {
+                return team2;
+            }
+            return -1;
+        }
+
         int chooseteam()
         {
+            //first sort by #of players per team
+            int team1size = teamsize(Team_Azul);
+            int team2size = teamsize(Team_Rojo);
+            if(team1size != team2size)
+            {
+                if(team1size > team2size)
+                {
+                    return Team_Rojo;
+                }
+                else if(team2size > team1size)
+                {
+                    return Team_Azul;
+                }
+            }
+            //then tiebreak by score
             std::vector<teamscore> teams;
             calcteams(teams);
             return teams.size() ? teams.back().team : 0;
@@ -4289,8 +4332,38 @@ enum
 
         bool deleteai()
         {
+            auto getlargerteam = [] () -> int
+            {
+                int team1size = teamsize(Team_Azul);
+                int team2size = teamsize(Team_Rojo);
+                if(team1size != team2size)
+                {
+                    if(team1size > team2size)
+                    {
+                        return Team_Azul;
+                    }
+                    else if(team2size > team1size)
+                    {
+                        return Team_Rojo;
+                    }
+                }
+                else
+                {
+                    return -1; //same size
+                }
+            };
+
             for(int i = bots.length(); --i >=0;) //note reverse iteration
             {
+                if(bots[i] && bots[i]->ownernum >= 0)
+                {
+                    if(getlargerteam() > 0 && bots[i]->team == getlargerteam())
+                    {
+                        deleteai(bots[i]);
+                        return true;
+                    }
+                }
+                //only try this loop if above failed (attempting to remove in balanced way failed)
                 if(bots[i] && bots[i]->ownernum >= 0)
                 {
                     deleteai(bots[i]);

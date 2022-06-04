@@ -47,6 +47,17 @@ void calcscores()
     uint team2size = 0;
     uint team1dead = 0;
     uint team2dead = 0;
+
+    //calc how many non-bots are alive
+    uint humansalive = 0;
+    for(int i = 0; i < server::clients.length(); ++i)
+    {
+        if(server::clients[i]->clientnum <= 127 && server::clients[i]->state.state == ClientState_Alive)
+        {
+            humansalive++;
+        }
+    }
+
     for(int i = 0; i < server::clients.length(); ++i)
     {
         if(server::clients[i] != nullptr)
@@ -71,6 +82,26 @@ void calcscores()
             }
         }
     }
+
+    //now handle case where only bots are alive: humansalive == 0
+    if(humansalive == 0)
+    {
+        if(team1dead > team2dead)
+        {
+            team1dead = team1size;
+        }
+        else if(team2dead > team1dead)
+        {
+            team2dead = team2size;
+        }
+        else
+        {
+            team1dead = team1size;
+            team2dead = team2size;
+        }
+    }
+
+
     //do not attempt to calculate scores if one team is empty
     if(team1size == 0 || team2size == 0)
     {

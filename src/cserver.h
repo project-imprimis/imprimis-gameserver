@@ -184,6 +184,13 @@ struct gamestate
 
 constexpr int MAXTEAMS = 2;
 
+enum
+{
+    Team_None = 0,
+    Team_Azul = 1,
+    Team_Rojo = 2
+};
+
 static const char * const teamnames[1+MAXTEAMS] = { "", "azul", "rojo" };
 static const char * const teamtextcode[1+MAXTEAMS] = { "\f0", "\f1", "\f3" };
 inline int teamnumber(const char *name)
@@ -357,4 +364,20 @@ namespace server
     extern string smapname;
     extern teaminfo teaminfos[MAXTEAMS];
     extern void sendspawn(clientinfo *ci);
+
+    namespace aiman
+    {
+        extern void removeai(clientinfo *ci);
+        extern void clearai();
+        extern void checkai();
+        extern void reqadd(clientinfo *ci, int skill);
+        extern void reqdel(clientinfo *ci);
+        extern void setbotlimit(clientinfo *ci, int limit);
+        extern void setbotbalance(clientinfo *ci, bool balance);
+        extern void changemap();
+        extern void addclient(clientinfo *ci);
+        extern void changeteam(clientinfo *ci);
+        extern bool deleteai();
+        extern bool addai(int skill, int limit);
+    }
 }
