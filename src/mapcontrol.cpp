@@ -28,6 +28,7 @@ vec spawn1 = vec(0,0,0),
     spawn2 = vec(0,0,0);
 
 constexpr int maxgamescore = 10; //score margin at which to end the game
+constexpr int maxgametime = 60; //seconds the game should last
 
 bool mapcontrolintermission()
 {
@@ -47,6 +48,8 @@ void calcscores()
     uint team2size = 0;
     uint team1dead = 0;
     uint team2dead = 0;
+
+    static uint lastround = server::gamemillis;
 
     //calc how many non-bots are alive
     uint humansalive = 0;
@@ -110,11 +113,10 @@ void calcscores()
     server::clientinfo *ci = server::clients[0];
     //we now know how big each team is and how many are not alive
     //so now we check if either team is all dead
-    if(team1size == team1dead) //team 1 is all dead
+    if(team1size == team1dead || server::gamemillis - lastround >= 1000*maxgametime) //team 1 is all dead, or timer has run out
     {
         printf("Tean 1 has died\n");
         server::teaminfos[1].score += 1; //add score to team 2
-
         //now award all alive players on other team 1 point for living
         for(int j = 0; j < server::clients.length(); ++j)
         {
@@ -147,8 +149,9 @@ void calcscores()
         }
     }
     //now respawn all clients
-    if(team2size == team2dead || team1size == team1dead)
+    if(team2size == team2dead || team1size == team1dead || server::gamemillis - lastround >= 1000*maxgametime)
     {
+        lastround = server::gamemillis;
         for(int i = 0; i < server::clients.length(); ++i)
         {
             server::clients[i]->state.respawn();
