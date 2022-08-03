@@ -145,6 +145,7 @@ enum
     NetMsg_ServerCommand,
     NetMsg_DemoPacket,
     NetMsg_GetScore,
+    NetMsg_GetRoundTimer,
 
     NetMsg_NumMsgs //95
 };
@@ -252,6 +253,8 @@ static const int msgsizes[] =               // size inclusive message token, 0 f
     NetMsg_DemoPacket, 0,
 
     NetMsg_GetScore, 0,
+    NetMsg_GetRoundTimer, 1,
+
     -1
 };
 

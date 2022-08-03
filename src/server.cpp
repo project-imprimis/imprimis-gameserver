@@ -47,8 +47,6 @@ struct client                   // server side version of "dynent" type
 vector<client *> clients;
 
 ENetHost *serverhost = nullptr;
-int laststatus = 0;
-int lastcheckscore = 0;
 ENetSocket lansock = ENET_SOCKET_NULL;
 
 int localclients = 0,
@@ -769,6 +767,9 @@ void updatetime()
 
 void serverslice(uint timeout)   // main server update, called from below in dedicated server
 {
+    static int laststatus = 0;
+    static int lastcheckscore = -1;
+
     // below is network only
     int millis = static_cast<int>(enet_time_get());
     elapsedtime = millis - totalmillis;
@@ -784,10 +785,9 @@ void serverslice(uint timeout)   // main server update, called from below in ded
     totalmillis = millis;
     updatetime();
     server::serverupdate(); //see game/server.cpp for meat of server update routine
-
-    if(totalmillis-lastcheckscore > 1000) //check scores 1/sec
+    if(totalsecs-lastcheckscore > 0) //check scores 1/sec
     {
-        lastcheckscore = totalmillis;
+        lastcheckscore = totalsecs;
         updatescores(); //see game/mapcontrol.cpp for updating player scores
         sendscore(); //sends tallies of scores out to players
     }
@@ -796,7 +796,9 @@ void serverslice(uint timeout)   // main server update, called from below in ded
     checkserversockets();
 
     if(!lastupdatemaster || totalmillis-lastupdatemaster>60*60*1000)       // send alive signal to masterserver every hour of uptime
+    {
         updatemasterserver();
+    }
 
     if(totalmillis-laststatus>60*1000)   // display bandwidth stats, useful for server ops
     {

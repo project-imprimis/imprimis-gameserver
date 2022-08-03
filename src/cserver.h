@@ -354,6 +354,7 @@ namespace server
     extern string smapname;
     extern teaminfo teaminfos[MAXTEAMS];
     extern void sendspawn(clientinfo *ci);
+    extern void pausegame(bool val, clientinfo * ci = nullptr);
 
     namespace aiman
     {

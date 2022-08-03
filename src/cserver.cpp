@@ -787,7 +787,7 @@ namespace server
     void sendwelcome(clientinfo *ci);
 
 
-    void pausegame(bool val, clientinfo *ci = nullptr)
+    void pausegame(bool val, clientinfo *ci)
     {
         if(gamepaused==val)
         {
@@ -3449,6 +3449,7 @@ namespace server
                 }
                 case NetMsg_DelBot:
                 {
+                    numbots--;
                     aiman::reqdel(ci);
                     break;
                 }
@@ -4186,32 +4187,11 @@ enum
 
         bool deleteai()
         {
-            auto getlargerteam = [] () -> int
-            {
-                int team1size = teamsize(Team_Azul);
-                int team2size = teamsize(Team_Rojo);
-                if(team1size != team2size)
-                {
-                    if(team1size > team2size)
-                    {
-                        return Team_Azul;
-                    }
-                    else if(team2size > team1size)
-                    {
-                        return Team_Rojo;
-                    }
-                }
-                else
-                {
-                    return -1; //same size
-                }
-            };
-
             for(int i = bots.length(); --i >=0;) //note reverse iteration
             {
                 if(bots[i] && bots[i]->ownernum >= 0)
                 {
-                    if(getlargerteam() > 0 && bots[i]->team == getlargerteam())
+                    if(bots[i]->team == chooseteam())
                     {
                         deleteai(bots[i]);
                         return true;

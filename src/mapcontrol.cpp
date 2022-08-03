@@ -29,6 +29,7 @@ vec spawn1 = vec(0,0,0),
 
 constexpr int maxgamescore = 10; //score margin at which to end the game
 constexpr int maxgametime = 60; //seconds the game should last
+constexpr int betweenroundtime = 5; //milliseconds between rounds where the game pauses
 
 bool mapcontrolintermission()
 {
@@ -49,7 +50,27 @@ void calcscores()
     uint team1dead = 0;
     uint team2dead = 0;
 
-    static uint lastround = server::gamemillis;
+    static uint lastround = totalsecs;
+
+    //synchronous check that any created pauses are cleared after the alloted time
+
+    if(server::ispaused() && totalsecs < lastround + betweenroundtime)
+    {
+        sendf(-1, 1, "rii", NetMsg_GetRoundTimer, 1000*(betweenroundtime - (totalsecs-lastround) )); //send the time the next round will end at
+    }
+
+    if(server::ispaused() && totalsecs > lastround + betweenroundtime)
+    {
+        lastround = totalsecs;
+        server::pausegame(false);
+        sendf(-1, 1, "rii", NetMsg_GetRoundTimer, 1000*maxgametime); //send the time the next round will end at
+        for(int i = 0; i < server::clients.length(); ++i)
+        {
+            server::clients[i]->state.respawn();
+            server::sendspawn(server::clients[i]);
+            printf("player health: %d\n", server::clients[i]->state.health);
+        }
+    }
 
     //calc how many non-bots are alive
     uint humansalive = 0;
@@ -113,7 +134,7 @@ void calcscores()
     server::clientinfo *ci = server::clients[0];
     //we now know how big each team is and how many are not alive
     //so now we check if either team is all dead
-    if(team1size == team1dead || server::gamemillis - lastround >= 1000*maxgametime) //team 1 is all dead, or timer has run out
+    if(team1size == team1dead || totalsecs - lastround >= maxgametime) //team 1 is all dead, or timer has run out
     {
         printf("Tean 1 has died\n");
         server::teaminfos[1].score += 1; //add score to team 2
@@ -149,15 +170,19 @@ void calcscores()
         }
     }
     //now respawn all clients
-    if(team2size == team2dead || team1size == team1dead || server::gamemillis - lastround >= 1000*maxgametime)
+    if(team2size == team2dead || team1size == team1dead || totalsecs - lastround >= maxgametime)
     {
-        lastround = server::gamemillis;
+        server::pausegame(true);
+        lastround = totalsecs;
         for(int i = 0; i < server::clients.length(); ++i)
         {
             server::clients[i]->state.respawn();
             server::sendspawn(server::clients[i]);
             printf("player health: %d\n", server::clients[i]->state.health);
         }
+            printf("time: %d\n", server::gamemillis + 1000*maxgametime);
+        server::pausegame(true);
+        sendf(-1, 1, "rii", NetMsg_GetRoundTimer, 1000*betweenroundtime); //send the time the next round will end at
     }
 }
 
