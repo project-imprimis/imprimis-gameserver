@@ -1,3 +1,8 @@
+# The code completion language server cache files.
 .ccls-cache/
+# The build directory with compiled object files and compiled binary.
+build/
+# Compiled objects.
 src/*.o
+# Compiled binary.
 imprimis_gameserver

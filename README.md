@@ -18,23 +18,19 @@ has similar functionality.
 ```bash
 git clone https://github.com/project-imprimis/imprimis-gameserver.git --recurse-submodules
 ```
-2. Go to the `enet` library folder and compile `enet`.
-```bash 
-cd imprimis-gameserver/src/enet/ && make
+2. Go to `src` folder and compile the gameserver.
+```bash
+cmake -S . -B build
+
+cd build && make
 ```
-3. Go to `src` folder and compile the gameserver.
-```bash 
-cd .. && make
-```
-4. Execute the gameserver.
+3. Execute the gameserver.
 ```bash 
 ./imprimis_gameserver
 ```
 
-Note that the `enet` library has to be compiled first, and the gameserver
-afterwards. The gameserver executable `imprimis_gameserver` can be run in
-the command line to create a game server.
-
+The gameserver executable `imprimis_gameserver` can be run in the command line
+to create a game server.
 
 ## Hardware Requirements
 
