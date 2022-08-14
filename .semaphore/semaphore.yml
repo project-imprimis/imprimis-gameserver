@@ -13,7 +13,9 @@ blocks:
             - checkout
             - sem-version cpp 8
             - git submodule update --init --remote src/enet
-            - make -C src/enet clean
-            - make -C src/enet -j3
-            - make -C src clean
-            - make -C src -j3
+            # Install CMake.
+            - sudo apt-get install cmake
+            # Read CMakeLists.txt in -S dir and generate Makefile in -B dir.
+            - cmake -S src -B src/build
+            # Build the Makefile.
+            - make -C src/build -j3

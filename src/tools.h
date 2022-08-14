@@ -312,7 +312,7 @@ inline bool htcmp(const char *x, const char *y)
 template <class T>
 struct vector
 {
-    static const int MINSIZE = 8;
+    static constexpr int MINSIZE = 8;
 
     T *buf;
     int alen, ulen;
