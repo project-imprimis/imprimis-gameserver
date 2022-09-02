@@ -70,7 +70,7 @@ namespace server
     {
         int id, atk;
         vec from, to;
-        vector<hitinfo> hits;
+        std::vector<hitinfo> hits;
 
         void process(clientinfo *ci);
     };
@@ -78,7 +78,7 @@ namespace server
     struct explodeevent : timedevent
     {
         int id, atk;
-        vector<hitinfo> hits;
+        std::vector<hitinfo> hits;
 
         bool keepable() const { return true; }
 
@@ -1915,7 +1915,7 @@ namespace server
                 return;
         }
         sendf(-1, 1, "ri4x", NetMsg_ExplodeFX, ci->clientnum, atk, id, ci->ownernum);
-        for(int i = 0; i < hits.length(); i++)
+        for(uint i = 0; i < hits.size(); i++)
         {
             hitinfo &h = hits[i];
             clientinfo *target = getinfo(h.target);
@@ -1980,7 +1980,7 @@ namespace server
             {
                 int totalrays = 0,
                     maxrays = attacks[atk].rays;
-                for(int i = 0; i < hits.length(); i++)
+                for(uint i = 0; i < hits.size(); i++)
                 {
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
@@ -2968,7 +2968,8 @@ namespace server
                         {
                             break;
                         }
-                        hitinfo &hit = shot->hits.add();
+                        shot->hits.emplace_back();
+                        hitinfo &hit = shot->hits.back();
                         hit.target = getint(p);
                         hit.lifesequence = getint(p);
                         hit.dist = getint(p)/DMF;
@@ -3003,7 +3004,8 @@ namespace server
                         {
                             break;
                         }
-                        hitinfo &hit = exp->hits.add();
+                        exp->hits.emplace_back();
+                        hitinfo &hit = exp->hits.back();
                         hit.target = getint(p);
                         hit.lifesequence = getint(p);
                         hit.dist = getint(p)/DMF;
