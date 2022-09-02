@@ -446,7 +446,7 @@ int lastupdatemaster = 0,
     lastconnectmaster = 0,
     masterconnecting = 0,
     masterconnected = 0;
-vector<char> masterout, masterin;
+std::vector<char> masterout, masterin;
 int masteroutpos = 0,
     masterinpos = 0;
 VARN(updatemaster, allowupdatemaster, 0, 1, 1);
@@ -458,8 +458,8 @@ void disconnectmaster()
         enet_socket_destroy(mastersock);
         mastersock = ENET_SOCKET_NULL;
     }
-    masterout.setsize(0);
-    masterin.setsize(0);
+    masterout.clear();
+    masterin.clear();
     masteroutpos = masterinpos = 0;
 
     masteraddress.host = ENET_HOST_ANY;
@@ -524,11 +524,14 @@ bool requestmaster(const char *req)
         }
         lastconnectmaster = masterconnecting = totalmillis ? totalmillis : 1;
     }
-    if(masterout.length() >= 4096)
+    if(masterout.size() >= 4096)
     {
         return false;
     }
-    masterout.put(req, strlen(req));
+    for(uint i = 0; i < strlen(req); ++i)
+    {
+        masterout.push_back(req[i]);
+    }
     return true;
 }
 
@@ -540,11 +543,11 @@ bool requestmasterf(const char *fmt, ...)
 
 void processmasterinput()
 {
-    if(masterinpos >= masterin.length())
+    if(masterinpos >= static_cast<int>(masterin.size()))
     {
         return;
     }
-    char *input = &masterin[masterinpos], *end = static_cast<char *>(memchr(input, '\n', masterin.length() - masterinpos));
+    char *input = &masterin[masterinpos], *end = static_cast<char *>(memchr(input, '\n', masterin.size() - masterinpos));
     while(end)
     {
         *end = '\0';
@@ -568,14 +571,14 @@ void processmasterinput()
             printf("master server registration succeeded\n");
         }
         end++;
-        masterinpos = end - masterin.getbuf();
+        masterinpos = end - masterin.data();
         input = end;
-        end = reinterpret_cast<char*>(memchr(input, '\n', masterin.length() - masterinpos));
+        end = reinterpret_cast<char*>(memchr(input, '\n', masterin.size() - masterinpos));
     }
 
-    if(masterinpos >= masterin.length())
+    if(masterinpos >= masterin.size())
     {
-        masterin.setsize(0);
+        masterin.clear();
         masterinpos = 0;
     }
 }
@@ -593,14 +596,14 @@ void flushmasteroutput()
     }
     ENetBuffer buf;
     buf.data = &masterout[masteroutpos];
-    buf.dataLength = masterout.length() - masteroutpos;
+    buf.dataLength = masterout.size() - masteroutpos;
     int sent = enet_socket_send(mastersock, nullptr, &buf, 1);
     if(sent >= 0)
     {
         masteroutpos += sent;
-        if(masteroutpos >= masterout.length())
+        if(masteroutpos >= masterout.size())
         {
-            masterout.setsize(0);
+            masterout.clear();
             masteroutpos = 0;
         }
     }
@@ -612,17 +615,20 @@ void flushmasteroutput()
 
 void flushmasterinput()
 {
-    if(masterin.length() >= masterin.capacity())
+    if(masterin.size() >= masterin.capacity())
     {
         masterin.reserve(4096);
     }
     ENetBuffer buf;
-    buf.data = masterin.getbuf() + masterin.length();
-    buf.dataLength = masterin.capacity() - masterin.length();
+    buf.data = masterin.data() + masterin.size();
+    buf.dataLength = masterin.capacity() - masterin.size();
     int recv = enet_socket_receive(mastersock, nullptr, &buf, 1);
     if(recv > 0)
     {
-        masterin.advance(recv);
+        for(uint i = 0; i < recv; ++i)
+        {
+            masterin.emplace_back();
+        }
         processmasterinput();
     }
     else

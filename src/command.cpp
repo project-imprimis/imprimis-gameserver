@@ -76,8 +76,6 @@ bool addcommand(const char *name, void (*fun)(), const char *narg)
     return false;
 }
 
-static vector<vector<char> *> wordbufs;
-
 char *lookup(char *n)                           // find value of ident referenced with $ in exp
 {
     ident *id = idents->access(n+1);
