@@ -2408,16 +2408,16 @@ namespace server
 
     struct banlist
     {
-        vector<ipmask> bans;
+        std::vector<ipmask> bans;
 
         void clear()
         {
-            bans.shrink(0);
+            bans.clear();
         }
 
         bool check(uint ip)
         {
-            for(int i = 0; i < bans.length(); i++)
+            for(uint i = 0; i < bans.size(); i++)
             {
                 if(bans[i].check(ip))
                 {
@@ -2431,7 +2431,7 @@ namespace server
         {
             ipmask ban;
             ban.parse(ipname);
-            bans.add(ban);
+            bans.push_back(ban);
 
             verifybans();
         }
