@@ -400,18 +400,19 @@ namespace server
     {
         int limit, ban;
     };
-    vector<teamkillkick> teamkillkicks;
+    std::vector<teamkillkick> teamkillkicks;
 
     void teamkillkickreset()
     {
-        teamkillkicks.setsize(0);
+        teamkillkicks.clear();
     }
 
     void addteamkillkick(char *modestr, int *limit, int *ban)
     {
         vector<char *> modes;
         explodelist(modestr, modes);
-        teamkillkick &kick = teamkillkicks.add();
+        teamkillkicks.emplace_back();
+        teamkillkick &kick = teamkillkicks.back();
         kick.limit = *limit;
         kick.ban = *ban > 0 ? *ban*60000 : (*ban < 0 ? 0 : 30*60000);
         modes.deletearrays();
@@ -452,7 +453,7 @@ namespace server
     void checkteamkills() //players who do too many teamkills may get kicked from the server
     {
         teamkillkick *kick = nullptr;
-        for(int i = 0; i < teamkillkicks.length(); i++)
+        for(uint i = 0; i < teamkillkicks.size(); i++)
         {
             kick = &teamkillkicks[i];
         }
