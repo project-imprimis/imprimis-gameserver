@@ -325,7 +325,7 @@ namespace server
     stream *mapdata = nullptr;
 
     vector<uint> allowedips;
-    vector<ban> bannedips;
+    std::vector<ban> bannedips;
 
     void addban(uint ip, int expire)
     {
@@ -334,15 +334,15 @@ namespace server
         b.time = totalmillis;
         b.expire = totalmillis + expire;
         b.ip = ip;
-        for(int i = 0; i < bannedips.length(); i++)
+        for(uint i = 0; i < bannedips.size(); i++)
         {
             if(bannedips[i].expire - b.expire > 0)
             {
-                bannedips.insert(i, b);
+                bannedips.insert(bannedips.begin() + i, b);
                 return;
             }
         }
-        bannedips.add(b);
+        bannedips.push_back(b);
     }
 
     vector<clientinfo *> connects, clients, bots;
@@ -2120,7 +2120,7 @@ namespace server
         ////////// This section is run regardless of whether there are people are online //////////
         //         (though the loop over `connects` will always be empty with nobody on)
 
-        while(bannedips.length() && bannedips[0].expire-totalmillis <= 0) bannedips.remove(0); //clear expired ip bans if there are any
+        while(bannedips.size() && bannedips[0].expire-totalmillis <= 0) bannedips.erase(bannedips.begin()); //clear expired ip bans if there are any
         for(int i = 0; i < connects.length(); i++)
         {
             if(totalmillis-connects[i]->connectmillis>15000)
@@ -2350,7 +2350,7 @@ namespace server
 
     void noclients()
     {
-        bannedips.shrink(0);
+        bannedips.clear();
         aiman::clearai();
     }
 
@@ -2439,7 +2439,7 @@ namespace server
 
     bool checkbans(uint ip)
     {
-        for(int i = 0; i < bannedips.length(); i++)
+        for(uint i = 0; i < bannedips.size(); i++)
         {
             if(bannedips[i].ip==ip)
             {
@@ -3261,7 +3261,7 @@ namespace server
                 {
                     if(ci->privilege || ci->local)
                     {
-                        bannedips.shrink(0);
+                        bannedips.clear();
                         sendservmsg("cleared all bans");
                     }
                     break;
