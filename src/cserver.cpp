@@ -170,13 +170,13 @@ namespace server
 
     void clientinfo::addevent(gameevent *e)
     {
-        if(state.state==ClientState_Spectator || events.length()>100)
+        if(state.state==ClientState_Spectator || events.size()>100)
         {
             delete e;
         }
         else
         {
-            events.add(e);
+            events.push_back(e);
         }
     }
 
@@ -230,7 +230,11 @@ namespace server
     void clientinfo::mapchange()
     {
         state.reset();
-        events.deletecontents();
+        for(gameevent * i : events)
+        {
+            delete i;
+        }
+        events.clear();
         overflow = 0;
         timesync = false;
         lastevent = 0;
@@ -245,7 +249,11 @@ namespace server
     void clientinfo::reassign()
     {
         state.reassign();
-        events.deletecontents();
+        for(gameevent * i : events)
+        {
+            delete i;
+        }
+        events.clear();
         timesync = false;
         lastevent = 0;
     }
@@ -2023,12 +2031,13 @@ namespace server
 
     void clearevent(clientinfo *ci)
     {
-        delete ci->events.remove(0);
+        delete ci->events.at(0);
+        ci->events.erase(ci->events.begin());
     }
 
     void flushevents(clientinfo *ci, int millis)
     {
-        while(ci->events.length())
+        while(ci->events.size())
         {
             gameevent *ev = ci->events[0];
             if(ev->flush(ci, millis))
@@ -2054,7 +2063,7 @@ namespace server
     void cleartimedevents(clientinfo *ci)
     {
         int keep = 0;
-        for(int i = 0; i < ci->events.length(); i++)
+        for(uint i = 0; i < ci->events.size(); i++)
         {
             if(ci->events[i]->keepable())
             {
@@ -2064,16 +2073,17 @@ namespace server
                     {
                         delete ci->events[j];
                     }
-                    ci->events.remove(keep, i - keep);
+                    ci->events.erase(ci->events.begin() + keep,ci->events.begin() + (i - keep));
                     i = keep;
                 }
                 keep = i+1;
                 continue;
             }
         }
-        while(ci->events.length() > keep)
+        while(ci->events.size() > keep)
         {
-            delete ci->events.pop();
+            delete ci->events.back();
+            ci->events.pop_back();
         }
         ci->timesync = false;
     }
@@ -2823,7 +2833,7 @@ namespace server
                     {
                         ci->state.editstate = ci->state.state;
                         ci->state.state = ClientState_Editing;
-                        ci->events.setsize(0);
+                        ci->events.clear();
                         ci->state.projs.reset();
                     }
                     else
