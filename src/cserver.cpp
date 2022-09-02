@@ -498,7 +498,7 @@ namespace server
 
     uint mcrc = 0;
     std::vector<server_entity> sents;
-    vector<savedscore> scores;
+    std::vector<savedscore> scores;
 
     int msgsizelookup(int msg)
     {
@@ -1080,7 +1080,7 @@ namespace server
                 }
             }
         }
-        for(int i = 0; i < scores.length(); i++)
+        for(uint i = 0; i < scores.size(); i++)
         {
             savedscore &sc = scores[i];
             if(sc.ip == ip && !strcmp(sc.name, ci->name))
@@ -1092,7 +1092,8 @@ namespace server
         {
             return 0;
         }
-        savedscore &sc = scores.add();
+        scores.emplace_back();
+        savedscore &sc = scores.back();
         sc.ip = ip;
         copystring(sc.name, ci->name);
         return &sc;
@@ -1723,7 +1724,7 @@ namespace server
         interm = 0;
         nextexceeded = 0;
         copystring(smapname, s);
-        scores.shrink(0);
+        scores.clear();
         shouldcheckteamkills = false;
         teamkills.clear();
         for(int i = 0; i < clients.length(); i++)
