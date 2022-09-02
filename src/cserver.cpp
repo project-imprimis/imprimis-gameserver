@@ -426,7 +426,7 @@ namespace server
         uint ip;
         int teamkills;
     };
-    vector<teamkillinfo> teamkills;
+    std::vector<teamkillinfo> teamkills;
     bool shouldcheckteamkills = false;
 
     void addteamkill(clientinfo *actor, clientinfo *victim, int n)
@@ -437,7 +437,7 @@ namespace server
         }
         shouldcheckteamkills = true;
         uint ip = getclientip(actor->clientnum);
-        for(int i = 0; i < teamkills.length(); i++)
+        for(uint i = 0; i < teamkills.size(); i++)
         {
             if(teamkills[i].ip == ip)
             {
@@ -445,7 +445,8 @@ namespace server
                 return;
             }
         }
-        teamkillinfo &tk = teamkills.add();
+        teamkills.emplace_back();
+        teamkillinfo &tk = teamkills.back();
         tk.ip = ip;
         tk.teamkills = n;
     }
@@ -459,7 +460,7 @@ namespace server
         }
         if(kick)
         {
-            for(int i = teamkills.length(); --i >=0;) //note reverse iteration
+            for(int i = teamkills.size(); --i >=0;) //note reverse iteration
             {
                 teamkillinfo &tk = teamkills[i];
                 if(tk.teamkills >= kick->limit)
@@ -469,7 +470,7 @@ namespace server
                         addban(tk.ip, kick->ban);
                     }
                     kickclients(tk.ip);
-                    teamkills.removeunordered(i);
+                    teamkills.erase(teamkills.begin() + i);
                 }
             }
         }
@@ -1724,7 +1725,7 @@ namespace server
         copystring(smapname, s);
         scores.shrink(0);
         shouldcheckteamkills = false;
-        teamkills.shrink(0);
+        teamkills.clear();
         for(int i = 0; i < clients.length(); i++)
         {
             clientinfo *ci = clients[i];
