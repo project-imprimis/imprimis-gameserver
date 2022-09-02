@@ -332,12 +332,16 @@ namespace server
         mastermask = MM_PRIVSERV;
     stream *mapdata = nullptr;
 
-    vector<uint> allowedips;
+    std::vector<uint> allowedips;
     std::vector<ban> bannedips;
 
     void addban(uint ip, int expire)
     {
-        allowedips.removeobj(ip);
+        auto itr = std::find(allowedips.begin(), allowedips.end(), ip);
+        if(itr != allowedips.end())
+        {
+            allowedips.erase(itr);
+        }
         ban b;
         b.time = totalmillis;
         b.expire = totalmillis + expire;
@@ -974,7 +978,7 @@ namespace server
         if(!hasmaster)
         {
             mastermode = MasterMode_Open;
-            allowedips.shrink(0);
+            allowedips.clear();
         }
         string msg;
         if(val && authname)
@@ -2508,7 +2512,7 @@ namespace server
         {
             return Discon_IPBan;
         }
-        if(mastermode>=MasterMode_Private && allowedips.find(ip)<0)
+        if(mastermode>=MasterMode_Private && std::find(allowedips.begin(), allowedips.end(), ip) != allowedips.end())
         {
             return Discon_Private;
         }
@@ -3249,12 +3253,12 @@ namespace server
                         if((ci->privilege>=Priv_Admin || ci->local) || (mastermask&(1<<mm)))
                         {
                             mastermode = mm;
-                            allowedips.shrink(0);
+                            allowedips.clear();
                             if(mm>=MasterMode_Private)
                             {
                                 for(int i = 0; i < clients.length(); i++)
                                 {
-                                    allowedips.add(getclientip(clients[i]->clientnum));
+                                    allowedips.push_back(getclientip(clients[i]->clientnum));
                                 }
                             }
                             sendf(-1, 1, "rii", NetMsg_MasterMode, mastermode);
