@@ -787,7 +787,6 @@ extern stream *openrawfile(const char *filename, const char *mode);
 extern stream *openfile(const char *filename, const char *mode);
 extern stream *opentempfile(const char *filename, const char *mode);
 extern char *loadfile(const char *fn, size_t *size);
-extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files);
 
 extern void putint(ucharbuf &p, int n);
 extern void putint(packetbuf &p, int n);

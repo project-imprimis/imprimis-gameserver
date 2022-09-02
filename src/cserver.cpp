@@ -421,13 +421,17 @@ namespace server
 
     void addteamkillkick(char *modestr, int *limit, int *ban)
     {
-        vector<char *> modes;
+        std::vector<char *> modes;
         explodelist(modestr, modes);
         teamkillkicks.emplace_back();
         teamkillkick &kick = teamkillkicks.back();
         kick.limit = *limit;
         kick.ban = *ban > 0 ? *ban*60000 : (*ban < 0 ? 0 : 30*60000);
-        modes.deletearrays();
+        for(char * i : modes)
+        {
+            delete[] i;
+        }
+        modes.clear();
     }
 
     COMMAND(teamkillkickreset, "");

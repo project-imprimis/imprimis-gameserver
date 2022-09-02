@@ -4,6 +4,7 @@
 #include "engine.h"
 
 #include <cmath>
+#include <vector>
 
 #include <string.h>
 #include <stdio.h>
@@ -338,14 +339,14 @@ void intret(int v) { s_sprintfd(b)("%d", v); commandret = newstring(b); }
 #define WHITESPACESKIP s += strspn(s, "\n\t ")
 #define ELEMENTSKIP *s=='"' ? (++s, s += strcspn(s, "\"\n\0"), s += *s=='"') : s += strcspn(s, "\n\t \0")
 
-void explodelist(const char *s, vector<char *> elems)
+void explodelist(const char *s, std::vector<char *> elems)
 {
     WHITESPACESKIP;
     while(*s)
     {
         const char *elem = s;
         ELEMENTSKIP;
-        elems.add(*elem=='"' ? newstring(elem+1, s-elem-(s[-1]=='"' ? 2 : 1)) : newstring(elem, s-elem));
+        elems.push_back(*elem=='"' ? newstring(elem+1, s-elem-(s[-1]=='"' ? 2 : 1)) : newstring(elem, s-elem));
         WHITESPACESKIP;
     }
 }
