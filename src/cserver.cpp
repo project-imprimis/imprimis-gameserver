@@ -497,7 +497,7 @@ namespace server
     }
 
     uint mcrc = 0;
-    vector<server_entity> sents;
+    std::vector<server_entity> sents;
     vector<savedscore> scores;
 
     int msgsizelookup(int msg)
@@ -546,7 +546,7 @@ namespace server
     void resetitems()
     {
         mcrc = 0;
-        sents.setsize(0);
+        sents.clear();
         //cps.reset();
     }
 
@@ -1570,7 +1570,7 @@ namespace server
         if(!notgotitems)
         {
             putint(p, NetMsg_ItemList);
-            for(int i = 0; i < sents.length(); i++)
+            for(uint i = 0; i < sents.size(); i++)
             {
                 if(sents[i].spawned)
                 {
@@ -2097,7 +2097,7 @@ namespace server
                 processevents(); //foreach client flushevents (handle events & clear?)
                 if(curtime)
                 {
-                    for(int i = 0; i < sents.length(); i++)
+                    for(uint i = 0; i < sents.size(); i++)
                     {
                         if(sents[i].spawntime) // spawn entities when timer reached
                         {
@@ -3127,9 +3127,9 @@ namespace server
                     while((n = getint(p))>=0 && n<MAXENTS && !p.overread())
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.length()<=n)
+                        while(static_cast<int>(sents.size())<=n)
                         {
-                            sents.add(se);
+                            sents.push_back(se);
                         }
                         sents[n].type = getint(p);
                         if(canspawnitem(sents[n].type))
@@ -3165,12 +3165,12 @@ namespace server
                     }
                     QUEUE_MSG;
                     bool canspawn = canspawnitem(type);
-                    if(i<MAXENTS && (sents.inrange(i) || canspawnitem(type)))
+                    if(i<MAXENTS && (sents.size() > i || canspawnitem(type)))
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.length()<=i)
+                        while(static_cast<int>(sents.size())<=i)
                         {
-                            sents.add(se);
+                            sents.push_back(se);
                         }
                         sents[i].type = type;
                         if(canspawn ? !sents[i].spawned : (sents[i].spawned || sents[i].spawntime))
