@@ -44,7 +44,7 @@ struct client                   // server side version of "dynent" type
     void *info;
 };
 
-vector<client *> clients;
+std::vector<client *> clients;
 
 ENetHost *serverhost = nullptr;
 ENetSocket lansock = ENET_SOCKET_NULL;
@@ -60,7 +60,7 @@ bool hasnonlocalclients()
 client &addclient(int type)
 {
     client *c = nullptr;
-    for(int i = 0; i < clients.length(); i++)
+    for(uint i = 0; i < clients.size(); i++)
     {
         if(clients[i]->type==ServerClient_Empty)
         {
@@ -71,8 +71,8 @@ client &addclient(int type)
     if(!c)
     {
         c = new client;
-        c->num = clients.length();
-        clients.add(c);
+        c->num = static_cast<int>(clients.size());
+        clients.push_back(c);
     }
     c->info = server::newclientinfo();
     c->type = type;
@@ -171,17 +171,17 @@ int getservermtu()
 
 void *getclientinfo(int i)
 {
-    return !clients.inrange(i) || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
+    return !clients.size() > i || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
 }
 
 ENetPeer *getclientpeer(int i)
 {
-    return clients.inrange(i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
+    return clients.size() > i && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
 }
 
 uint getclientip(int n)
 {
-    return clients.inrange(n) && clients[n]->type==ServerClient_Remote ? clients[n]->peer->address.host : 0;
+    return clients.size() > n && clients[n]->type==ServerClient_Remote ? clients[n]->peer->address.host : 0;
 }
 
 void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
@@ -189,7 +189,7 @@ void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
     if(n<0)
     {
         server::recordpacket(chan, packet->data, packet->dataLength);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(i!=exclude && server::allowbroadcast(i))
             {
@@ -282,7 +282,7 @@ ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
     {
         return nullptr;
     }
-    else if(!clients.inrange(cn))
+    else if(!(clients.size() > cn))
     {
         return nullptr;
     }
@@ -386,7 +386,7 @@ const char *disconnectreason(int reason)
 void disconnect_client(int n, int reason)
 {
     //don't drop local clients
-    if(!clients.inrange(n) || clients[n]->type!=ServerClient_Remote)
+    if(!(clients.size() >n) || clients[n]->type!=ServerClient_Remote)
     {
         return;
     }
@@ -409,7 +409,7 @@ void disconnect_client(int n, int reason)
 
 void kicknonlocalclients(int reason)
 {
-    for(int i = 0; i < clients.length(); i++)
+    for(uint i = 0; i < clients.size(); i++)
     {
         if(clients[i]->type==ServerClient_Remote)
         {
