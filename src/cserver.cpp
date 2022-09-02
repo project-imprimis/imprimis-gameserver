@@ -1234,12 +1234,12 @@ namespace server
             return p >= data && p < &data[len];
         }
     };
-    vector<worldstate> worldstates;
+    std::vector<worldstate> worldstates;
     bool reliablemessages = false;
 
     void cleanworldstate(ENetPacket *packet)
     {
-        for(int i = 0; i < worldstates.length(); i++)
+        for(uint i = 0; i < worldstates.size(); i++)
         {
             worldstate &ws = worldstates[i];
             if(!ws.contains(packet->data))
@@ -1250,7 +1250,7 @@ namespace server
             if(ws.uses <= 0)
             {
                 ws.cleanup();
-                worldstates.removeunordered(i);
+                worldstates.erase(worldstates.begin() + i);
             }
             break;
         }
@@ -1412,7 +1412,8 @@ namespace server
             reliablemessages = false;
             return false;
         }
-        worldstate &ws = worldstates.add();
+        worldstates.emplace_back();
+        worldstate &ws = worldstates.back();
         ws.setup(2*wsmax);
         int mtu = getservermtu() - 100;
         if(mtu <= 0)
@@ -1454,7 +1455,7 @@ namespace server
             return true;
         }
         ws.cleanup();
-        worldstates.drop();
+        worldstates.pop_back();
         return false;
     }
 
