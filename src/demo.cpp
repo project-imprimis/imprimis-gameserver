@@ -7,6 +7,7 @@
 #include "engine.h"
 
 #include <cmath>
+#include <vector>
 
 #include <string.h>
 #include <stdio.h>
@@ -46,7 +47,7 @@ namespace server
         int len;
     };
 
-    vector<demofile> demos;
+    std::vector<demofile> demos;
 
     bool demonextmatch = false;
     stream *demotmp = nullptr,
@@ -57,8 +58,8 @@ namespace server
     {
         packetbuf p(MAXTRANS, ENET_PACKET_FLAG_RELIABLE);
         putint(p, NetMsg_SendDemoList);
-        putint(p, demos.length());
-        for(int i = 0; i < demos.length(); i++)
+        putint(p, demos.size());
+        for(uint i = 0; i < demos.size(); i++)
         {
             sendstring(demos[i].info, p);
         }
@@ -69,17 +70,17 @@ namespace server
     {
         if(!n)
         {
-            for(int i = 0; i < demos.length(); i++)
+            for(uint i = 0; i < demos.size(); i++)
             {
                 delete[] demos[i].data;
             }
-            demos.shrink(0);
+            demos.clear();
             sendservmsg("cleared all demos");
         }
-        else if(demos.inrange(n-1))
+        else if(demos.size() > n-1)
         {
             delete[] demos[n-1].data;
-            demos.remove(n-1);
+            demos.erase(demos.begin() + n-1);
             sendservmsgf("cleared demo %d", n);
         }
     }
@@ -116,9 +117,9 @@ namespace server
         }
         if(!num)
         {
-            num = demos.length();
+            num = demos.size();
         }
-        if(!demos.inrange(num-1))
+        if(!(demos.size() > num-1))
         {
             return;
         }
@@ -231,7 +232,7 @@ namespace server
 
     void prunedemos(int extra = 0)
     {
-        int n = clamp(demos.length() + extra - maxdemos, 0, demos.length());
+        int n = clamp(static_cast<int>(demos.size()) + extra - maxdemos, 0, static_cast<int>(demos.size()));
         if(n <= 0)
         {
             return;
@@ -240,7 +241,7 @@ namespace server
         {
             delete[] demos[i].data;
         }
-        demos.remove(0, n);
+        demos.erase(demos.begin(), demos.begin() + n);
     }
 
     void adddemo()
@@ -250,7 +251,8 @@ namespace server
             return;
         }
         int len = static_cast<int>(std::min(demotmp->size(), stream::offset((maxdemosize<<20) + 0x10000)));
-        demofile &d = demos.add();
+        demos.emplace_back();
+        demofile &d = demos.back();
         time_t t = time(nullptr);
         char *timestr = ctime(&t),
              *trim = timestr + strlen(timestr);
