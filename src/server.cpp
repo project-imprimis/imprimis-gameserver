@@ -44,7 +44,7 @@ struct client                   // server side version of "dynent" type
     void *info;
 };
 
-vector<client *> clients;
+std::vector<client *> clients;
 
 ENetHost *serverhost = nullptr;
 ENetSocket lansock = ENET_SOCKET_NULL;
@@ -60,7 +60,7 @@ bool hasnonlocalclients()
 client &addclient(int type)
 {
     client *c = nullptr;
-    for(int i = 0; i < clients.length(); i++)
+    for(uint i = 0; i < clients.size(); i++)
     {
         if(clients[i]->type==ServerClient_Empty)
         {
@@ -71,8 +71,8 @@ client &addclient(int type)
     if(!c)
     {
         c = new client;
-        c->num = clients.length();
-        clients.add(c);
+        c->num = static_cast<int>(clients.size());
+        clients.push_back(c);
     }
     c->info = server::newclientinfo();
     c->type = type;
@@ -171,17 +171,17 @@ int getservermtu()
 
 void *getclientinfo(int i)
 {
-    return !clients.inrange(i) || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
+    return !clients.size() > i || clients[i]->type==ServerClient_Empty ? nullptr : clients[i]->info;
 }
 
 ENetPeer *getclientpeer(int i)
 {
-    return clients.inrange(i) && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
+    return clients.size() > i && clients[i]->type==ServerClient_Remote ? clients[i]->peer : nullptr;
 }
 
 uint getclientip(int n)
 {
-    return clients.inrange(n) && clients[n]->type==ServerClient_Remote ? clients[n]->peer->address.host : 0;
+    return clients.size() > n && clients[n]->type==ServerClient_Remote ? clients[n]->peer->address.host : 0;
 }
 
 void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
@@ -189,7 +189,7 @@ void sendpacket(int n, int chan, ENetPacket *packet, int exclude)
     if(n<0)
     {
         server::recordpacket(chan, packet->data, packet->dataLength);
-        for(int i = 0; i < clients.length(); i++)
+        for(uint i = 0; i < clients.size(); i++)
         {
             if(i!=exclude && server::allowbroadcast(i))
             {
@@ -282,7 +282,7 @@ ENetPacket *sendfile(int cn, int chan, stream *file, const char *format, ...)
     {
         return nullptr;
     }
-    else if(!clients.inrange(cn))
+    else if(!(clients.size() > cn))
     {
         return nullptr;
     }
@@ -386,7 +386,7 @@ const char *disconnectreason(int reason)
 void disconnect_client(int n, int reason)
 {
     //don't drop local clients
-    if(!clients.inrange(n) || clients[n]->type!=ServerClient_Remote)
+    if(!(clients.size() >n) || clients[n]->type!=ServerClient_Remote)
     {
         return;
     }
@@ -409,7 +409,7 @@ void disconnect_client(int n, int reason)
 
 void kicknonlocalclients(int reason)
 {
-    for(int i = 0; i < clients.length(); i++)
+    for(uint i = 0; i < clients.size(); i++)
     {
         if(clients[i]->type==ServerClient_Remote)
         {
@@ -446,7 +446,7 @@ int lastupdatemaster = 0,
     lastconnectmaster = 0,
     masterconnecting = 0,
     masterconnected = 0;
-vector<char> masterout, masterin;
+std::vector<char> masterout, masterin;
 int masteroutpos = 0,
     masterinpos = 0;
 VARN(updatemaster, allowupdatemaster, 0, 1, 1);
@@ -458,8 +458,8 @@ void disconnectmaster()
         enet_socket_destroy(mastersock);
         mastersock = ENET_SOCKET_NULL;
     }
-    masterout.setsize(0);
-    masterin.setsize(0);
+    masterout.clear();
+    masterin.clear();
     masteroutpos = masterinpos = 0;
 
     masteraddress.host = ENET_HOST_ANY;
@@ -524,11 +524,14 @@ bool requestmaster(const char *req)
         }
         lastconnectmaster = masterconnecting = totalmillis ? totalmillis : 1;
     }
-    if(masterout.length() >= 4096)
+    if(masterout.size() >= 4096)
     {
         return false;
     }
-    masterout.put(req, strlen(req));
+    for(uint i = 0; i < strlen(req); ++i)
+    {
+        masterout.push_back(req[i]);
+    }
     return true;
 }
 
@@ -540,11 +543,11 @@ bool requestmasterf(const char *fmt, ...)
 
 void processmasterinput()
 {
-    if(masterinpos >= masterin.length())
+    if(masterinpos >= static_cast<int>(masterin.size()))
     {
         return;
     }
-    char *input = &masterin[masterinpos], *end = static_cast<char *>(memchr(input, '\n', masterin.length() - masterinpos));
+    char *input = &masterin[masterinpos], *end = static_cast<char *>(memchr(input, '\n', masterin.size() - masterinpos));
     while(end)
     {
         *end = '\0';
@@ -568,14 +571,14 @@ void processmasterinput()
             printf("master server registration succeeded\n");
         }
         end++;
-        masterinpos = end - masterin.getbuf();
+        masterinpos = end - masterin.data();
         input = end;
-        end = reinterpret_cast<char*>(memchr(input, '\n', masterin.length() - masterinpos));
+        end = reinterpret_cast<char*>(memchr(input, '\n', masterin.size() - masterinpos));
     }
 
-    if(masterinpos >= masterin.length())
+    if(masterinpos >= masterin.size())
     {
-        masterin.setsize(0);
+        masterin.clear();
         masterinpos = 0;
     }
 }
@@ -593,14 +596,14 @@ void flushmasteroutput()
     }
     ENetBuffer buf;
     buf.data = &masterout[masteroutpos];
-    buf.dataLength = masterout.length() - masteroutpos;
+    buf.dataLength = masterout.size() - masteroutpos;
     int sent = enet_socket_send(mastersock, nullptr, &buf, 1);
     if(sent >= 0)
     {
         masteroutpos += sent;
-        if(masteroutpos >= masterout.length())
+        if(masteroutpos >= masterout.size())
         {
-            masterout.setsize(0);
+            masterout.clear();
             masteroutpos = 0;
         }
     }
@@ -612,17 +615,20 @@ void flushmasteroutput()
 
 void flushmasterinput()
 {
-    if(masterin.length() >= masterin.capacity())
+    if(masterin.size() >= masterin.capacity())
     {
         masterin.reserve(4096);
     }
     ENetBuffer buf;
-    buf.data = masterin.getbuf() + masterin.length();
-    buf.dataLength = masterin.capacity() - masterin.length();
+    buf.data = masterin.data() + masterin.size();
+    buf.dataLength = masterin.capacity() - masterin.size();
     int recv = enet_socket_receive(mastersock, nullptr, &buf, 1);
     if(recv > 0)
     {
-        masterin.advance(recv);
+        for(uint i = 0; i < recv; ++i)
+        {
+            masterin.emplace_back();
+        }
         processmasterinput();
     }
     else

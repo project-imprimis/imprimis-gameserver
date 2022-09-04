@@ -295,7 +295,7 @@ namespace server
         bool connected, local, timesync;
         int gameoffset, lastevent, pushed, exceeded;
         servstate state;
-        vector<gameevent *> events;
+        std::vector<gameevent *> events;
         vector<uchar> position, messages;
         uchar *wsdata;
         int wslen;
@@ -314,7 +314,15 @@ namespace server
         char *authkickreason;
 
         clientinfo() : getdemo(nullptr), getmap(nullptr), clipboard(nullptr), authchallenge(nullptr), authkickreason(nullptr) { reset(); }
-        ~clientinfo() { events.deletecontents(); cleanclipboard();}
+        ~clientinfo()
+        {
+            for(gameevent * i : events)
+            {
+                delete i;
+            }
+            events.clear();
+            cleanclipboard();
+        }
 
         enum
         {

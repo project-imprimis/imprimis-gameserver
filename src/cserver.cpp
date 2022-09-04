@@ -70,7 +70,7 @@ namespace server
     {
         int id, atk;
         vec from, to;
-        vector<hitinfo> hits;
+        std::vector<hitinfo> hits;
 
         void process(clientinfo *ci);
     };
@@ -78,7 +78,7 @@ namespace server
     struct explodeevent : timedevent
     {
         int id, atk;
-        vector<hitinfo> hits;
+        std::vector<hitinfo> hits;
 
         bool keepable() const { return true; }
 
@@ -170,13 +170,13 @@ namespace server
 
     void clientinfo::addevent(gameevent *e)
     {
-        if(state.state==ClientState_Spectator || events.length()>100)
+        if(state.state==ClientState_Spectator || events.size()>100)
         {
             delete e;
         }
         else
         {
-            events.add(e);
+            events.push_back(e);
         }
     }
 
@@ -230,7 +230,11 @@ namespace server
     void clientinfo::mapchange()
     {
         state.reset();
-        events.deletecontents();
+        for(gameevent * i : events)
+        {
+            delete i;
+        }
+        events.clear();
         overflow = 0;
         timesync = false;
         lastevent = 0;
@@ -245,7 +249,11 @@ namespace server
     void clientinfo::reassign()
     {
         state.reassign();
-        events.deletecontents();
+        for(gameevent * i : events)
+        {
+            delete i;
+        }
+        events.clear();
         timesync = false;
         lastevent = 0;
     }
@@ -324,25 +332,29 @@ namespace server
         mastermask = MM_PRIVSERV;
     stream *mapdata = nullptr;
 
-    vector<uint> allowedips;
-    vector<ban> bannedips;
+    std::vector<uint> allowedips;
+    std::vector<ban> bannedips;
 
     void addban(uint ip, int expire)
     {
-        allowedips.removeobj(ip);
+        auto itr = std::find(allowedips.begin(), allowedips.end(), ip);
+        if(itr != allowedips.end())
+        {
+            allowedips.erase(itr);
+        }
         ban b;
         b.time = totalmillis;
         b.expire = totalmillis + expire;
         b.ip = ip;
-        for(int i = 0; i < bannedips.length(); i++)
+        for(uint i = 0; i < bannedips.size(); i++)
         {
             if(bannedips[i].expire - b.expire > 0)
             {
-                bannedips.insert(i, b);
+                bannedips.insert(bannedips.begin() + i, b);
                 return;
             }
         }
-        bannedips.add(b);
+        bannedips.push_back(b);
     }
 
     vector<clientinfo *> connects, clients, bots;
@@ -400,21 +412,26 @@ namespace server
     {
         int limit, ban;
     };
-    vector<teamkillkick> teamkillkicks;
+    std::vector<teamkillkick> teamkillkicks;
 
     void teamkillkickreset()
     {
-        teamkillkicks.setsize(0);
+        teamkillkicks.clear();
     }
 
     void addteamkillkick(char *modestr, int *limit, int *ban)
     {
-        vector<char *> modes;
+        std::vector<char *> modes;
         explodelist(modestr, modes);
-        teamkillkick &kick = teamkillkicks.add();
+        teamkillkicks.emplace_back();
+        teamkillkick &kick = teamkillkicks.back();
         kick.limit = *limit;
         kick.ban = *ban > 0 ? *ban*60000 : (*ban < 0 ? 0 : 30*60000);
-        modes.deletearrays();
+        for(char * i : modes)
+        {
+            delete[] i;
+        }
+        modes.clear();
     }
 
     COMMAND(teamkillkickreset, "");
@@ -425,7 +442,7 @@ namespace server
         uint ip;
         int teamkills;
     };
-    vector<teamkillinfo> teamkills;
+    std::vector<teamkillinfo> teamkills;
     bool shouldcheckteamkills = false;
 
     void addteamkill(clientinfo *actor, clientinfo *victim, int n)
@@ -436,7 +453,7 @@ namespace server
         }
         shouldcheckteamkills = true;
         uint ip = getclientip(actor->clientnum);
-        for(int i = 0; i < teamkills.length(); i++)
+        for(uint i = 0; i < teamkills.size(); i++)
         {
             if(teamkills[i].ip == ip)
             {
@@ -444,7 +461,8 @@ namespace server
                 return;
             }
         }
-        teamkillinfo &tk = teamkills.add();
+        teamkills.emplace_back();
+        teamkillinfo &tk = teamkills.back();
         tk.ip = ip;
         tk.teamkills = n;
     }
@@ -452,13 +470,13 @@ namespace server
     void checkteamkills() //players who do too many teamkills may get kicked from the server
     {
         teamkillkick *kick = nullptr;
-        for(int i = 0; i < teamkillkicks.length(); i++)
+        for(uint i = 0; i < teamkillkicks.size(); i++)
         {
             kick = &teamkillkicks[i];
         }
         if(kick)
         {
-            for(int i = teamkills.length(); --i >=0;) //note reverse iteration
+            for(int i = teamkills.size(); --i >=0;) //note reverse iteration
             {
                 teamkillinfo &tk = teamkills[i];
                 if(tk.teamkills >= kick->limit)
@@ -468,7 +486,7 @@ namespace server
                         addban(tk.ip, kick->ban);
                     }
                     kickclients(tk.ip);
-                    teamkills.removeunordered(i);
+                    teamkills.erase(teamkills.begin() + i);
                 }
             }
         }
@@ -495,8 +513,8 @@ namespace server
     }
 
     uint mcrc = 0;
-    vector<server_entity> sents;
-    vector<savedscore> scores;
+    std::vector<server_entity> sents;
+    std::vector<savedscore> scores;
 
     int msgsizelookup(int msg)
     {
@@ -544,7 +562,7 @@ namespace server
     void resetitems()
     {
         mcrc = 0;
-        sents.setsize(0);
+        sents.clear();
         //cps.reset();
     }
 
@@ -964,7 +982,7 @@ namespace server
         if(!hasmaster)
         {
             mastermode = MasterMode_Open;
-            allowedips.shrink(0);
+            allowedips.clear();
         }
         string msg;
         if(val && authname)
@@ -1078,7 +1096,7 @@ namespace server
                 }
             }
         }
-        for(int i = 0; i < scores.length(); i++)
+        for(uint i = 0; i < scores.size(); i++)
         {
             savedscore &sc = scores[i];
             if(sc.ip == ip && !strcmp(sc.name, ci->name))
@@ -1090,7 +1108,8 @@ namespace server
         {
             return 0;
         }
-        savedscore &sc = scores.add();
+        scores.emplace_back();
+        savedscore &sc = scores.back();
         sc.ip = ip;
         copystring(sc.name, ci->name);
         return &sc;
@@ -1231,12 +1250,12 @@ namespace server
             return p >= data && p < &data[len];
         }
     };
-    vector<worldstate> worldstates;
+    std::vector<worldstate> worldstates;
     bool reliablemessages = false;
 
     void cleanworldstate(ENetPacket *packet)
     {
-        for(int i = 0; i < worldstates.length(); i++)
+        for(uint i = 0; i < worldstates.size(); i++)
         {
             worldstate &ws = worldstates[i];
             if(!ws.contains(packet->data))
@@ -1247,7 +1266,7 @@ namespace server
             if(ws.uses <= 0)
             {
                 ws.cleanup();
-                worldstates.removeunordered(i);
+                worldstates.erase(worldstates.begin() + i);
             }
             break;
         }
@@ -1409,7 +1428,8 @@ namespace server
             reliablemessages = false;
             return false;
         }
-        worldstate &ws = worldstates.add();
+        worldstates.emplace_back();
+        worldstate &ws = worldstates.back();
         ws.setup(2*wsmax);
         int mtu = getservermtu() - 100;
         if(mtu <= 0)
@@ -1451,7 +1471,7 @@ namespace server
             return true;
         }
         ws.cleanup();
-        worldstates.drop();
+        worldstates.pop_back();
         return false;
     }
 
@@ -1568,7 +1588,7 @@ namespace server
         if(!notgotitems)
         {
             putint(p, NetMsg_ItemList);
-            for(int i = 0; i < sents.length(); i++)
+            for(uint i = 0; i < sents.size(); i++)
             {
                 if(sents[i].spawned)
                 {
@@ -1721,9 +1741,9 @@ namespace server
         interm = 0;
         nextexceeded = 0;
         copystring(smapname, s);
-        scores.shrink(0);
+        scores.clear();
         shouldcheckteamkills = false;
-        teamkills.shrink(0);
+        teamkills.clear();
         for(int i = 0; i < clients.length(); i++)
         {
             clientinfo *ci = clients[i];
@@ -1911,7 +1931,7 @@ namespace server
                 return;
         }
         sendf(-1, 1, "ri4x", NetMsg_ExplodeFX, ci->clientnum, atk, id, ci->ownernum);
-        for(int i = 0; i < hits.length(); i++)
+        for(uint i = 0; i < hits.size(); i++)
         {
             hitinfo &h = hits[i];
             clientinfo *target = getinfo(h.target);
@@ -1976,7 +1996,7 @@ namespace server
             {
                 int totalrays = 0,
                     maxrays = attacks[atk].rays;
-                for(int i = 0; i < hits.length(); i++)
+                for(uint i = 0; i < hits.size(); i++)
                 {
                     hitinfo &h = hits[i];
                     clientinfo *target = getinfo(h.target);
@@ -2019,12 +2039,13 @@ namespace server
 
     void clearevent(clientinfo *ci)
     {
-        delete ci->events.remove(0);
+        delete ci->events.at(0);
+        ci->events.erase(ci->events.begin());
     }
 
     void flushevents(clientinfo *ci, int millis)
     {
-        while(ci->events.length())
+        while(ci->events.size())
         {
             gameevent *ev = ci->events[0];
             if(ev->flush(ci, millis))
@@ -2050,7 +2071,7 @@ namespace server
     void cleartimedevents(clientinfo *ci)
     {
         int keep = 0;
-        for(int i = 0; i < ci->events.length(); i++)
+        for(uint i = 0; i < ci->events.size(); i++)
         {
             if(ci->events[i]->keepable())
             {
@@ -2060,16 +2081,17 @@ namespace server
                     {
                         delete ci->events[j];
                     }
-                    ci->events.remove(keep, i - keep);
+                    ci->events.erase(ci->events.begin() + keep,ci->events.begin() + (i - keep));
                     i = keep;
                 }
                 keep = i+1;
                 continue;
             }
         }
-        while(ci->events.length() > keep)
+        while(ci->events.size() > keep)
         {
-            delete ci->events.pop();
+            delete ci->events.back();
+            ci->events.pop_back();
         }
         ci->timesync = false;
     }
@@ -2095,7 +2117,7 @@ namespace server
                 processevents(); //foreach client flushevents (handle events & clear?)
                 if(curtime)
                 {
-                    for(int i = 0; i < sents.length(); i++)
+                    for(uint i = 0; i < sents.size(); i++)
                     {
                         if(sents[i].spawntime) // spawn entities when timer reached
                         {
@@ -2116,7 +2138,7 @@ namespace server
         ////////// This section is run regardless of whether there are people are online //////////
         //         (though the loop over `connects` will always be empty with nobody on)
 
-        while(bannedips.length() && bannedips[0].expire-totalmillis <= 0) bannedips.remove(0); //clear expired ip bans if there are any
+        while(bannedips.size() && bannedips[0].expire-totalmillis <= 0) bannedips.erase(bannedips.begin()); //clear expired ip bans if there are any
         for(int i = 0; i < connects.length(); i++)
         {
             if(totalmillis-connects[i]->connectmillis>15000)
@@ -2346,7 +2368,7 @@ namespace server
 
     void noclients()
     {
-        bannedips.shrink(0);
+        bannedips.clear();
         aiman::clearai();
     }
 
@@ -2404,16 +2426,16 @@ namespace server
 
     struct banlist
     {
-        vector<ipmask> bans;
+        std::vector<ipmask> bans;
 
         void clear()
         {
-            bans.shrink(0);
+            bans.clear();
         }
 
         bool check(uint ip)
         {
-            for(int i = 0; i < bans.length(); i++)
+            for(uint i = 0; i < bans.size(); i++)
             {
                 if(bans[i].check(ip))
                 {
@@ -2427,7 +2449,7 @@ namespace server
         {
             ipmask ban;
             ban.parse(ipname);
-            bans.add(ban);
+            bans.push_back(ban);
 
             verifybans();
         }
@@ -2435,7 +2457,7 @@ namespace server
 
     bool checkbans(uint ip)
     {
-        for(int i = 0; i < bannedips.length(); i++)
+        for(uint i = 0; i < bannedips.size(); i++)
         {
             if(bannedips[i].ip==ip)
             {
@@ -2494,7 +2516,7 @@ namespace server
         {
             return Discon_IPBan;
         }
-        if(mastermode>=MasterMode_Private && allowedips.find(ip)<0)
+        if(mastermode>=MasterMode_Private && std::find(allowedips.begin(), allowedips.end(), ip) != allowedips.end())
         {
             return Discon_Private;
         }
@@ -2819,7 +2841,7 @@ namespace server
                     {
                         ci->state.editstate = ci->state.state;
                         ci->state.state = ClientState_Editing;
-                        ci->events.setsize(0);
+                        ci->events.clear();
                         ci->state.projs.reset();
                     }
                     else
@@ -2964,7 +2986,8 @@ namespace server
                         {
                             break;
                         }
-                        hitinfo &hit = shot->hits.add();
+                        shot->hits.emplace_back();
+                        hitinfo &hit = shot->hits.back();
                         hit.target = getint(p);
                         hit.lifesequence = getint(p);
                         hit.dist = getint(p)/DMF;
@@ -2999,7 +3022,8 @@ namespace server
                         {
                             break;
                         }
-                        hitinfo &hit = exp->hits.add();
+                        exp->hits.emplace_back();
+                        hitinfo &hit = exp->hits.back();
                         hit.target = getint(p);
                         hit.lifesequence = getint(p);
                         hit.dist = getint(p)/DMF;
@@ -3125,9 +3149,9 @@ namespace server
                     while((n = getint(p))>=0 && n<MAXENTS && !p.overread())
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.length()<=n)
+                        while(static_cast<int>(sents.size())<=n)
                         {
-                            sents.add(se);
+                            sents.push_back(se);
                         }
                         sents[n].type = getint(p);
                         if(canspawnitem(sents[n].type))
@@ -3163,12 +3187,12 @@ namespace server
                     }
                     QUEUE_MSG;
                     bool canspawn = canspawnitem(type);
-                    if(i<MAXENTS && (sents.inrange(i) || canspawnitem(type)))
+                    if(i<MAXENTS && (sents.size() > i || canspawnitem(type)))
                     {
                         server_entity se = { 0, 0, false };
-                        while(sents.length()<=i)
+                        while(static_cast<int>(sents.size())<=i)
                         {
-                            sents.add(se);
+                            sents.push_back(se);
                         }
                         sents[i].type = type;
                         if(canspawn ? !sents[i].spawned : (sents[i].spawned || sents[i].spawntime))
@@ -3233,12 +3257,12 @@ namespace server
                         if((ci->privilege>=Priv_Admin || ci->local) || (mastermask&(1<<mm)))
                         {
                             mastermode = mm;
-                            allowedips.shrink(0);
+                            allowedips.clear();
                             if(mm>=MasterMode_Private)
                             {
                                 for(int i = 0; i < clients.length(); i++)
                                 {
-                                    allowedips.add(getclientip(clients[i]->clientnum));
+                                    allowedips.push_back(getclientip(clients[i]->clientnum));
                                 }
                             }
                             sendf(-1, 1, "rii", NetMsg_MasterMode, mastermode);
@@ -3255,7 +3279,7 @@ namespace server
                 {
                     if(ci->privilege || ci->local)
                     {
-                        bannedips.shrink(0);
+                        bannedips.clear();
                         sendservmsg("cleared all bans");
                     }
                     break;

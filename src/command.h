@@ -80,7 +80,7 @@ struct ident
     virtual void changed() { if(fun) fun(); }
 };
 extern void intret(int v);
-void explodelist(const char *s, vector<char *> elems);
+void explodelist(const char *s, std::vector<char *> elems);
 
 // nasty macros for registering script functions, abuses globals to avoid excessive infrastructure
 #define COMMANDN(name, fun, nargs) static bool __dummy_##fun = addcommand(#name, (void (*)())fun, nargs)
