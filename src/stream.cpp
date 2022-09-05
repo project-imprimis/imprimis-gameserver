@@ -1,6 +1,7 @@
 #include "engine.h"
 
 #include <cmath>
+#include <vector>
 
 #include <string.h>
 #include <stdio.h>

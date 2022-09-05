@@ -25,9 +25,9 @@
 //return true if #bots was changed
 bool balancebots(int num)
 {
-    int curnum = server::clients.length();
+    int curnum = server::clients.size();
     //remove from curnum any clients that are spectating
-    for(int i = 0; i < server::clients.length(); ++i)
+    for(int i = 0; i < server::clients.size(); ++i)
     {
         if(server::clients[i]->state.state == ClientState_Spectator)
         {

@@ -48,7 +48,12 @@ static inline void putint_(T &p, int n)
 }
 void putint(ucharbuf &p, int n) { putint_(p, n); }
 void putint(packetbuf &p, int n) { putint_(p, n); }
-void putint(vector<uchar> &p, int n) { putint_(p, n); }
+void putint(std::vector<uchar> &p, int n)
+{
+    if(n<128 && n>-127) p.push_back(n);
+    else if(n<0x8000 && n>=-0x8000) { p.push_back(0x80); p.push_back(n); p.push_back(n>>8); }
+    else { p.push_back(0x81); p.push_back(n); p.push_back(n>>8); p.push_back(n>>16); p.push_back(n>>24); }
+}
 
 int getint(ucharbuf &p)
 {
@@ -119,7 +124,7 @@ static inline void sendstring_(const char *t, T &p)
 }
 void sendstring(const char *t, ucharbuf &p) { sendstring_(t, p); }
 void sendstring(const char *t, packetbuf &p) { sendstring_(t, p); }
-void sendstring(const char *t, vector<uchar> &p) { sendstring_(t, p); }
+void sendstring(const char *t, std::vector<uchar> &p) { sendstring_(t, p); }
 
 void getstring(char *text, ucharbuf &p, size_t len)
 {

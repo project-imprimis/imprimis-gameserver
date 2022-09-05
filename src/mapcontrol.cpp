@@ -64,7 +64,7 @@ void calcscores()
         lastround = totalsecs;
         server::pausegame(false);
         sendf(-1, 1, "rii", NetMsg_GetRoundTimer, 1000*maxgametime); //send the time the next round will end at
-        for(int i = 0; i < server::clients.length(); ++i)
+        for(int i = 0; i < server::clients.size(); ++i)
         {
             server::clients[i]->state.respawn();
             server::sendspawn(server::clients[i]);
@@ -74,7 +74,7 @@ void calcscores()
 
     //calc how many non-bots are alive
     uint humansalive = 0;
-    for(int i = 0; i < server::clients.length(); ++i)
+    for(int i = 0; i < server::clients.size(); ++i)
     {
         if(server::clients[i]->clientnum <= 127 && server::clients[i]->state.state == ClientState_Alive)
         {
@@ -82,7 +82,7 @@ void calcscores()
         }
     }
 
-    for(int i = 0; i < server::clients.length(); ++i)
+    for(int i = 0; i < server::clients.size(); ++i)
     {
         if(server::clients[i] != nullptr)
         {
@@ -139,7 +139,7 @@ void calcscores()
         printf("Tean 1 has died\n");
         server::teaminfos[1].score += 1; //add score to team 2
         //now award all alive players on other team 1 point for living
-        for(int j = 0; j < server::clients.length(); ++j)
+        for(int j = 0; j < server::clients.size(); ++j)
         {
             if(server::clients[j] != nullptr)
             {
@@ -158,7 +158,7 @@ void calcscores()
         server::teaminfos[0].score += 1; //add score to team 1
 
         //now award all alive players on other team 1 point for living
-        for(int j = 0; j < server::clients.length(); ++j)
+        for(int j = 0; j < server::clients.size(); ++j)
         {
             if(server::clients[j] != nullptr)
             {
@@ -174,7 +174,7 @@ void calcscores()
     {
         server::pausegame(true);
         lastround = totalsecs;
-        for(int i = 0; i < server::clients.length(); ++i)
+        for(int i = 0; i < server::clients.size(); ++i)
         {
             server::clients[i]->state.respawn();
             server::sendspawn(server::clients[i]);
@@ -188,7 +188,7 @@ void calcscores()
 
 void sendscore()
 {
-    for(int i = 0; i < server::clients.length(); i++)
+    for(int i = 0; i < server::clients.size(); i++)
     {
         if(server::clients[i] != nullptr)
         {

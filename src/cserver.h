@@ -296,10 +296,10 @@ namespace server
         int gameoffset, lastevent, pushed, exceeded;
         servstate state;
         std::vector<gameevent *> events;
-        vector<uchar> position, messages;
+        std::vector<uchar> position, messages;
         uchar *wsdata;
         int wslen;
-        vector<clientinfo *> bots;
+        std::vector<clientinfo *> bots;
         int ping, aireinit;
         string clientmap;
         int mapcrc;
@@ -357,7 +357,7 @@ namespace server
     extern void sendwelcome(clientinfo *ci);
     extern int welcomepacket(packetbuf &p, clientinfo *ci);
 
-    extern vector<clientinfo *> clients;
+    extern std::vector<clientinfo *> clients;
     extern int gamemillis;
     extern string smapname;
     extern teaminfo teaminfos[MAXTEAMS];

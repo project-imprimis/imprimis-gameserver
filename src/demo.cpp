@@ -87,7 +87,7 @@ namespace server
 
     void freegetmap(ENetPacket *packet)
     {
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->getmap == packet)
@@ -99,7 +99,7 @@ namespace server
 
     static void freegetdemo(ENetPacket *packet)
     {
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             clientinfo *ci = clients[i];
             if(ci->getdemo == packet)
@@ -138,14 +138,14 @@ namespace server
         }
         DELETEP(demoplayback);
 
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             sendf(clients[i]->clientnum, 1, "ri3", NetMsg_DemoPlayback, 0, clients[i]->clientnum);
         }
 
         sendservmsg("demo playback finished");
 
-        for(int i = 0; i < clients.length(); i++)
+        for(int i = 0; i < clients.size(); i++)
         {
             sendwelcome(clients[i]);
         }
