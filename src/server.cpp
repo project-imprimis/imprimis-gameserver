@@ -946,7 +946,7 @@ bool setuplistenserver()
 
 void initserver(bool listen)
 {
-    exec("../config/server-init.cfg");
+    exec("../../config/server-init.cfg");
     if(listen)
     {
         setuplistenserver();
