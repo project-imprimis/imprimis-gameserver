@@ -1822,6 +1822,11 @@ namespace server
 
     void dodamage(clientinfo *target, clientinfo *actor, int damage, int atk, const vec &hitpush = vec(0, 0, 0))
     {
+        //don't do damage if the actor is a bot, is on the same team, and that team is not neutral (0)
+        if(target->team == actor->team && target->team != 0 && std::find(bots.begin(), bots.end(), actor) != bots.end())
+        {
+            return;
+        }
         servstate &ts = target->state;
         ts.dodamage(damage);
         if(target!=actor && !modecheck(gamemode, Mode_Team) && target->team != actor->team)
