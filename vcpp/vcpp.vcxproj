@@ -58,6 +58,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\botbalance.cpp" />
+    <ClCompile Include="..\src\demo.cpp" />
     <ClCompile Include="..\src\command.cpp" />
     <ClCompile Include="..\src\cserver.cpp" />
     <ClCompile Include="..\src\mapcontrol.cpp" />
@@ -66,6 +68,8 @@
     <ClCompile Include="..\src\tools.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\botbalance.h" />
+    <ClInclude Include="..\src\demo.h" />
     <ClInclude Include="..\src\command.h" />
     <ClInclude Include="..\src\engine.h" />
     <ClInclude Include="..\src\game.h" />
