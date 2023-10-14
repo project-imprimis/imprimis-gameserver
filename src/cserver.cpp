@@ -9,6 +9,7 @@
 #include <time.h>
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 
 #include <enet/enet.h>
 #include <zlib.h>
@@ -37,6 +38,38 @@
 
 extern ENetAddress masteraddress;
 
+struct userkey
+{
+    char *name;
+    char *desc;
+
+    userkey() : name(nullptr), desc(nullptr) {}
+    userkey(char *name, char *desc) : name(name), desc(desc) {}
+
+    bool operator==(const userkey &y) const
+    {
+        return !strcmp(name, y.name) && !strcmp(desc, y.desc);
+    }
+};
+
+template<>
+struct std::hash<userkey>
+{
+    size_t operator()(const userkey &key) const
+    {
+        uint h = 5381;
+        for(int i = 0, k; (k = key.name[i]); i++)
+        {
+            h = ((h<<5)+h)^k;    // bernstein k=33 xor
+        }
+        return h;
+    }
+};
+
+inline uint hthash(const char *key)
+{
+
+}
 namespace server
 {
     struct server_entity            // server side version of "entity" type
@@ -855,18 +888,6 @@ namespace server
 
     SVAR(serverauth, "");
 
-    struct userkey
-    {
-        char *name;
-        char *desc;
-
-        userkey() : name(nullptr), desc(nullptr) {}
-        userkey(char *name, char *desc) : name(name), desc(desc) {}
-    };
-
-    static inline uint hthash(const userkey &k) { return ::hthash(k.name); }
-    static inline bool htcmp(const userkey &x, const userkey &y) { return !strcmp(x.name, y.name) && !strcmp(x.desc, y.desc); }
-
     struct userinfo : userkey
     {
         void *pubkey;
@@ -875,7 +896,7 @@ namespace server
         userinfo() : pubkey(nullptr), privilege(Priv_None) {}
         ~userinfo() { delete[] name; delete[] desc;}
     };
-    hashset<userinfo> users;
+    std::unordered_map<userkey, userinfo> users;
 
     void adduser(char *name, char *desc, char *pubkey, char *priv)
     {
@@ -3530,10 +3551,10 @@ namespace server
                     int authpriv = Priv_Auth;
                     if(desc[0])
                     {
-                        userinfo *u = users.access(userkey(name, desc));
-                        if(u)
+                        auto itr = users.find(userkey(name, desc));
+                        if(itr != users.end())
                         {
-                            authpriv = u->privilege;
+                            authpriv = (*itr).second.privilege;
                         }
                         else
                         {
