@@ -136,7 +136,7 @@ void calcscores()
     //so now we check if either team is all dead
     if(team1size == team1dead || totalsecs - lastround >= maxgametime) //team 1 is all dead, or timer has run out
     {
-        printf("Tean 1 has died\n");
+        printf("Team 1 has died\n");
         server::teaminfos[1].score += 1; //add score to team 2
         //now award all alive players on other team 1 point for living
         for(int j = 0; j < server::clients.size(); ++j)
